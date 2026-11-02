@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import Portal from '../widgets/Portal';
 import axios from 'axios';
 import { m, AnimatePresence } from 'framer-motion';
-import { 
-    Truck, X, Clock, CheckCircle2, MapPin, Phone, Calendar, Search, 
-    ExternalLink, PackageSearch, RefreshCcw, Plus, Minus, Check, ChevronDown, 
+import {
+    Truck, X, Clock, CheckCircle2, MapPin, Phone, Calendar, Search,
+    ExternalLink, PackageSearch, RefreshCcw, Plus, Minus, Check, ChevronDown,
     ChevronUp, AlertCircle, ShoppingBag, ArrowUpRight, ArrowRight, User
 } from 'lucide-react';
 import { formatDate, formatNumber, cn } from '../../lib/utils';
@@ -96,7 +96,7 @@ export default function ShippingPanel({ isOpen, onClose, onViewOrder }) {
                 bc.postMessage({ type: 'SYNC_ORDERS' });
                 bc.postMessage({ type: 'SYNC_PRODUCTS' });
                 bc.close();
-            } catch (e) {}
+            } catch (e) { }
         } catch (err) {
             console.error("Error updating shipping status:", err);
             toast.error("Không thể cập nhật trạng thái.");
@@ -127,7 +127,7 @@ export default function ShippingPanel({ isOpen, onClose, onViewOrder }) {
                 bc.postMessage({ type: 'SYNC_ORDERS' });
                 bc.postMessage({ type: 'SYNC_PRODUCTS' });
                 bc.close();
-            } catch (e) {}
+            } catch (e) { }
             toast.success("Cập nhật số lượng & tồn kho thành công!", { id: loadingToast });
         } catch (err) {
             console.error("Error updating item shipped qty:", err);
@@ -332,8 +332,8 @@ export default function ShippingPanel({ isOpen, onClose, onViewOrder }) {
                                                                     packedPct === 100
                                                                         ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
                                                                         : packedPct > 0
-                                                                        ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
-                                                                        : "bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400"
+                                                                            ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                                                                            : "bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400"
                                                                 )}>
                                                                     Bốc {packedCount}/{totalCount} ({packedPct}%)
                                                                 </span>

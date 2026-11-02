@@ -886,8 +886,18 @@ const SpotlightStudio = React.memo(function SpotlightStudio({
     handleSend,
     isSendingAnim,
     isLoading,
-    fontSize
+    fontSize,
+    isAdmin: propIsAdmin
 }) {
+    const isAdmin = useMemo(() => {
+        if (typeof propIsAdmin === 'boolean') return propIsAdmin;
+        try {
+            const u = JSON.parse(sessionStorage.getItem('user') || '{}');
+            return checkIsAdmin(u?.role);
+        } catch (e) {
+            return false;
+        }
+    }, [propIsAdmin]);
     const mascotName = (mascot?.name && !mascot.name.includes('Lyang')) ? mascot.name : 'Lí An';
     const mascotAvatar = mascot?.avatar || '/mascots/avatar-lyang.webp';
 
@@ -902,7 +912,7 @@ const SpotlightStudio = React.memo(function SpotlightStudio({
                 chips: [
                     { icon: DollarSign, iconColor: 'text-emerald-600 dark:text-emerald-400', label: 'Vốn tồn kho', query: 'Tổng vốn lưu động đang nằm trong kho là bao nhiêu tiền và những mặt hàng nào đang giam vốn nhiều nhất?' },
                     { icon: Crown, iconColor: 'text-amber-500 dark:text-amber-400', label: 'Khách VIP nợ', query: 'Những khách hàng nào mua nhiều tiền nhất từ trước đến nay và tình hình công nợ của họ ra sao?' },
-                    { icon: TrendingUp, iconColor: 'text-blue-600 dark:text-blue-400', label: 'Doanh thu tháng', query: 'So sánh tổng kết doanh thu, số đơn và lợi nhuận gộp của tháng này với tháng trước?' },
+                    ...(isAdmin ? [{ icon: TrendingUp, iconColor: 'text-blue-600 dark:text-blue-400', label: 'Doanh thu tháng', query: 'So sánh tổng kết doanh thu, số đơn và lợi nhuận gộp của tháng này với tháng trước?' }] : []),
                     { icon: Clock, iconColor: 'text-rose-500 dark:text-rose-400', label: 'Hàng cận date', query: 'Có những sản phẩm nào sắp hết hạn sử dụng hoặc tồn kho thấp hơn mức cảnh báo không?' }
                 ],
                 tiles: [
@@ -5225,6 +5235,7 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                                                 className="w-full flex-1 flex flex-col justify-center"
                                             >
                                                 <SpotlightStudio
+                                                    isAdmin={isAdmin}
                                                     mascot={activeMascot}
                                                     activeMode={activeMode}
                                                     isDoctorOnly={isDoctorOnly}

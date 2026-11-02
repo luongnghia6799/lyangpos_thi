@@ -166,26 +166,26 @@ export default function ShippingPanel({ isOpen, onClose, onViewOrder }) {
                             animate={{ x: 0, opacity: 1 }}
                             exit={{ x: '100%', opacity: 0 }}
                             transition={{ type: "spring", damping: 28, stiffness: 260 }}
-                            className="relative w-full max-w-[620px] h-full bg-[#fbf9f4] dark:bg-[#1a1e17] flex flex-col border-l-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 shadow-2xl text-slate-800 dark:text-slate-100 select-none"
+                            className="relative w-full max-w-[620px] h-full bg-[#fbfbf9] dark:bg-[#151914] flex flex-col border-l border-black/10 dark:border-white/10 shadow-2xl text-slate-800 dark:text-slate-100 select-none"
                         >
                             {/* Header */}
-                            <div className="p-4.5 border-b-2 border-[#8b6f47]/20 dark:border-[#d4a574]/20 bg-[#f4eee1]/80 dark:bg-[#151913]/90 backdrop-blur-md flex justify-between items-center shrink-0">
+                            <div className="p-4 px-5 border-b border-black/5 dark:border-white/10 bg-white/80 dark:bg-black/20 backdrop-blur-md flex justify-between items-center shrink-0">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-11 h-11 bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white rounded-2xl flex items-center justify-center border-2 border-[#2d5016] dark:border-emerald-400 shadow-md shadow-[#2d5016]/20">
-                                        <Truck size={22} strokeWidth={2.5} />
+                                    <div className="w-10 h-10 bg-emerald-600 text-white rounded-2xl flex items-center justify-center shadow-md shadow-emerald-600/20">
+                                        <Truck size={20} strokeWidth={2.5} />
                                     </div>
                                     <div>
                                         <div className="flex items-center gap-2">
-                                            <h3 className="font-black text-lg text-[#2d5016] dark:text-emerald-400 uppercase tracking-tight leading-none">
+                                            <h3 className="font-black text-base text-slate-900 dark:text-white uppercase tracking-tight leading-none">
                                                 QUẢN LÝ GIAO HÀNG
                                             </h3>
                                         </div>
-                                        <div className="flex items-center gap-2.5 mt-1.5">
-                                            <div className="flex items-center gap-1.5 bg-emerald-500/15 dark:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/30 text-[10px] font-black tracking-wider">
+                                        <div className="flex items-center gap-2 mt-1.5">
+                                            <div className="flex items-center gap-1.5 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wider">
                                                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                                                 {shippingCount} ĐANG GIAO
                                             </div>
-                                            <div className="flex items-center gap-1.5 bg-blue-500/15 dark:bg-blue-500/20 text-blue-800 dark:text-blue-300 px-2 py-0.5 rounded-full border border-blue-500/30 text-[10px] font-black tracking-wider">
+                                            <div className="flex items-center gap-1.5 bg-blue-500/10 text-blue-700 dark:text-blue-300 px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wider">
                                                 <span className="w-2 h-2 rounded-full bg-blue-500" />
                                                 {deliveredCount} ĐÃ GIAO
                                             </div>
@@ -193,28 +193,30 @@ export default function ShippingPanel({ isOpen, onClose, onViewOrder }) {
                                     </div>
                                 </div>
                                 <button
+                                    type="button"
                                     onClick={onClose}
-                                    className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/70 dark:bg-white/10 hover:bg-rose-500 hover:text-white text-slate-500 dark:text-slate-300 border border-[#8b6f47]/20 dark:border-white/10 transition-all cursor-pointer shadow-xs active:scale-95"
+                                    className="w-9 h-9 flex items-center justify-center rounded-2xl bg-black/[0.03] dark:bg-white/5 hover:bg-rose-500 hover:text-white text-slate-400 dark:text-slate-300 transition-all cursor-pointer active:scale-95"
                                     title="Đóng (Esc)"
                                 >
-                                    <X size={18} strokeWidth={2.5} />
+                                    <X size={17} strokeWidth={2.5} />
                                 </button>
                             </div>
 
                             {/* Search & Tabs Filter Bar */}
-                            <div className="p-4 space-y-3 bg-[#fbf9f4] dark:bg-[#1a1e17] border-b border-[#8b6f47]/15 dark:border-white/10">
+                            <div className="p-4 space-y-3 bg-[#fbfbf9] dark:bg-[#151914] border-b border-black/5 dark:border-white/10">
                                 <div className="flex gap-2.5">
                                     <div className="relative flex-1 group">
-                                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8b6f47] dark:text-[#d4a574] group-focus-within:text-[#2d5016] dark:group-focus-within:text-emerald-400 transition-colors" size={17} />
+                                        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-600 transition-colors" size={16} />
                                         <input
                                             type="text"
                                             placeholder="Tìm mã đơn, tên khách, SĐT, địa chỉ..."
-                                            className="w-full h-10.5 pl-10 pr-9 bg-white dark:bg-slate-900/80 border-2 border-[#8b6f47]/25 dark:border-white/10 focus:border-[#2d5016] dark:focus:border-emerald-400 rounded-xl text-xs font-bold text-slate-800 dark:text-white placeholder:text-slate-400 outline-none transition-all shadow-inner"
+                                            className="w-full h-10.5 pl-10 pr-9 bg-white dark:bg-white/[0.04] border border-black/10 dark:border-white/10 focus:border-emerald-500 dark:focus:border-emerald-400 rounded-2xl text-xs font-bold text-slate-800 dark:text-white placeholder:text-slate-400 outline-none transition-all shadow-2xs"
                                             value={searchTerm}
                                             onChange={(e) => setSearchTerm(e.target.value)}
                                         />
                                         {searchTerm && (
                                             <button
+                                                type="button"
                                                 onClick={() => setSearchTerm('')}
                                                 className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-rose-500"
                                             >
@@ -223,10 +225,10 @@ export default function ShippingPanel({ isOpen, onClose, onViewOrder }) {
                                         )}
                                     </div>
                                     <div className="relative w-38 group">
-                                        <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8b6f47] dark:text-[#d4a574] pointer-events-none" size={15} />
+                                        <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={15} />
                                         <input
                                             type="date"
-                                            className="w-full h-10.5 pl-8.5 pr-2 bg-white dark:bg-slate-900/80 border-2 border-[#8b6f47]/25 dark:border-white/10 focus:border-[#2d5016] dark:focus:border-emerald-400 rounded-xl text-[11px] font-black uppercase text-slate-800 dark:text-white outline-none transition-all shadow-inner"
+                                            className="w-full h-10.5 pl-9 pr-2 bg-white dark:bg-white/[0.04] border border-black/10 dark:border-white/10 focus:border-emerald-500 dark:focus:border-emerald-400 rounded-2xl text-[11px] font-black uppercase text-slate-800 dark:text-white outline-none transition-all shadow-2xs"
                                             value={filterDate}
                                             onChange={(e) => setFilterDate(e.target.value)}
                                             title="Lọc ngày nhận hàng"
@@ -234,7 +236,7 @@ export default function ShippingPanel({ isOpen, onClose, onViewOrder }) {
                                     </div>
                                 </div>
 
-                                <div className="flex bg-black/5 dark:bg-black/40 p-1 rounded-xl border border-[#8b6f47]/15 dark:border-white/10 gap-1.5">
+                                <div className="flex bg-black/[0.03] dark:bg-white/[0.04] p-1 rounded-2xl border border-black/[0.04] dark:border-white/[0.06] gap-1.5">
                                     {[
                                         { label: `Đang giao (${shippingCount})`, value: 'Shipping', icon: Clock },
                                         { label: `Đã giao (${deliveredCount})`, value: 'Delivered', icon: CheckCircle2 },
@@ -244,12 +246,13 @@ export default function ShippingPanel({ isOpen, onClose, onViewOrder }) {
                                         return (
                                             <button
                                                 key={tab.value}
+                                                type="button"
                                                 onClick={() => setActiveTab(tab.value)}
                                                 className={cn(
-                                                    "flex-1 py-2 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer",
+                                                    "flex-1 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer",
                                                     isActive
-                                                        ? "bg-gradient-to-r from-[#2d5016] to-emerald-700 text-white shadow-md shadow-[#2d5016]/25 border border-emerald-400/30"
-                                                        : "text-[#8b6f47] dark:text-[#d4a574] hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-white/5"
+                                                        ? "bg-white dark:bg-white/10 text-emerald-800 dark:text-emerald-300 shadow-sm border border-black/[0.04] dark:border-white/10"
+                                                        : "text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
                                                 )}
                                             >
                                                 <tab.icon size={13} strokeWidth={2.5} />
@@ -261,15 +264,15 @@ export default function ShippingPanel({ isOpen, onClose, onViewOrder }) {
                             </div>
 
                             {/* Order Cards List */}
-                            <div className="flex-1 overflow-y-auto custom-scrollbar p-3.5 space-y-3.5 bg-transparent">
+                            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3.5 bg-transparent">
                                 {loading ? (
-                                    <div className="flex flex-col items-center justify-center py-28 text-[#8b6f47] dark:text-emerald-400">
-                                        <div className="w-10 h-10 border-3 border-[#2d5016] dark:border-emerald-400 border-t-transparent rounded-full animate-spin mb-3" />
+                                    <div className="flex flex-col items-center justify-center py-28 text-emerald-600 dark:text-emerald-400">
+                                        <div className="w-10 h-10 border-3 border-emerald-600 dark:border-emerald-400 border-t-transparent rounded-full animate-spin mb-3" />
                                         <span className="font-black text-xs uppercase tracking-[0.2em]">Đang nạp đơn giao hàng...</span>
                                     </div>
                                 ) : filteredOrders.length === 0 ? (
                                     <div className="text-center py-24 text-slate-400 dark:text-slate-500">
-                                        <Truck size={52} className="mx-auto mb-3 opacity-25 text-[#8b6f47] dark:text-emerald-400" />
+                                        <Truck size={48} className="mx-auto mb-3 opacity-25 text-emerald-600 dark:text-emerald-400" />
                                         <p className="font-black uppercase text-xs tracking-widest">Không có đơn hàng nào</p>
                                         <p className="text-[11px] font-medium text-slate-400 mt-1">
                                             {searchTerm ? "Thử đổi từ khóa tìm kiếm" : "Các đơn tích chọn 'Giao hàng tận nơi' sẽ xuất hiện tại đây"}
@@ -290,206 +293,209 @@ export default function ShippingPanel({ isOpen, onClose, onViewOrder }) {
                                                 animate={{ opacity: 1, y: 0 }}
                                                 transition={{ delay: idx * 0.03 }}
                                                 className={cn(
-                                                    "rounded-2xl border-2 transition-all group/card flex flex-col relative overflow-hidden shadow-md",
+                                                    "rounded-3xl border transition-all group/card flex flex-col relative overflow-hidden bg-white dark:bg-[#181d17] p-4 gap-3 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] dark:shadow-black/20",
                                                     isDelivered
-                                                        ? "bg-white/95 dark:bg-[#16201a]/95 border-blue-500/40 hover:border-blue-500"
-                                                        : "bg-white/95 dark:bg-[#182319]/95 border-[#8b6f47]/30 dark:border-emerald-500/40 hover:border-[#2d5016] dark:hover:border-emerald-400"
+                                                        ? "border-blue-500/20 hover:border-blue-500/40"
+                                                        : "border-black/[0.05] dark:border-white/[0.06] hover:border-emerald-500/30"
                                                 )}
                                             >
-                                                {/* Left Accent Color Stripe */}
-                                                <div className={cn(
-                                                    "absolute left-0 top-0 w-1.5 h-full transition-colors z-10",
-                                                    isDelivered ? "bg-blue-500" : "bg-gradient-to-b from-emerald-500 to-[#2d5016]"
-                                                )} />
-
-                                                {/* Card Header */}
-                                                <div className="p-3.5 pl-4 flex flex-col gap-2.5">
-                                                    <div className="flex items-center justify-between gap-2">
-                                                        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                                            <div className={cn(
-                                                                "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border shadow-xs",
-                                                                isDelivered
-                                                                    ? "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30"
-                                                                    : "bg-[#2d5016]/10 text-[#2d5016] dark:text-emerald-400 border-[#2d5016]/25 dark:border-emerald-500/30"
-                                                            )}>
-                                                                {isDelivered ? <CheckCircle2 size={18} strokeWidth={2.5} /> : <Truck size={18} strokeWidth={2.5} />}
-                                                            </div>
-                                                            <div className="min-w-0 flex-1">
-                                                                <div className="flex items-center gap-2">
-                                                                    <span className={cn(
-                                                                        "text-sm font-black uppercase tracking-tight truncate",
-                                                                        isDelivered ? "text-blue-600 dark:text-blue-400" : "text-[#2d5016] dark:text-emerald-400"
-                                                                    )}>
-                                                                        #{order.display_id || order.id}
-                                                                    </span>
-                                                                    <span className="text-[10px] font-bold text-slate-400 tabular-nums">
-                                                                        {isDelivered ? (order.delivery_date ? formatDate(order.delivery_date) : formatDate(order.date)) : formatDate(order.date)}
-                                                                    </span>
-                                                                </div>
-                                                                <div className="flex items-center gap-2 mt-0.5">
-                                                                    <div className="flex items-center gap-1 text-[11px] font-black text-slate-700 dark:text-slate-200 truncate">
-                                                                        <User size={11} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" />
-                                                                        <span>{order.partner_name || 'Khách bán lẻ'}</span>
-                                                                    </div>
-                                                                    <span className={cn(
-                                                                        "text-[9px] font-black px-1.5 py-0.2 rounded-md uppercase tracking-wider border",
-                                                                        packedPct === 100
-                                                                            ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
-                                                                            : packedPct > 0
-                                                                            ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30"
-                                                                            : "bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-white/10"
-                                                                    )}>
-                                                                        Bốc {packedCount}/{totalCount} ({packedPct}%)
-                                                                    </span>
-                                                                </div>
-                                                            </div>
+                                                {/* Card Header Top Row */}
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                        <div className={cn(
+                                                            "w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 transition-colors",
+                                                            isDelivered
+                                                                ? "bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                                                                : "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                                                        )}>
+                                                            {isDelivered ? <CheckCircle2 size={19} strokeWidth={2.5} /> : <Truck size={19} strokeWidth={2.5} />}
                                                         </div>
-
-                                                        {/* Total Amount & Fast Cancel */}
-                                                        <div className="flex items-center gap-2 shrink-0">
-                                                            <div className="text-right">
-                                                                <div className="text-[9px] font-black uppercase tracking-wider text-slate-400 leading-none">
-                                                                    TỔNG ĐƠN
-                                                                </div>
-                                                                <div className={cn(
-                                                                    "text-base font-black tracking-tight tabular-nums mt-0.5",
-                                                                    isDelivered ? "text-blue-600 dark:text-blue-400" : "text-[#2d5016] dark:text-emerald-400"
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className="flex items-center gap-2 flex-wrap">
+                                                                <span className={cn(
+                                                                    "text-sm font-black uppercase tracking-tight truncate",
+                                                                    isDelivered ? "text-blue-600 dark:text-blue-400" : "text-slate-900 dark:text-white"
                                                                 )}>
-                                                                    {formatNumber(order.total_amount)}<span className="text-xs font-bold ml-0.5">đ</span>
+                                                                    #{order.display_id || order.id}
+                                                                </span>
+                                                                <span className="text-[10px] font-bold text-slate-400 tabular-nums">
+                                                                    {isDelivered ? (order.delivery_date ? formatDate(order.delivery_date) : formatDate(order.date)) : formatDate(order.date)}
+                                                                </span>
+                                                            </div>
+                                                            <div className="flex items-center gap-2 mt-1">
+                                                                <div className="flex items-center gap-1 text-xs font-black text-slate-700 dark:text-slate-200 truncate">
+                                                                    <User size={12} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                                                    <span>{order.partner_name || 'Khách bán lẻ'}</span>
                                                                 </div>
+                                                                <span className={cn(
+                                                                    "text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider",
+                                                                    packedPct === 100
+                                                                        ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                                                                        : packedPct > 0
+                                                                        ? "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                                                                        : "bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400"
+                                                                )}>
+                                                                    Bốc {packedCount}/{totalCount} ({packedPct}%)
+                                                                </span>
                                                             </div>
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setConfirmingShipCancel(order.id);
-                                                                }}
-                                                                className="w-7 h-7 flex items-center justify-center rounded-lg bg-rose-500/10 hover:bg-rose-500 text-rose-500 hover:text-white transition-all cursor-pointer"
-                                                                title="Gỡ khỏi danh sách giao hàng"
-                                                            >
-                                                                <X size={13} strokeWidth={2.5} />
-                                                            </button>
                                                         </div>
                                                     </div>
 
-                                                    {/* Shipping Address & Phone Box */}
-                                                    <div className="flex flex-col sm:flex-row gap-2 bg-[#f4eee1]/60 dark:bg-black/30 p-2.5 rounded-xl border border-[#8b6f47]/20 dark:border-white/10 text-xs">
-                                                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                                                            <MapPin size={13} className="text-[#2d5016] dark:text-emerald-400 shrink-0" />
-                                                            <span className="font-bold text-slate-700 dark:text-slate-200 truncate">
-                                                                {order.shipping_address || <span className="italic text-slate-400 font-normal">Chưa có địa chỉ</span>}
-                                                            </span>
-                                                        </div>
-                                                        <div className="flex items-center gap-2 shrink-0 sm:border-l sm:border-[#8b6f47]/20 dark:sm:border-white/10 sm:pl-2">
-                                                            <Phone size={13} className="text-blue-600 dark:text-blue-400 shrink-0" />
-                                                            <span className="font-black text-slate-800 dark:text-slate-100 tabular-nums">
-                                                                {order.shipping_phone ? (
-                                                                    <a href={`tel:${order.shipping_phone}`} className="hover:underline">
-                                                                        {order.shipping_phone}
-                                                                    </a>
-                                                                ) : (
-                                                                    <span className="italic text-slate-400 font-normal">Không có SĐT</span>
-                                                                )}
-                                                            </span>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Inline Product Items List Accordion */}
-                                                    {isInlineOpen && order.details && order.details.length > 0 && (
-                                                        <div className="mt-1 bg-black/5 dark:bg-black/40 rounded-xl p-2.5 border border-[#8b6f47]/20 dark:border-white/10 space-y-2">
-                                                            <div className="flex justify-between items-center px-1 text-[10px] font-black uppercase tracking-wider text-[#8b6f47] dark:text-[#d4a574]">
-                                                                <span>Hàng cần giao ({order.details.length} món)</span>
-                                                                <span>Đã bốc / Đặt</span>
+                                                    {/* Total Amount & Fast Cancel */}
+                                                    <div className="flex items-center gap-2.5 shrink-0">
+                                                        <div className="text-right">
+                                                            <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400 leading-none">
+                                                                TỔNG ĐƠN
                                                             </div>
-                                                            <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar pr-1">
-                                                                {order.details.map(d => {
-                                                                    const itemDone = (d.shipped_quantity || 0) >= d.quantity;
-                                                                    return (
-                                                                        <div
-                                                                            key={d.id}
-                                                                            className={cn(
-                                                                                "flex items-center justify-between p-2 rounded-lg text-xs font-bold border transition-colors",
-                                                                                itemDone
-                                                                                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-800 dark:text-emerald-300"
-                                                                                    : "bg-white/80 dark:bg-slate-900/60 border-slate-200 dark:border-white/5 text-slate-800 dark:text-slate-200"
-                                                                            )}
-                                                                        >
-                                                                            <div className="min-w-0 flex-1 truncate pr-2">
-                                                                                <span>{d.product_name}</span>
-                                                                            </div>
-                                                                            <div className="flex items-center gap-1.5 shrink-0">
-                                                                                <span className={cn(
-                                                                                    "font-black tabular-nums",
-                                                                                    itemDone ? "text-emerald-600 dark:text-emerald-400" : "text-slate-600 dark:text-slate-300"
-                                                                                )}>
-                                                                                    {d.shipped_quantity || 0} / {d.quantity} {d.unit || d.product_unit || ''}
-                                                                                </span>
-                                                                                <button
-                                                                                    onClick={() => updateItemShippedQty(d, itemDone ? 0 : d.quantity)}
-                                                                                    className={cn(
-                                                                                        "w-6 h-6 rounded flex items-center justify-center transition-all",
-                                                                                        itemDone
-                                                                                            ? "bg-emerald-500 text-white"
-                                                                                            : "bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-300 hover:bg-emerald-500 hover:text-white"
-                                                                                    )}
-                                                                                    title={itemDone ? "Đặt về 0" : "Bốc đủ"}
-                                                                                >
-                                                                                    <Check size={12} strokeWidth={3} />
-                                                                                </button>
-                                                                            </div>
-                                                                        </div>
-                                                                    );
-                                                                })}
+                                                            <div className={cn(
+                                                                "text-base font-black tracking-tight tabular-nums mt-0.5",
+                                                                isDelivered ? "text-blue-600 dark:text-blue-400" : "text-slate-900 dark:text-white"
+                                                            )}>
+                                                                {formatNumber(order.total_amount)}<span className="text-xs font-bold ml-0.5">đ</span>
                                                             </div>
                                                         </div>
-                                                    )}
-
-                                                    {/* Actions Row */}
-                                                    <div className="flex items-center gap-2 pt-1">
                                                         <button
-                                                            onClick={() => setExpandedOrderId(order.id)}
-                                                            className="flex-1 py-2 bg-gradient-to-r from-[#8b6f47]/15 to-[#8b6f47]/25 hover:from-[#8b6f47]/30 hover:to-[#8b6f47]/40 text-[#8b6f47] dark:text-[#d4a574] border border-[#8b6f47]/30 rounded-xl text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-98"
+                                                            type="button"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setConfirmingShipCancel(order.id);
+                                                            }}
+                                                            className="w-7 h-7 flex items-center justify-center rounded-xl text-slate-300 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-all cursor-pointer"
+                                                            title="Gỡ khỏi danh sách giao hàng"
                                                         >
-                                                            <PackageSearch size={14} /> Bốc hàng ({packedCount}/{totalCount})
+                                                            <X size={14} strokeWidth={2.5} />
                                                         </button>
+                                                    </div>
+                                                </div>
 
-                                                        <button
-                                                            onClick={() => setInlineExpandedOrderId(isInlineOpen ? null : order.id)}
-                                                            className={cn(
-                                                                "h-9 px-2.5 rounded-xl border text-[11px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer",
-                                                                isInlineOpen
-                                                                    ? "bg-[#2d5016]/15 border-[#2d5016]/40 text-[#2d5016] dark:text-emerald-400"
-                                                                    : "bg-white/80 dark:bg-white/5 border-[#8b6f47]/20 dark:border-white/10 text-slate-600 dark:text-slate-300 hover:bg-black/5"
+                                                {/* Shipping Address & Phone Box - Borderless Minimal Theme */}
+                                                <div className="flex flex-col sm:flex-row gap-2 bg-slate-50 dark:bg-white/[0.03] p-2.5 px-3.5 rounded-2xl text-xs">
+                                                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                                                        <MapPin size={13} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                                        <span className="font-medium text-slate-700 dark:text-slate-200 truncate">
+                                                            {order.shipping_address || <span className="italic text-slate-400 font-normal">Chưa có địa chỉ</span>}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 shrink-0 sm:border-l sm:border-black/5 dark:sm:border-white/5 sm:pl-3">
+                                                        <Phone size={13} className="text-blue-600 dark:text-blue-400 shrink-0" />
+                                                        <span className="font-black text-slate-800 dark:text-slate-100 tabular-nums">
+                                                            {order.shipping_phone ? (
+                                                                <a href={`tel:${order.shipping_phone}`} className="hover:underline">
+                                                                    {order.shipping_phone}
+                                                                </a>
+                                                            ) : (
+                                                                <span className="italic text-slate-400 font-normal">Không có SĐT</span>
                                                             )}
-                                                            title="Xem/Ẩn nhanh danh sách sản phẩm"
-                                                        >
-                                                            <ShoppingBag size={13} />
-                                                            {isInlineOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                                                        </button>
-
-                                                        <button
-                                                            onClick={() => onViewOrder(order)}
-                                                            className="h-9 px-2.5 bg-white/80 dark:bg-white/5 hover:bg-[#8b6f47]/15 text-slate-600 dark:text-slate-300 rounded-xl border border-[#8b6f47]/20 dark:border-white/10 flex items-center justify-center transition-all cursor-pointer"
-                                                            title="Xem chi tiết hóa đơn"
-                                                        >
-                                                            <ExternalLink size={14} />
-                                                        </button>
-
-                                                        {!isDelivered ? (
-                                                            <button
-                                                                onClick={() => updateStatus(order.id, 'Delivered')}
-                                                                className="flex-1 py-2 bg-gradient-to-r from-[#2d5016] to-emerald-600 hover:from-[#234011] hover:to-emerald-500 text-white rounded-xl text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all shadow-md shadow-[#2d5016]/25 border border-emerald-400/40 cursor-pointer active:scale-98"
-                                                            >
-                                                                <CheckCircle2 size={14} strokeWidth={2.5} /> XONG (ĐÃ GIAO)
-                                                            </button>
-                                                        ) : (
-                                                            <button
-                                                                onClick={() => updateStatus(order.id, 'Shipping')}
-                                                                className="flex-1 py-2 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white rounded-xl text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all shadow-md shadow-amber-600/20 border border-amber-400/40 cursor-pointer active:scale-98"
-                                                            >
-                                                                <RefreshCcw size={13} strokeWidth={2.5} /> HOÀN TÁC GIAO
-                                                            </button>
-                                                        )}
+                                                        </span>
                                                     </div>
+                                                </div>
+
+                                                {/* Inline Product Items List Accordion */}
+                                                {isInlineOpen && order.details && order.details.length > 0 && (
+                                                    <div className="bg-slate-50 dark:bg-white/[0.02] rounded-2xl p-3 space-y-2 border border-black/[0.02] dark:border-white/[0.03]">
+                                                        <div className="flex justify-between items-center px-1 text-[10px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                                            <span>Hàng cần giao ({order.details.length} món)</span>
+                                                            <span>Đã bốc / Đặt</span>
+                                                        </div>
+                                                        <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar pr-1">
+                                                            {order.details.map(d => {
+                                                                const itemDone = (d.shipped_quantity || 0) >= d.quantity;
+                                                                return (
+                                                                    <div
+                                                                        key={d.id}
+                                                                        className={cn(
+                                                                            "flex items-center justify-between p-2.5 rounded-xl text-xs font-bold transition-colors",
+                                                                            itemDone
+                                                                                ? "bg-emerald-500/10 text-emerald-800 dark:text-emerald-300"
+                                                                                : "bg-white dark:bg-white/[0.03] text-slate-800 dark:text-slate-200 shadow-2xs"
+                                                                        )}
+                                                                    >
+                                                                        <div className="min-w-0 flex-1 truncate pr-2">
+                                                                            <span>{d.product_name}</span>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-2 shrink-0">
+                                                                            <span className={cn(
+                                                                                "font-black tabular-nums",
+                                                                                itemDone ? "text-emerald-600 dark:text-emerald-400" : "text-slate-600 dark:text-slate-300"
+                                                                            )}>
+                                                                                {d.shipped_quantity || 0} / {d.quantity} {d.unit || d.product_unit || ''}
+                                                                            </span>
+                                                                            <button
+                                                                                type="button"
+                                                                                onClick={() => updateItemShippedQty(d, itemDone ? 0 : d.quantity)}
+                                                                                className={cn(
+                                                                                    "w-6 h-6 rounded-lg flex items-center justify-center transition-all",
+                                                                                    itemDone
+                                                                                        ? "bg-emerald-500 text-white"
+                                                                                        : "bg-slate-200 dark:bg-white/10 text-slate-600 dark:text-slate-300 hover:bg-emerald-500 hover:text-white"
+                                                                                )}
+                                                                                title={itemDone ? "Đặt về 0" : "Bốc đủ"}
+                                                                            >
+                                                                                <Check size={12} strokeWidth={3} />
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Actions Row */}
+                                                <div className="flex items-center gap-2 pt-0.5">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setExpandedOrderId(order.id)}
+                                                        className="flex-1 h-10 px-3 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 rounded-2xl text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer border border-emerald-500/20 active:scale-98"
+                                                    >
+                                                        <PackageSearch size={14} /> Bốc hàng ({packedCount}/{totalCount})
+                                                    </button>
+
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setInlineExpandedOrderId(isInlineOpen ? null : order.id)}
+                                                        className={cn(
+                                                            "h-10 px-3 rounded-2xl text-[11px] font-bold flex items-center justify-center gap-1 transition-all cursor-pointer",
+                                                            isInlineOpen
+                                                                ? "bg-emerald-600 text-white"
+                                                                : "bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-600 dark:text-slate-300"
+                                                        )}
+                                                        title="Xem/Ẩn nhanh danh sách sản phẩm"
+                                                    >
+                                                        <ShoppingBag size={14} />
+                                                        {isInlineOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                                    </button>
+
+                                                    {/* Nút Mở OrderEditPopup sửa đơn hàng */}
+                                                    <button
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            onViewOrder?.(order);
+                                                        }}
+                                                        className="h-10 px-3 bg-slate-100 dark:bg-white/5 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-600 text-slate-600 dark:text-slate-300 rounded-2xl flex items-center justify-center transition-all cursor-pointer group shadow-2xs"
+                                                        title="Chỉnh sửa đơn hàng (OrderEditPopup)"
+                                                    >
+                                                        <ExternalLink size={15} className="group-hover:scale-110 transition-transform" />
+                                                    </button>
+
+                                                    {!isDelivered ? (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => updateStatus(order.id, 'Delivered')}
+                                                            className="flex-1 h-10 px-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-2xl text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all shadow-md shadow-emerald-600/20 cursor-pointer active:scale-98"
+                                                        >
+                                                            <CheckCircle2 size={14} strokeWidth={2.5} /> XONG (ĐÃ GIAO)
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => updateStatus(order.id, 'Shipping')}
+                                                            className="flex-1 h-10 px-3 bg-slate-100 dark:bg-white/10 hover:bg-amber-500 hover:text-white text-slate-700 dark:text-slate-200 rounded-2xl text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-98"
+                                                        >
+                                                            <RefreshCcw size={13} strokeWidth={2.5} /> HOÀN TÁC GIAO
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </m.div>
                                         );
@@ -513,7 +519,7 @@ export default function ShippingPanel({ isOpen, onClose, onViewOrder }) {
                                         initial={{ scale: 0.95, opacity: 0, y: 15 }}
                                         animate={{ scale: 1, opacity: 1, y: 0 }}
                                         exit={{ scale: 0.95, opacity: 0, y: 15 }}
-                                        className="relative w-full max-w-xl bg-[#fbf9f4] dark:bg-[#1a1e17] rounded-3xl overflow-hidden shadow-2xl border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 text-slate-800 dark:text-slate-100 flex flex-col max-h-[85vh]"
+                                        className="relative w-full max-w-xl bg-white dark:bg-[#181d17] rounded-3xl overflow-hidden shadow-2xl border border-black/10 dark:border-white/10 text-slate-800 dark:text-slate-100 flex flex-col max-h-[85vh]"
                                     >
                                         {(() => {
                                             const order = orders.find(o => o.id === expandedOrderId);
@@ -525,16 +531,16 @@ export default function ShippingPanel({ isOpen, onClose, onViewOrder }) {
                                             return (
                                                 <>
                                                     {/* Header */}
-                                                    <div className="p-5 border-b-2 border-[#8b6f47]/20 dark:border-[#d4a574]/20 bg-[#f4eee1] dark:bg-[#151913] flex justify-between items-center shrink-0">
+                                                    <div className="p-5 border-b border-black/5 dark:border-white/10 bg-slate-50 dark:bg-black/20 flex justify-between items-center shrink-0">
                                                         <div className="flex items-center gap-3">
-                                                            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white flex items-center justify-center border border-[#2d5016] dark:border-emerald-400">
+                                                            <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/20">
                                                                 <PackageSearch size={20} />
                                                             </div>
                                                             <div>
-                                                                <h4 className="text-base font-black text-[#2d5016] dark:text-emerald-400 uppercase tracking-tight">
+                                                                <h4 className="text-base font-black text-slate-900 dark:text-white uppercase tracking-tight">
                                                                     BỐC HÀNG #{order.display_id || order.id}
                                                                 </h4>
-                                                                <p className="text-[11px] font-bold text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-wider">
+                                                                <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                                                                     {order.partner_name || 'Khách lẻ'}
                                                                 </p>
                                                             </div>
@@ -550,23 +556,23 @@ export default function ShippingPanel({ isOpen, onClose, onViewOrder }) {
                                                                     }
                                                                 }}
                                                                 className={cn(
-                                                                    "px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all border cursor-pointer active:scale-95",
+                                                                    "px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer active:scale-95",
                                                                     progress === 100
-                                                                        ? "bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/40 hover:bg-amber-500/30"
-                                                                        : "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30"
+                                                                        ? "bg-amber-500/15 text-amber-700 dark:text-amber-300 hover:bg-amber-500/25"
+                                                                        : "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/25"
                                                                 )}
                                                             >
                                                                 {progress === 100 ? "Đặt lại 0%" : "Bốc đủ 100%"}
                                                             </button>
                                                             <div className="text-right">
                                                                 <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Tiến độ</div>
-                                                                <div className="text-xl font-black text-[#2d5016] dark:text-emerald-400">{progress}%</div>
+                                                                <div className="text-xl font-black text-emerald-600 dark:text-emerald-400">{progress}%</div>
                                                             </div>
                                                         </div>
                                                     </div>
 
                                                     {/* Items List */}
-                                                    <div className="overflow-y-auto p-4 space-y-3 flex-1 custom-scrollbar">
+                                                    <div className="overflow-y-auto p-4 space-y-2.5 flex-1 custom-scrollbar">
                                                         {order.details?.map(detail => {
                                                             const isDone = (detail.shipped_quantity || 0) >= detail.quantity;
                                                             const currentShipped = detail.shipped_quantity || 0;
@@ -574,10 +580,10 @@ export default function ShippingPanel({ isOpen, onClose, onViewOrder }) {
                                                                 <div
                                                                     key={detail.id}
                                                                     className={cn(
-                                                                        "flex items-center gap-3 p-3.5 rounded-2xl border-2 transition-all",
+                                                                        "flex items-center gap-3 p-3.5 rounded-2xl transition-all",
                                                                         isDone
-                                                                            ? "bg-emerald-500/10 border-emerald-500/35 dark:bg-emerald-950/20"
-                                                                            : "bg-white dark:bg-slate-900/60 border-[#8b6f47]/20 dark:border-white/10 shadow-xs"
+                                                                            ? "bg-emerald-500/10 text-emerald-800 dark:text-emerald-300"
+                                                                            : "bg-slate-50 dark:bg-white/[0.03] text-slate-800 dark:text-slate-100 shadow-2xs"
                                                                     )}
                                                                 >
                                                                     <div className="flex-1 min-w-0">
@@ -594,7 +600,7 @@ export default function ShippingPanel({ isOpen, onClose, onViewOrder }) {
 
                                                                     <div className="flex items-center gap-2">
                                                                         {/* Direct Stepper */}
-                                                                        <div className="flex items-center bg-black/5 dark:bg-white/5 border border-[#8b6f47]/30 dark:border-white/10 rounded-xl overflow-hidden p-0.5">
+                                                                        <div className="flex items-center bg-white dark:bg-black/20 rounded-xl overflow-hidden p-0.5 shadow-2xs">
                                                                             <button
                                                                                 type="button"
                                                                                 onClick={() => updateItemShippedQty(detail, Math.max(0, currentShipped - 1))}
@@ -642,7 +648,7 @@ export default function ShippingPanel({ isOpen, onClose, onViewOrder }) {
                                                                                 "w-9 h-9 rounded-xl flex items-center justify-center transition-all shadow-sm shrink-0 cursor-pointer active:scale-95",
                                                                                 isDone
                                                                                     ? "bg-emerald-600 text-white shadow-emerald-600/25"
-                                                                                    : "bg-white dark:bg-white/5 border border-[#8b6f47]/30 dark:border-white/10 text-slate-400 hover:border-emerald-500 hover:text-emerald-500"
+                                                                                    : "bg-slate-100 dark:bg-white/5 text-slate-400 hover:bg-emerald-500 hover:text-white"
                                                                             )}
                                                                             title={isDone ? "Bỏ chọn (về 0)" : "Bốc đủ số lượng"}
                                                                         >
@@ -655,10 +661,11 @@ export default function ShippingPanel({ isOpen, onClose, onViewOrder }) {
                                                     </div>
 
                                                     {/* Footer */}
-                                                    <div className="p-4 border-t-2 border-[#8b6f47]/20 dark:border-[#d4a574]/20 bg-[#f4eee1]/60 dark:bg-[#151913] shrink-0">
+                                                    <div className="p-4 border-t border-black/5 dark:border-white/10 bg-slate-50 dark:bg-black/20 shrink-0">
                                                         <button
+                                                            type="button"
                                                             onClick={() => setExpandedOrderId(null)}
-                                                            className="w-full h-11 bg-gradient-to-r from-[#2d5016] to-emerald-700 hover:from-[#234011] hover:to-emerald-600 text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-md shadow-[#2d5016]/20 transition-all cursor-pointer active:scale-98"
+                                                            className="w-full h-11 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-md shadow-emerald-600/20 transition-all cursor-pointer active:scale-98"
                                                         >
                                                             Hoàn tất & Đóng
                                                         </button>
@@ -686,9 +693,9 @@ export default function ShippingPanel({ isOpen, onClose, onViewOrder }) {
                                         initial={{ scale: 0.95, opacity: 0, y: 15 }}
                                         animate={{ scale: 1, opacity: 1, y: 0 }}
                                         exit={{ scale: 0.95, opacity: 0, y: 15 }}
-                                        className="relative w-full max-w-sm bg-[#fbf9f4] dark:bg-[#1a1e17] rounded-3xl p-6 shadow-2xl overflow-hidden border-2 border-rose-500/30 text-slate-800 dark:text-slate-100"
+                                        className="relative w-full max-w-sm bg-white dark:bg-[#181d17] rounded-3xl p-6 shadow-2xl overflow-hidden border border-rose-500/20 text-slate-800 dark:text-slate-100"
                                     >
-                                        <div className="w-14 h-14 bg-rose-500/15 rounded-2xl flex items-center justify-center text-rose-500 mb-4 mx-auto border border-rose-500/30">
+                                        <div className="w-14 h-14 bg-rose-500/10 rounded-2xl flex items-center justify-center text-rose-500 mb-4 mx-auto">
                                             <AlertCircle size={28} />
                                         </div>
                                         <h3 className="text-base font-black text-center uppercase tracking-tight mb-2">
@@ -699,14 +706,16 @@ export default function ShippingPanel({ isOpen, onClose, onViewOrder }) {
                                         </p>
                                         <div className="flex gap-2.5">
                                             <button
+                                                type="button"
                                                 onClick={() => setConfirmingShipCancel(null)}
-                                                className="flex-1 h-10.5 bg-black/5 dark:bg-white/5 hover:bg-black/10 text-slate-600 dark:text-slate-300 rounded-xl font-black text-xs uppercase tracking-wider transition-all cursor-pointer"
+                                                className="flex-1 h-10.5 bg-black/5 dark:bg-white/5 hover:bg-black/10 text-slate-600 dark:text-slate-300 rounded-2xl font-black text-xs uppercase tracking-wider transition-all cursor-pointer"
                                             >
                                                 Bỏ qua
                                             </button>
                                             <button
+                                                type="button"
                                                 onClick={() => updateStatus(confirmingShipCancel, null)}
-                                                className="flex-1 h-10.5 bg-rose-500 hover:bg-rose-600 text-white rounded-xl font-black text-xs uppercase tracking-wider shadow-md shadow-rose-500/25 transition-all cursor-pointer active:scale-95"
+                                                className="flex-1 h-10.5 bg-rose-500 hover:bg-rose-600 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-md shadow-rose-500/25 transition-all cursor-pointer active:scale-95"
                                             >
                                                 Gỡ ngay
                                             </button>

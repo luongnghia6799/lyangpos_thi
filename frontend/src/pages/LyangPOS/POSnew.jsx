@@ -5535,8 +5535,17 @@ function POSPage({
                 message: ye ? "Đã cập nhật khoản nợ thành công!" : "Đã lưu khoản nợ mới thành công!",
                 type: "success"
               }), Ia(null), ja(!1), ye || kt(!1);
-            }} /></Ee><Ee><Comp_ac isOpen={al} onClose={() => vn(!1)} onViewOrder={t => {
-              mr(t), Yt(!0);
+            }} /></Ee><Ee><Comp_ac isOpen={al} onClose={() => vn(!1)} onViewOrder={async (t) => {
+              let fullOrder = t;
+              if ((!fullOrder.details || fullOrder.details.length === 0) && fullOrder.id) {
+                try {
+                  const res = await M.get(`/api/orders/${fullOrder.id}`);
+                  if (res.data) fullOrder = res.data;
+                } catch (e) {
+                  console.error("Error fetching order details for edit:", e);
+                }
+              }
+              setEditingHistoryOrder(fullOrder);
             }} /></Ee><Ee><Comp_id isOpen={Wi || ye && (ye.type === "Receipt" || ye.type === "Payment")} partner={p} initialData={ye && (ye.type === "Receipt" || ye.type === "Payment") ? ye : null} onClose={() => {
               _a(!1), Ia(null);
             }} onSave={async t => {

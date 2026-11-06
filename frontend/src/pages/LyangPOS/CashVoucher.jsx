@@ -3,7 +3,7 @@ import axios from 'axios';
 import { m, AnimatePresence } from 'framer-motion';
 import CustomSelect from '../../components/forms/CustomSelect';
 import CustomDatePicker from '../../components/forms/CustomDatePicker';
-import { Search, Plus, Wallet, History, FileText, Trash2, ArrowUpRight, ArrowDownLeft, X, Coins, Calendar, User, RefreshCcw, CheckCircle, Printer, Sparkles, ArrowRight, RotateCcw, Check, Banknote, Building2, ShoppingBag, Receipt, ChevronRight, ChevronLeft, Filter, AlertCircle, Eye, CheckSquare, Square, Phone, MapPin } from 'lucide-react';
+import { Search, Plus, Wallet, History, FileText, Trash2, Pencil, ArrowUpRight, ArrowDownLeft, X, Coins, Calendar, User, RefreshCcw, CheckCircle, Printer, Sparkles, ArrowRight, RotateCcw, Check, Banknote, Building2, ShoppingBag, Receipt, ChevronRight, ChevronLeft, Filter, AlertCircle, Eye, CheckSquare, Square, Phone, MapPin } from 'lucide-react';
 import { formatCurrency, formatNumber, formatDate, formatDebt } from '../../lib/utils';
 import { cn } from '../../lib/utils';
 import { DEFAULT_SETTINGS } from '../../lib/settings';
@@ -13,6 +13,7 @@ import Portal from '../../components/widgets/Portal';
 import { usePartnerData } from '../../queries/useProductData';
 import { useQueryClient } from '@tanstack/react-query';
 import PartnerEditModal from '../../components/modals/PartnerEditModal';
+import QuickVoucherModal from '../../components/modals/QuickVoucherModal';
 import ReconcileFundModal from '../../components/modals/ReconcileFundModal';
 
 export default function CashVoucher() {
@@ -31,13 +32,20 @@ export default function CashVoucher() {
     const [lastVoucher, setLastVoucher] = useState(null);
     const [completedVoucher, setCompletedVoucher] = useState(null);
     const [voucherToPrint, setVoucherToPrint] = useState(null);
+    const getCurrentTimeStr = () => {
+        const now = new Date();
+        return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+    };
+
     const [loading, setLoading] = useState(false);
+    const [quickVoucherData, setQuickVoucherData] = useState(null);
 
     const [formData, setFormData] = useState({
         partner_id: '',
         amount: 0,
         note: '',
         date: new Date().toISOString().slice(0, 10),
+            time: getCurrentTimeStr(),
         type: 'Receipt', // Default to 'Receipt' (Phiếu Thu)
         payment_method: 'Cash', // 'Cash' or 'Bank'
         account_id: '' // For bank transaction
@@ -244,24 +252,28 @@ export default function CashVoucher() {
             const isRec = formData.type === 'Receipt';
             const expectedNewDebt = isRec ? oldDebt - enteredAmount : oldDebt + enteredAmount;
 
+            const parsedPartnerId = formData.partner_id ? parseInt(formData.partner_id, 10) : null;
+            const curTime = formData.time ? (formData.time.length <= 5 ? `${formData.time}:00` : formData.time) : getCurrentTimeStr();
+            const fullDateTime = formData.date ? `${formData.date} ${curTime}` : undefined;
+
             if (formData.payment_method === 'Cash') {
                 const res = await axios.post('/api/vouchers', {
-                    partner_id: formData.partner_id || null,
-                    amount: formData.amount,
-                    note: formData.note,
+                    partner_id: parsedPartnerId,
+                    amount: enteredAmount,
+                    note: formData.note || '',
                     type: formData.type,
-                    date: formData.date || undefined
+                    date: fullDateTime
                 });
                 createdData = res.data;
                 fetchVouchers();
             } else {
                 const res = await axios.post('/api/bank-transactions', {
-                    account_id: parseInt(formData.account_id),
-                    amount: formData.amount,
+                    account_id: parseInt(formData.account_id, 10),
+                    amount: enteredAmount,
                     type: isRec ? 'Deposit' : 'Withdrawal',
-                    note: formData.note,
-                    date: formData.date || undefined,
-                    partner_id: formData.partner_id ? parseInt(formData.partner_id) : null
+                    note: formData.note || '',
+                    date: fullDateTime,
+                    partner_id: parsedPartnerId
                 });
                 createdData = res.data;
                 fetchBankTransactions();
@@ -291,13 +303,15 @@ export default function CashVoucher() {
                 note: formData.note,
                 old_debt: oldDebt,
                 new_debt: expectedNewDebt,
-                created_at: new Date()
+                created_at: fullDateTime ? new Date(fullDateTime.replace(' ', 'T')) : new Date()
             });
 
             setToast({ message: `Đã lưu phiếu ${isRec ? 'thu' : 'chi'} thành công!`, type: "success" });
             fetchFundBalance();
         } catch (err) {
-            setToast({ message: "Lỗi khi tạo phiếu", type: "error" });
+            console.error("Lỗi khi tạo phiếu:", err);
+            const errMsg = err.response?.data?.message || err.response?.data?.error || err.message || "Lỗi khi tạo phiếu";
+            setToast({ message: typeof errMsg === 'string' ? errMsg : "Lỗi khi tạo phiếu", type: "error" });
         } finally {
             setLoading(false);
         }
@@ -315,6 +329,33 @@ export default function CashVoucher() {
         setPartnerSearch('');
         setLastVoucher(null);
         setCompletedVoucher(null);
+    };
+
+    const handleOpenEditVoucher = (v) => {
+        let p = null;
+        if (v.partner_id) {
+            p = partners.find(item => String(item.id) === String(v.partner_id));
+        }
+        if (!p) {
+            p = {
+                id: v.partner_id || null,
+                name: v.partner_name || 'Khách lẻ / Không định danh',
+                debt_balance: 0
+            };
+        }
+
+        setQuickVoucherData({
+            isOpen: true,
+            partner: p,
+            initialData: {
+                id: v.id,
+                amount: v.amount,
+                type: v.type,
+                note: v.note || '',
+                date: v.date,
+                partner_id: v.partner_id
+            }
+        });
     };
 
     const handleDeleteVoucher = (id, source) => {
@@ -677,7 +718,7 @@ export default function CashVoucher() {
                                     <div className="space-y-4 relative z-10">
                                         {/* Transaction Type & Date Row */}
                                         <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
-                                            <div className="md:col-span-8 space-y-1.5">
+                                            <div className="md:col-span-7 space-y-1.5">
                                                 <label className="text-[11px] font-black text-[#2d5016]/80 dark:text-emerald-400/80 uppercase tracking-wider ml-0.5">
                                                     Loại giao dịch
                                                 </label>
@@ -710,17 +751,39 @@ export default function CashVoucher() {
                                                     </button>
                                                 </div>
                                             </div>
-                                            <div className="md:col-span-4 space-y-1.5">
-                                                <label className="text-[11px] font-black text-[#2d5016]/80 dark:text-emerald-400/80 uppercase tracking-wider ml-0.5 flex items-center gap-1">
-                                                    <Calendar size={13} className="text-[#2d5016] dark:text-emerald-400" />
-                                                    Ngày giao dịch
-                                                </label>
-                                                <div className="h-[46px] flex items-center">
-                                                    <CustomDatePicker
-                                                        value={formData.date || new Date().toISOString().slice(0, 10)}
-                                                        onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                                                        className="py-2.5 px-3 text-xs"
-                                                    />
+                                            <div className="md:col-span-5 space-y-1.5">
+                                                <div className="flex items-center justify-between">
+                                                    <label className="text-[11px] font-black text-[#2d5016]/80 dark:text-emerald-400/80 uppercase tracking-wider ml-0.5 flex items-center gap-1">
+                                                        <Calendar size={13} className="text-[#2d5016] dark:text-emerald-400" />
+                                                        Ngày & Giờ giao dịch
+                                                    </label>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setFormData(prev => ({ ...prev, date: new Date().toISOString().slice(0, 10), time: getCurrentTimeStr() }))}
+                                                        className="text-[10px] text-gray-400 hover:text-primary font-bold flex items-center gap-0.5 transition-colors cursor-pointer"
+                                                        title="Đặt về ngày giờ hiện tại"
+                                                    >
+                                                        <RotateCcw size={10} /> Hiện tại
+                                                    </button>
+                                                </div>
+                                                <div className="h-[46px] flex items-center gap-2">
+                                                    <div className="flex-1">
+                                                        <CustomDatePicker
+                                                            value={formData.date || new Date().toISOString().slice(0, 10)}
+                                                            onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                                                            className="py-2 px-2.5 text-xs w-full"
+                                                        />
+                                                    </div>
+                                                    <div className="w-[110px]">
+                                                        <input
+                                                            type="time"
+                                                            step="1"
+                                                            value={formData.time || ''}
+                                                            onChange={(e) => setFormData(prev => ({ ...prev, time: e.target.value }))}
+                                                            className="w-full py-2.5 px-2 bg-white dark:bg-slate-900 border border-border/80 focus:border-primary focus:ring-2 focus:ring-primary/20 rounded-xl text-xs font-mono font-bold text-center outline-none transition-all shadow-xs"
+                                                            title="Giờ giao dịch (HH:mm:ss)"
+                                                        />
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -1360,13 +1423,30 @@ export default function CashVoucher() {
                                                         </td>
                                                         <td className="py-3 px-4 text-right">
                                                             {v.source !== 'auto' && (
-                                                                <button
-                                                                    onClick={() => handleDeleteVoucher(v.id, v.source)}
-                                                                    className="p-1.5 text-gray-300 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                                                                    title="Xóa phiếu"
-                                                                >
-                                                                    <Trash2 size={14} />
-                                                                </button>
+                                                                <div className="flex items-center justify-end gap-1 opacity-70 group-hover:opacity-100 transition-opacity">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleOpenEditVoucher(v);
+                                                                        }}
+                                                                        className="p-1.5 text-[#2d5016] dark:text-[#34d399] hover:bg-[#2d5016]/10 dark:hover:bg-[#34d399]/10 rounded-lg transition-all cursor-pointer"
+                                                                        title="Sửa phiếu"
+                                                                    >
+                                                                        <Pencil size={15} />
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            handleDeleteVoucher(v.id, v.source);
+                                                                        }}
+                                                                        className="p-1.5 text-gray-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-all cursor-pointer"
+                                                                        title="Xóa phiếu"
+                                                                    >
+                                                                        <Trash2 size={15} />
+                                                                    </button>
+                                                                </div>
                                                             )}
                                                         </td>
                                                     </tr>
@@ -1682,6 +1762,24 @@ export default function CashVoucher() {
                     </div>
                 </div>
             )}
+            {/* QuickVoucherModal for Edit Voucher */}
+            {quickVoucherData?.isOpen && (
+                <QuickVoucherModal
+                    isOpen={quickVoucherData.isOpen}
+                    onClose={() => setQuickVoucherData(null)}
+                    partner={quickVoucherData.partner}
+                    initialData={quickVoucherData.initialData}
+                    onSave={() => {
+                        fetchVouchers('all');
+                        fetchFundBalance();
+                        queryClient.invalidateQueries({ queryKey: ['partners'] });
+                        broadcastUpdate();
+                        setToast({ message: "Cập nhật phiếu thành công!", type: "success" });
+                        setQuickVoucherData(null);
+                    }}
+                />
+            )}
+
             {/* Modal Reconcile Fund */}
             <ReconcileFundModal
                 isOpen={showReconcileModal}

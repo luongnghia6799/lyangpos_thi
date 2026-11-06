@@ -86,6 +86,38 @@ where
     }
 }
 
+pub fn number_or_string_f64<'de, D>(de: D) -> Result<f64, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::Deserialize;
+    let val = serde_json::Value::deserialize(de)?;
+    match val {
+        serde_json::Value::Number(n) => n.as_f64().ok_or_else(|| serde::de::Error::custom("Invalid number")),
+        serde_json::Value::String(s) => {
+            let cleaned = s.replace(',', "").trim().to_string();
+            cleaned.parse::<f64>().map_err(serde::de::Error::custom)
+        }
+        _ => Err(serde::de::Error::custom("Expected number or string")),
+    }
+}
+
+pub fn number_or_string_i64<'de, D>(de: D) -> Result<i64, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    use serde::Deserialize;
+    let val = serde_json::Value::deserialize(de)?;
+    match val {
+        serde_json::Value::Number(n) => n.as_i64().ok_or_else(|| serde::de::Error::custom("Invalid integer")),
+        serde_json::Value::String(s) => {
+            let cleaned = s.trim();
+            cleaned.parse::<i64>().map_err(serde::de::Error::custom)
+        }
+        _ => Err(serde::de::Error::custom("Expected integer or string")),
+    }
+}
+
 pub fn get_app_base_dir() -> std::path::PathBuf {
     // 1. If explicit LYANG_DATA_DIR or APPDATA_DIR env is set
     if let Ok(dir) = std::env::var("LYANG_DATA_DIR") {

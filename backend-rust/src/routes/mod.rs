@@ -9,6 +9,7 @@ pub mod category;
 pub mod event;
 pub mod inventory;
 pub mod lan;
+pub mod misa;
 pub mod order;
 pub mod partner;
 pub mod pos;

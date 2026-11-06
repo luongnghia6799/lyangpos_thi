@@ -33,13 +33,15 @@ import {
     Receipt,
     BookOpen,
     Lightbulb,
-    Info
+    Info,
+    Cloud
 } from 'lucide-react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import QuickAuditPopout from '../../components/modals/QuickAuditPopout';
+import MisaSyncModal from '../../components/modals/MisaSyncModal';
 import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '../../lib/utils';
 import SearchableSelect from '../../components/forms/SearchableSelect';
@@ -54,6 +56,7 @@ export default function AccountingInventory() {
     const [showDiscrepancyOnly, setShowDiscrepancyOnly] = useState(() => localStorage.getItem('accounting_inventory_discrepancy') === 'true');
     const [showOnlyCoded, setShowOnlyCoded] = useState(() => localStorage.getItem('accounting_inventory_coded') === 'true');
     const [showGuideModal, setShowGuideModal] = useState(false);
+    const [showMisaModal, setShowMisaModal] = useState(false);
 
     // Pagination Dashboard
     const [currentPage, setCurrentPage] = useState(() => {
@@ -205,7 +208,7 @@ export default function AccountingInventory() {
             const isTotalRow = values.some(val => {
                 const text = val.toString().toLowerCase().trim().normalize('NFC');
                 return text === 'tổng cộng' || text === 'cộng' || text === 'tổng' || text === 'total' || text === 'grand total' ||
-                       totalKeywords.some(k => text === k || text.startsWith(k + ' ') || text.startsWith(k + ':'));
+                    totalKeywords.some(k => text === k || text.startsWith(k + ' ') || text.startsWith(k + ':'));
             });
 
             return !isTotalRow;
@@ -431,6 +434,77 @@ export default function AccountingInventory() {
         setIsUpdateSuccess(false);
     };
 
+    const startMatchingFromMisa = (misaItems) => {
+        if (!misaItems || misaItems.length === 0) {
+            toast.error("Không có dữ liệu tồn kho từ MISA để đối soát!");
+            return;
+        }
+
+        const cleanStr = (s) => (s || '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim().toLowerCase().normalize('NFC');
+
+        const result = misaItems.map((item, idx) => {
+            const rawCode = item.code || '';
+            const rawName = item.name || '';
+            const excelStock = Number(item.stock) || 0;
+            const excelPrice = Math.round(Number(item.price) || 0);
+            const excelUnit = item.unit || '';
+
+            const normCode = cleanStr(rawCode);
+            const normName = cleanStr(rawName);
+
+            // Skip total rows
+            if (normCode === 'tổng cộng' || normName === 'tổng cộng' || normCode === 'cộng' || normName === 'cộng' || normCode.startsWith('tổng cộng') || normName.startsWith('tổng cộng')) {
+                return null;
+            }
+
+            // Intelligent 5-stage matching
+            let matched = null;
+            // Stage 1: Exact code match
+            if (normCode) {
+                matched = products.find(p => cleanStr(p.code) === normCode);
+            }
+            // Stage 2: Exact name match
+            if (!matched && normName) {
+                matched = products.find(p => cleanStr(p.name) === normName);
+            }
+            // Stage 3: Match MISA code with POS product name
+            if (!matched && normCode) {
+                matched = products.find(p => cleanStr(p.name) === normCode);
+            }
+            // Stage 4: Match MISA name with POS product code
+            if (!matched && normName) {
+                matched = products.find(p => cleanStr(p.code) === normName);
+            }
+            // Stage 5: Match alias
+            if (!matched && (normCode || normName)) {
+                matched = products.find(p => {
+                    const normAlias = cleanStr(p.alias);
+                    return normAlias && (normAlias === normCode || normAlias === normName);
+                });
+            }
+
+            return {
+                id: idx,
+                excelCode: rawCode || (matched ? matched.code : '') || `MISA_${idx + 1}`,
+                excelName: rawName || rawCode,
+                excelStock,
+                excelPrice,
+                excelUnit,
+                excelRow: item,
+                matchedProduct: matched || null,
+                status: matched ? 'matched' : 'unmatched'
+            };
+        }).filter(Boolean);
+
+        setMatchedData(result);
+        setFileData([]);
+        setUploadedFileName(`MISA_AMIS_${new Date().toLocaleDateString('vi-VN').replace(/\//g, '-')}`);
+        setView('import');
+        setStep(3);
+        setImportPage(1);
+        setIsUpdateSuccess(false);
+    };
+
     const handleManualMatch = (product) => {
         if (selectedMatchDataId === null) return;
 
@@ -532,14 +606,7 @@ export default function AccountingInventory() {
                     accounting_price: item.excelPrice || 0,
                     accounting_stock: item.excelStock || 0
                 };
-                // If user selected Code column in mapping, update product code in database
-                if (mapping.code && item.excelCode && !item.excelCode.startsWith('SP_')) {
-                    payload.code = item.excelCode;
-                }
-                // If user selected Unit column in mapping, update product unit
-                if (mapping.unit && item.excelUnit) {
-                    payload.unit = item.excelUnit;
-                }
+                // Tuyệt đối không cập nhật ĐVT (unit) của sản phẩm: Nghiệp vụ đối chiếu kế toán chỉ đối chiếu số lượng và đơn giá sổ sách, bảo lưu ĐVT gốc của phần mềm
                 return payload;
             });
 
@@ -583,7 +650,8 @@ export default function AccountingInventory() {
                 "Tên hàng (Excel)": item.excelName,
                 "Tên sản phẩm (POS)": item.matchedProduct?.name || "Chưa khớp",
                 "Mã hàng (POS)": item.matchedProduct?.code || "---",
-                "Đơn vị tính": item.matchedProduct?.unit || item.excelUnit || "---",
+                "Đơn vị tính (POS)": item.matchedProduct?.unit || "---",
+                "Đơn vị tính (Excel)": item.excelUnit || "---",
                 "Tồn thực tế (Kho POS)": item.matchedProduct ? item.matchedProduct.stock : "---",
                 "Tồn sổ sách (Kho Kế toán)": item.excelStock,
                 "Chênh lệch (Thực tế - Sổ sách)": item.matchedProduct ? diff : "---",
@@ -802,6 +870,17 @@ export default function AccountingInventory() {
                                     <motion.button
                                         whileHover={{ scale: 1.02, y: -1 }}
                                         whileTap={{ scale: 0.98 }}
+                                        onClick={() => setShowMisaModal(true)}
+                                        className="px-4.5 py-2.5 bg-blue-50/60 hover:bg-blue-100/70 dark:bg-blue-950/30 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-2 border border-blue-300 dark:border-blue-700 transition-all cursor-pointer shadow-xs"
+                                        title="Lấy trực tiếp số tồn kho từ phần mềm MISA AMIS Kế toán"
+                                    >
+                                        <Cloud size={16} className="text-blue-600 dark:text-blue-400" />
+                                        <span>Đồng Bộ MISA AMIS</span>
+                                    </motion.button>
+
+                                    <motion.button
+                                        whileHover={{ scale: 1.02, y: -1 }}
+                                        whileTap={{ scale: 0.98 }}
                                         onClick={handleExportDashboardData}
                                         className="px-4.5 py-2.5 bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-2 border border-slate-300 dark:border-slate-700 transition-all cursor-pointer shadow-xs"
                                     >
@@ -860,6 +939,9 @@ export default function AccountingInventory() {
                                                 setStep(1);
                                                 setFileData([]);
                                                 setIsUpdateSuccess(false);
+                                            } else if (step === 3 && (!fileData || fileData.length === 0)) {
+                                                setView('list');
+                                                setStep(1);
                                             } else if (step > 1) {
                                                 setStep(step - 1);
                                             } else {
@@ -1176,6 +1258,32 @@ export default function AccountingInventory() {
                                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium">Hỗ trợ định dạng .xlsx, .xls, .csv</p>
                                     </div>
                                 </div>
+
+                                <div className="mt-8 pt-8 border-t border-slate-200 dark:border-slate-800 w-full flex flex-col items-center">
+                                    <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4">Hoặc đồng bộ trực tuyến</span>
+                                    <motion.button
+                                        type="button"
+                                        whileHover={{ scale: 1.01, y: -1 }}
+                                        whileTap={{ scale: 0.99 }}
+                                        onClick={() => setShowMisaModal(true)}
+                                        className="w-full py-4 px-6 rounded-3xl bg-blue-50/50 hover:bg-blue-100/60 dark:bg-blue-950/20 dark:hover:bg-blue-900/30 border-2 border-dashed border-blue-300 dark:border-blue-700 hover:border-blue-500 dark:hover:border-blue-400 flex items-center justify-between transition-all group cursor-pointer shadow-xs"
+                                    >
+                                        <div className="flex items-center gap-4 text-left">
+                                            <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-500/25 group-hover:scale-105 transition-transform">
+                                                <Cloud size={24} />
+                                            </div>
+                                            <div>
+                                                <div className="text-sm font-black text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                                    Lấy Tồn Kho Trực Tiếp Từ MISA AMIS Kế Toán (API)
+                                                </div>
+                                                <div className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+                                                    Kết nối Open API, lấy số dư tồn kho tức thì không cần xuất file Excel thủ công
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <ArrowRight size={20} className="text-blue-600 dark:text-blue-400 group-hover:translate-x-1 transition-transform shrink-0" />
+                                    </motion.button>
+                                </div>
                             </div>
                         )}
 
@@ -1421,7 +1529,7 @@ export default function AccountingInventory() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center p-4 bg-transparent rounded-2xl border border-slate-300 dark:border-slate-800">
                                         <div>
                                             <label className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase block mb-1">Cột Đơn Vị Tính (ĐVT)</label>
-                                            <p className="text-[11px] text-slate-500 dark:text-slate-400">Đơn vị tính như Cái, Hộp, Kg, Thùng... (Tùy chọn).</p>
+                                            <p className="text-[11px] text-slate-500 dark:text-slate-400">Đơn vị tính trong file đối chiếu (chỉ hiển thị tham khảo, hệ thống luôn giữ nguyên ĐVT gốc của phần mềm, không thay đổi ĐVT).</p>
                                             {mapping.unit && fileData[0] && (
                                                 <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-1 font-bold truncate">
                                                     Ví dụ dòng 1: "{fileData[0][mapping.unit] || '(Trống)'}"
@@ -1471,7 +1579,7 @@ export default function AccountingInventory() {
                                                 <Layers size={20} />
                                             </div>
                                             <div>
-                                                <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tổng Dòng Excel</p>
+                                                <p className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">{uploadedFileName?.startsWith('MISA_AMIS') ? 'Tổng Dòng MISA' : 'Tổng Dòng Excel'}</p>
                                                 <p className="text-xl font-black text-slate-900 dark:text-white tabular-nums">{stats.total}</p>
                                             </div>
                                         </div>
@@ -1641,7 +1749,20 @@ export default function AccountingInventory() {
 
                                                             {/* Kho sổ sách Excel */}
                                                             <td className="px-6 py-4 text-right font-black tabular-nums text-blue-700 dark:text-blue-400">
-                                                                <span className="text-base">{item.excelStock}</span>
+                                                                <div className="flex flex-col items-end">
+                                                                    <span className="text-base">{item.excelStock}</span>
+                                                                    {item.excelUnit && (
+                                                                        <span className="text-[10px] text-slate-500 font-bold uppercase">{item.excelUnit}</span>
+                                                                    )}
+                                                                    {isMatched && item.matchedProduct?.unit && item.excelUnit && item.matchedProduct.unit.trim().toLowerCase() !== item.excelUnit.trim().toLowerCase() && (
+                                                                        <span
+                                                                            className="inline-block text-[9px] font-black text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-950/60 px-1.5 py-0.5 rounded border border-amber-300 dark:border-amber-800 mt-1 whitespace-nowrap"
+                                                                            title={`ĐVT file đối chiếu (${item.excelUnit}) khác ĐVT phần mềm (${item.matchedProduct.unit}). Phần mềm bảo lưu ĐVT gốc.`}
+                                                                        >
+                                                                            Khác ĐVT ({item.matchedProduct.unit} ≠ {item.excelUnit})
+                                                                        </span>
+                                                                    )}
+                                                                </div>
                                                             </td>
 
                                                             {/* Chênh lệch */}
@@ -1767,7 +1888,7 @@ export default function AccountingInventory() {
                                     <div>
                                         <h3 className="text-xl font-black text-slate-900 dark:text-slate-100 leading-tight">Ghép Sản Phẩm Thủ Công</h3>
                                         <p className="text-xs text-slate-400 mt-1">
-                                            Dòng Excel: <span className="text-rose-500 font-bold">{matchedData.find(i => i.id === selectedMatchDataId)?.excelName || matchedData.find(i => i.id === selectedMatchDataId)?.excelCode}</span>
+                                            {uploadedFileName?.startsWith('MISA_AMIS') ? 'Mục MISA' : 'Dòng Excel'}: <span className="text-rose-500 font-bold">{matchedData.find(i => i.id === selectedMatchDataId)?.excelName || matchedData.find(i => i.id === selectedMatchDataId)?.excelCode}</span>
                                         </p>
                                     </div>
                                 </div>
@@ -1863,7 +1984,7 @@ export default function AccountingInventory() {
                                             <Upload size={16} />
                                             <span>1. Quy Trình Đối Soát File Excel (3 Bước)</span>
                                         </h4>
-                                        
+
                                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                                             <div className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30">
                                                 <div className="font-black text-slate-900 dark:text-white mb-1 flex items-center gap-1.5 text-[11px] uppercase">
@@ -1903,7 +2024,7 @@ export default function AccountingInventory() {
                                             <Scale size={16} />
                                             <span>2. Ý Nghĩa Các Cột & Chỉ Số Đối Soát</span>
                                         </h4>
-                                        
+
                                         <div className="space-y-2">
                                             <div className="p-3 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30 flex items-start gap-3">
                                                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
@@ -1965,6 +2086,13 @@ export default function AccountingInventory() {
                 </AnimatePresence>,
                 document.body
             )}
+
+            {/* MISA Sync Modal */}
+            <MisaSyncModal
+                isOpen={showMisaModal}
+                onClose={() => setShowMisaModal(false)}
+                onSyncSuccess={startMatchingFromMisa}
+            />
         </div>
     );
 }

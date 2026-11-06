@@ -65,22 +65,32 @@ pub struct UpdateBankAccountDto {
 
 #[derive(Debug, Deserialize)]
 pub struct CreateBankTransactionDto {
+    #[serde(deserialize_with = "crate::utils::number_or_string_i64")]
     pub account_id: i64,
+    #[serde(deserialize_with = "crate::utils::number_or_string_f64")]
     pub amount: f64,
     pub r#type: String,
     pub note: Option<String>,
+    #[serde(default, deserialize_with = "crate::utils::empty_string_as_none")]
     pub partner_id: Option<i64>,
+    #[serde(default, deserialize_with = "crate::utils::empty_string_as_none")]
     pub order_id: Option<i64>,
     pub date: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct BankTransactionQueryDto {
+    #[serde(default, deserialize_with = "crate::utils::empty_string_as_none")]
     pub account_id: Option<i64>,
+    #[serde(default, deserialize_with = "crate::utils::empty_string_as_none")]
     pub partner_id: Option<i64>,
+    #[serde(default, deserialize_with = "crate::utils::empty_string_as_none")]
     pub year: Option<i32>,
+    #[serde(default, deserialize_with = "crate::utils::empty_string_as_none")]
     pub month: Option<u32>,
+    #[serde(default, deserialize_with = "crate::utils::empty_string_as_none")]
     pub day: Option<u32>,
+    #[serde(default, deserialize_with = "crate::utils::empty_string_as_none")]
     pub quarter: Option<u32>,
     pub start_date: Option<String>,
     pub end_date: Option<String>,

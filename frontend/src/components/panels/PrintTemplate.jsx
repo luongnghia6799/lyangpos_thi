@@ -1,5 +1,5 @@
 import React, { forwardRef, useState, useRef, useEffect, useMemo } from 'react';
-import { formatNumber, formatDate, normalizeUOM } from '../../lib/utils';
+import { formatNumber, formatDate, normalizeUOM, removeAccents } from '../../lib/utils';
 import { DEFAULT_SETTINGS } from '../../lib/settings';
 import { loadGoogleFont, ensureFontLoaded } from '../../lib/googleFonts';
 
@@ -1194,31 +1194,38 @@ const PrintTemplate = forwardRef(({
     const totalQty = (data.details || []).reduce((sum, item) => sum + (parseFloat(item.quantity) || 0), 0);
     const totalItems = (data.details || []).length;
 
-    // Secondary qty totals grouped by unit
+    // Secondary qty totals grouped by unit (chỉ tính mặt hàng thực sự có quy đổi và đồng bộ với bảng trên)
     const secondaryTotals = {};
     (data.details || []).forEach(item => {
         const prod = item.product || (productsMap && (productsMap.get(item.product_id) || productsMap.get(Number(item.product_id))));
         const mult = Number(item.multiplier || prod?.multiplier) || 1;
         const secUnit = (item.secondary_unit || prod?.secondary_unit || '').trim();
-        if (secUnit) {
-            const rawSecQty = (item.secondary_qty !== undefined && item.secondary_qty !== null && item.secondary_qty !== '')
-                ? Number(item.secondary_qty)
-                : null;
-            if (rawSecQty !== null && !isNaN(rawSecQty) && rawSecQty !== 0) {
-                secondaryTotals[secUnit] = (secondaryTotals[secUnit] || 0) + rawSecQty;
-            } else if (mult > 1) {
-                const qty = Number(item.quantity) || 0;
-                const calcSec = qty / mult;
-                if (calcSec !== 0) {
-                    secondaryTotals[secUnit] = (secondaryTotals[secUnit] || 0) + calcSec;
+        const baseUnit = (item.product_unit || item.unit || prod?.unit || '').trim();
+        const hasConversion = Boolean(secUnit && mult > 1 && normalizeUOM(secUnit).toLowerCase() !== normalizeUOM(baseUnit).toLowerCase());
+
+        if (hasConversion) {
+            const qty = Number(item.quantity) || 0;
+            const absQty = Math.abs(qty);
+            const whole = Math.floor(absQty / mult);
+            const rem = Math.round((absQty % mult) * 1000) / 1000;
+            // Chỉ cộng dồn các mặt hàng đủ từ 1 đơn vị quy đổi trở lên (đồng bộ với bảng)
+            if (whole >= 1) {
+                const cleanUnit = removeAccents(secUnit).trim();
+                const unitChar = cleanUnit ? cleanUnit.charAt(0).toUpperCase() : 'T';
+                if (!secondaryTotals[unitChar]) {
+                    secondaryTotals[unitChar] = { whole: 0, rem: 0 };
                 }
+                secondaryTotals[unitChar].whole += (qty < 0 ? -whole : whole);
+                secondaryTotals[unitChar].rem += rem;
             }
         }
     });
+
     const formattedSecondaryQtyTotals = Object.entries(secondaryTotals)
-        .map(([unit, val]) => {
-            const rounded = Math.round((val + Number.EPSILON) * 1000) / 1000;
-            return `${rounded % 1 === 0 ? rounded : rounded.toFixed(2)} ${normalizeUOM(unit)}`;
+        .filter(([_, data]) => Math.abs(data.whole) >= 1)
+        .map(([unitChar, data]) => {
+            const remStr = data.rem > 0 ? ` + ${data.rem % 1 === 0 ? data.rem : parseFloat(data.rem.toFixed(2))}` : '';
+            return `${data.whole}${unitChar}${remStr}`;
         })
         .join(' / ');
 
@@ -1716,49 +1723,27 @@ const PrintTemplate = forwardRef(({
                                                                 const prod = item.product || (productsMap && (productsMap.get(item.product_id) || productsMap.get(Number(item.product_id))));
                                                                 const mult = Number(item.multiplier || prod?.multiplier) || 1;
                                                                 const secUnit = (item.secondary_unit || prod?.secondary_unit || '').trim();
+                                                                const baseUnit = (item.product_unit || item.unit || prod?.unit || '').trim();
                                                                 const qty = Number(item.quantity) || 0;
-                                                                const rawSecQty = (item.secondary_qty !== undefined && item.secondary_qty !== null && item.secondary_qty !== '')
-                                                                    ? Number(item.secondary_qty)
-                                                                    : null;
 
-                                                                if (!secUnit && mult <= 1 && (rawSecQty === null || isNaN(rawSecQty))) {
+                                                                // Chỉ tính quy đổi nếu sản phẩm thực sự CÓ QUY ĐỔI (có ĐVT quy đổi và tỷ lệ quy đổi > 1)
+                                                                const hasConversion = Boolean(secUnit && mult > 1 && normalizeUOM(secUnit).toLowerCase() !== normalizeUOM(baseUnit).toLowerCase());
+                                                                if (!hasConversion) {
                                                                     return '-';
                                                                 }
 
-                                                                const unitChar = secUnit ? (secUnit.length <= 6 ? normalizeUOM(secUnit) : secUnit.charAt(0).toUpperCase()) : '';
+                                                                const cleanUnit = removeAccents(secUnit).trim();
+                                                                const unitChar = cleanUnit ? cleanUnit.charAt(0).toUpperCase() : 'T';
                                                                 const absQty = Math.abs(qty);
+                                                                const whole = Math.floor(absQty / mult);
+                                                                const rem = Math.round((absQty % mult) * 1000) / 1000;
 
-                                                                if (mult > 1) {
-                                                                    const whole = Math.floor(absQty / mult);
-                                                                    const rem = Math.round((absQty % mult) * 1000) / 1000;
-                                                                    if (whole > 0) {
-                                                                        return (
-                                                                            <span style={{ fontWeight: '500' }}>
-                                                                                {qty < 0 ? '-' : ''}{whole} {unitChar}{rem > 0 ? ` + ${rem % 1 === 0 ? rem : rem.toFixed(2)}` : ''}
-                                                                            </span>
-                                                                        );
-                                                                    } else if (rawSecQty !== null && !isNaN(rawSecQty) && rawSecQty !== 0) {
-                                                                        const roundedSec = Math.round((rawSecQty + Number.EPSILON) * 1000) / 1000;
-                                                                        return (
-                                                                            <span style={{ fontWeight: '500' }}>
-                                                                                {roundedSec % 1 === 0 ? roundedSec : roundedSec.toFixed(2)} {unitChar}
-                                                                            </span>
-                                                                        );
-                                                                    } else if (rem > 0) {
-                                                                        const frac = Math.round(((rem / mult) + Number.EPSILON) * 100) / 100;
-                                                                        return (
-                                                                            <span style={{ fontWeight: '500' }}>
-                                                                                {qty < 0 ? '-' : ''}{frac} {unitChar}
-                                                                            </span>
-                                                                        );
-                                                                    }
-                                                                }
-
-                                                                if (rawSecQty !== null && !isNaN(rawSecQty) && rawSecQty !== 0) {
-                                                                    const roundedSec = Math.round((rawSecQty + Number.EPSILON) * 1000) / 1000;
+                                                                // Chỉ in quy đổi khi từ 1 đơn vị trở lên, không in lẻ nếu < 1
+                                                                if (whole >= 1) {
+                                                                    const remStr = rem > 0 ? ` + ${rem % 1 === 0 ? rem : parseFloat(rem.toFixed(2))}` : '';
                                                                     return (
                                                                         <span style={{ fontWeight: '500' }}>
-                                                                            {roundedSec % 1 === 0 ? roundedSec : roundedSec.toFixed(2)} {unitChar}
+                                                                            {qty < 0 ? '-' : ''}{whole}{unitChar}{remStr}
                                                                         </span>
                                                                     );
                                                                 }

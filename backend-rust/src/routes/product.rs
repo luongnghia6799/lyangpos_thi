@@ -706,13 +706,7 @@ pub async fn bulk_accounting_update(
                 .execute(&mut *tx)
                 .await?;
         }
-        if let Some(ref u) = item.unit {
-            sqlx::query("UPDATE product SET unit = ? WHERE id = ?")
-                .bind(u)
-                .bind(item.id)
-                .execute(&mut *tx)
-                .await?;
-        }
+        // Tuyệt đối không cập nhật ĐVT (unit) ở đây vì đây là nghiệp vụ đối chiếu kế toán, phải bảo lưu ĐVT gốc của sản phẩm
         if let Some(ap) = item.accounting_price {
             sqlx::query("UPDATE product SET accounting_price = ? WHERE id = ?")
                 .bind(ap)

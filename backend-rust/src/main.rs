@@ -380,6 +380,19 @@ async fn main() -> anyhow::Result<()> {
             "/api/bank-transactions/:id",
             axum::routing::delete(routes::bank::delete_bank_transaction),
         )
+        // MISA AMIS Integration
+        .route(
+            "/api/misa/config",
+            get(routes::misa::get_misa_config).post(routes::misa::save_misa_config),
+        )
+        .route(
+            "/api/misa/test-connection",
+            post(routes::misa::test_misa_connection),
+        )
+        .route(
+            "/api/misa/sync-inventory",
+            post(routes::misa::sync_misa_inventory),
+        )
         // Settings & Print templates
         .route(
             "/api/settings",

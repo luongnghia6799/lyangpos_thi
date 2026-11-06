@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import CustomSelect from '../../components/forms/CustomSelect';
 import {
@@ -163,15 +163,15 @@ const Summary = () => {
                 </div>
             </div>
 
-            <OrderEditPopup 
+            <OrderEditPopup
                 isOpen={Boolean(editingOrder)}
-                order={editingOrder} 
-                partner={editingOrder?.partner} 
-                onClose={() => setEditingOrder(null)} 
+                order={editingOrder}
+                partner={editingOrder?.partner}
+                onClose={() => setEditingOrder(null)}
                 onSave={() => {
                     setEditingOrder(null);
                     setToast({ message: "Đã cập nhật đơn hàng thành công!", type: "success" });
-                }} 
+                }}
             />
             <AnimatePresence>
                 {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
@@ -376,7 +376,7 @@ const TransactionJournal = ({ onEditOrder }) => {
                                         <td className="px-6 py-3 text-xs italic opacity-60 truncate max-w-xs text-center">{item.note}</td>
                                     </tr>
                                 ))
-                             )}
+                            )}
                         </tbody>
                     </table>
                 </div>
@@ -513,11 +513,11 @@ const PartnerLedger = ({ onEditOrder }) => {
             };
             if (startDate) params.start_date = startDate;
             if (endDate) params.end_date = endDate;
-            
+
             const res = await axios.get(`/api/partners/${selectedPartner.id}/ledger`, { params });
             const data = res.data;
             const items = data.timeline || data.items || (Array.isArray(data) ? data : []);
-            
+
             const XLSX = await import('xlsx');
             const rows = items.map((t, idx) => ({
                 "STT": idx + 1,
@@ -568,12 +568,12 @@ const PartnerLedger = ({ onEditOrder }) => {
                     <div className="p-3.5 border-b border-border">
                         <div className="relative">
                             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-                            <input 
-                                type="text" 
-                                placeholder="Tìm đối tác theo tên, SĐT..." 
-                                className="w-full pl-9 pr-8 py-2 bg-white/40 dark:bg-slate-900/40 border border-border rounded-xl text-xs outline-none text-primary font-bold placeholder:text-gray-400 focus:border-primary transition-all" 
-                                value={search} 
-                                onChange={e => setSearch(e.target.value)} 
+                            <input
+                                type="text"
+                                placeholder="Tìm đối tác theo tên, SĐT..."
+                                className="w-full pl-9 pr-8 py-2 bg-white/40 dark:bg-slate-900/40 border border-border rounded-xl text-xs outline-none text-primary font-bold placeholder:text-gray-400 focus:border-primary transition-all"
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
                             />
                             {search && (
                                 <button
@@ -597,25 +597,25 @@ const PartnerLedger = ({ onEditOrder }) => {
                                 const isSelected = selectedPartner?.id === p.id;
                                 const debt = Number(p.debt_balance || 0);
                                 return (
-                                    <div 
-                                        key={p.id} 
-                                        onClick={() => selectPartner(p)} 
+                                    <div
+                                        key={p.id}
+                                        onClick={() => selectPartner(p)}
                                         className={cn(
                                             "p-3 rounded-xl cursor-pointer transition-all flex flex-col gap-0.5 select-none",
-                                            isSelected 
-                                                ? "bg-primary text-white shadow-sm" 
+                                            isSelected
+                                                ? "bg-primary text-white shadow-sm"
                                                 : "hover:bg-primary/10 text-slate-800 dark:text-slate-200 border border-transparent hover:border-primary/20"
                                         )}
                                     >
                                         <div className="font-black text-xs uppercase tracking-tight truncate">{p.name}</div>
                                         <div className="flex items-center justify-between text-[10px] font-black mt-0.5">
                                             <span className={cn(
-                                                isSelected 
-                                                    ? "text-white/90" 
-                                                    : debt > 1000 
-                                                        ? "text-blue-600 dark:text-blue-400" 
-                                                        : debt < -1000 
-                                                            ? "text-rose-600 dark:text-rose-400" 
+                                                isSelected
+                                                    ? "text-white/90"
+                                                    : debt > 1000
+                                                        ? "text-blue-600 dark:text-blue-400"
+                                                        : debt < -1000
+                                                            ? "text-rose-600 dark:text-rose-400"
                                                             : "text-slate-400"
                                             )}>
                                                 NỢ: {debt.toLocaleString()} ₫
@@ -689,11 +689,11 @@ const PartnerLedger = ({ onEditOrder }) => {
                                                     <td className="p-3 text-xs text-center font-medium">
                                                         {row.date ? new Date(row.date).toLocaleDateString('vi-VN') : '-'}
                                                     </td>
-                                                    <td 
+                                                    <td
                                                         className={cn(
                                                             "p-3 font-bold text-center",
                                                             row.type === 'Order' ? "text-primary cursor-pointer hover:underline" : "text-muted"
-                                                        )} 
+                                                        )}
                                                         onClick={() => row.type === 'Order' && row.obj && onEditOrder(row.obj, selectedPartner)}
                                                     >
                                                         {row.ref_id}
@@ -716,10 +716,10 @@ const PartnerLedger = ({ onEditOrder }) => {
                                                     </td>
                                                     <td className={cn(
                                                         "p-3 text-center font-black text-xs",
-                                                        (row.running_balance || 0) > 1000 
-                                                            ? "text-blue-600 dark:text-blue-400" 
-                                                            : (row.running_balance || 0) < -1000 
-                                                                ? "text-rose-600 dark:text-rose-400" 
+                                                        (row.running_balance || 0) > 1000
+                                                            ? "text-blue-600 dark:text-blue-400"
+                                                            : (row.running_balance || 0) < -1000
+                                                                ? "text-rose-600 dark:text-rose-400"
                                                                 : "text-slate-700 dark:text-slate-300"
                                                     )}>
                                                         {Number(row.running_balance || 0).toLocaleString()} ₫
@@ -899,12 +899,12 @@ const InventoryJournal = ({ onEditOrder }) => {
                 <div className="p-3.5 border-b border-border">
                     <div className="relative">
                         <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-                        <input 
-                            type="text" 
-                            placeholder="Tìm sản phẩm (tên, mã)..." 
-                            className="w-full pl-9 pr-8 py-2 bg-white/40 dark:bg-slate-900/40 border border-border rounded-xl text-xs outline-none text-primary font-bold placeholder:text-gray-400 focus:border-primary transition-all" 
-                            value={search} 
-                            onChange={e => setSearch(e.target.value)} 
+                        <input
+                            type="text"
+                            placeholder="Tìm sản phẩm (tên, mã)..."
+                            className="w-full pl-9 pr-8 py-2 bg-white/40 dark:bg-slate-900/40 border border-border rounded-xl text-xs outline-none text-primary font-bold placeholder:text-gray-400 focus:border-primary transition-all"
+                            value={search}
+                            onChange={e => setSearch(e.target.value)}
                         />
                         {search && (
                             <button
@@ -928,23 +928,23 @@ const InventoryJournal = ({ onEditOrder }) => {
                             const isSelected = selectedProduct?.id === p.id;
                             const stock = Number(p.stock || 0);
                             return (
-                                <div 
-                                    key={p.id} 
-                                    onClick={() => selectProduct(p)} 
+                                <div
+                                    key={p.id}
+                                    onClick={() => selectProduct(p)}
                                     className={cn(
                                         "p-3 rounded-xl cursor-pointer transition-all flex flex-col gap-0.5 select-none",
-                                        isSelected 
-                                            ? "bg-primary text-white shadow-sm" 
+                                        isSelected
+                                            ? "bg-primary text-white shadow-sm"
                                             : "hover:bg-primary/10 text-slate-800 dark:text-slate-200 border border-transparent hover:border-primary/20"
                                     )}
                                 >
                                     <div className="font-black text-xs uppercase tracking-tight truncate">{p.name}</div>
                                     <div className="flex items-center justify-between text-[10px] font-black mt-0.5">
                                         <span className={cn(
-                                            isSelected 
-                                                ? "text-white/90" 
-                                                : stock > 0 
-                                                    ? "text-emerald-600 dark:text-emerald-400" 
+                                            isSelected
+                                                ? "text-white/90"
+                                                : stock > 0
+                                                    ? "text-emerald-600 dark:text-emerald-400"
                                                     : "text-rose-500 dark:text-rose-400"
                                         )}>
                                             TỒN KHO: {stock.toLocaleString()} {p.unit || ''}
@@ -1047,8 +1047,8 @@ const InventoryJournal = ({ onEditOrder }) => {
                                                 <td className="p-3 text-xs text-center font-medium">
                                                     {item.date ? new Date(item.date).toLocaleDateString('vi-VN') : '-'}
                                                 </td>
-                                                <td 
-                                                    className="p-3 font-bold text-primary text-center cursor-pointer hover:underline" 
+                                                <td
+                                                    className="p-3 font-bold text-primary text-center cursor-pointer hover:underline"
                                                     onClick={() => onEditOrder && onEditOrder(item)}
                                                 >
                                                     {item.display_id || item.order_id || '-'}
@@ -1061,10 +1061,10 @@ const InventoryJournal = ({ onEditOrder }) => {
                                                         "px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider",
                                                         isReturn
                                                             ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20"
-                                                            : isSale 
-                                                                ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20" 
-                                                                : isPurchase 
-                                                                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20" 
+                                                            : isSale
+                                                                ? "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20"
+                                                                : isPurchase
+                                                                    ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
                                                                     : "bg-slate-500/10 text-slate-600 dark:text-slate-400 border border-slate-500/20"
                                                     )}>
                                                         {displayType}
@@ -1280,37 +1280,76 @@ const ProductMovementReport = ({ onEditOrder }) => {
         setSelectedProducts(selectedProducts.filter(p => p.id !== id));
     };
 
+    const processedMovement = useMemo(() => {
+        return movement.map(item => {
+            const rawQty = Number(item.quantity || 0);
+            const isCustomerReturn = item.type === 'Khách trả hàng' || (item.type === 'Xuất' && rawQty < 0) || (item.type === 'Sale' && rawQty < 0);
+            const isSupplierReturn = item.type === 'Trả hàng NCC' || (item.type === 'Nhập' && rawQty < 0) || (item.type === 'Purchase' && rawQty < 0);
+            const isReturn = isCustomerReturn || isSupplierReturn || item.type?.toLowerCase().includes('trả');
+
+            let normalizedType = item.type;
+            let changeQty = 0; // > 0: kho tăng, < 0: kho giảm
+
+            if (isCustomerReturn) {
+                normalizedType = 'Khách trả hàng';
+                changeQty = Math.abs(rawQty); // Khách trả hàng -> hàng nhập lại vào kho (+)
+            } else if (isSupplierReturn) {
+                normalizedType = 'Trả hàng NCC';
+                changeQty = -Math.abs(rawQty); // Trả lại NCC -> hàng xuất khỏi kho (-)
+            } else if (item.type === 'Nhập' || item.type === 'Purchase') {
+                normalizedType = 'Nhập';
+                changeQty = Math.abs(rawQty);
+            } else {
+                normalizedType = 'Xuất';
+                changeQty = -Math.abs(rawQty);
+            }
+
+            const absQty = Math.abs(rawQty);
+            const totalVal = Math.abs(Number(item.total || 0)) || (absQty * Number(item.price || 0));
+
+            return {
+                ...item,
+                type: normalizedType,
+                isReturn,
+                isCustomerReturn,
+                isSupplierReturn,
+                absQty,
+                changeQty,
+                total: totalVal
+            };
+        }).filter(item => {
+            if (!selectedType) return true;
+            if (selectedType === 'Return') return item.isReturn;
+            if (selectedType === 'Sale') return item.type === 'Xuất';
+            if (selectedType === 'Purchase') return item.type === 'Nhập';
+            return true;
+        });
+    }, [movement, selectedType]);
+
     const exportToExcel = async () => {
         try {
-            const params = new URLSearchParams();
-            if (startDate) params.append('start_date', startDate);
-            if (endDate) params.append('end_date', endDate);
-            if (selectedBrand) params.append('brand', selectedBrand);
-            if (selectedProducts.length > 0) params.append('product_ids', selectedProducts.map(p => p.id).join(','));
-            if (selectedPartner?.id) params.append('partner_id', selectedPartner.id);
-            if (selectedType) params.append('type', selectedType);
-            
-            const res = await axios.get(`/api/reports/product-movement?${params.toString()}`);
-            const items = res.data || [];
-            
+            const items = processedMovement;
+            if (items.length === 0) return;
+
             const XLSX = await import('xlsx');
             const excelRows = items.map(d => ({
                 'Ngày': d.date || '',
                 'Mã Đơn': d.display_id || '',
                 'Sản Phẩm': d.product_name || '',
                 'Hãng': d.brand || '',
-                'Loại': d.type || '',
+                'Phân Loại': d.type || '',
                 'Đối Tác': d.partner_name || '',
-                'Số Lượng': d.quantity || 0,
+                'SL Đổi': d.changeQty > 0 ? `+${d.absQty}` : `-${d.absQty}`,
+                'Số Lượng': d.absQty,
                 'Đơn Vị': d.unit || '',
                 'Đơn Giá': d.price || 0,
-                'Thành Tiền': (d.quantity || 0) * (d.price || 0)
+                'Thành Tiền': d.total || 0
             }));
 
             const ws = XLSX.utils.json_to_sheet(excelRows);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "BienDongHangHoa");
-            
+
             const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
             const { saveOrOpenFile } = await import('../../utils/downloadHelper');
             await saveOrOpenFile(wbout, `bao_cao_bien_dong_${getTodayStr()}.xlsx`, true);
@@ -1320,24 +1359,37 @@ const ProductMovementReport = ({ onEditOrder }) => {
     };
 
     // Calculate totals
-    const totals = movement.reduce((acc, curr) => {
-        if (curr.type === 'Nhập') acc.qtyIn += curr.quantity;
-        else acc.qtyOut += curr.quantity;
-        acc.totalVal += curr.total;
-        return acc;
-    }, { qtyIn: 0, qtyOut: 0, totalVal: 0 });
+    const totals = useMemo(() => {
+        return processedMovement.reduce((acc, curr) => {
+            if (curr.isCustomerReturn) {
+                acc.qtyCustomerReturn += curr.absQty;
+                acc.qtyIn += curr.absQty;
+            } else if (curr.isSupplierReturn) {
+                acc.qtySupplierReturn += curr.absQty;
+                acc.qtyOut += curr.absQty;
+            } else if (curr.type === 'Nhập') {
+                acc.qtyIn += curr.absQty;
+            } else {
+                acc.qtyOut += curr.absQty;
+            }
+            acc.totalVal += curr.total;
+            return acc;
+        }, { qtyIn: 0, qtyOut: 0, qtyCustomerReturn: 0, qtySupplierReturn: 0, totalVal: 0 });
+    }, [processedMovement]);
 
     // Pagination logic
-    const totalPages = Math.ceil(movement.length / pageSize);
-    const paginatedMovement = movement.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+    const totalPages = Math.ceil(processedMovement.length / pageSize) || 1;
+    const paginatedMovement = processedMovement.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
     // Page totals
-    const pageTotals = paginatedMovement.reduce((acc, curr) => {
-        if (curr.type === 'Nhập') acc.qtyIn += curr.quantity;
-        else acc.qtyOut += curr.quantity;
-        acc.totalVal += curr.total;
-        return acc;
-    }, { qtyIn: 0, qtyOut: 0, totalVal: 0 });
+    const pageTotals = useMemo(() => {
+        return paginatedMovement.reduce((acc, curr) => {
+            if (curr.changeQty > 0) acc.qtyIn += curr.absQty;
+            else acc.qtyOut += curr.absQty;
+            acc.totalVal += curr.total;
+            return acc;
+        }, { qtyIn: 0, qtyOut: 0, totalVal: 0 });
+    }, [paginatedMovement]);
 
     return (
         <div className="flex flex-col h-full overflow-hidden">
@@ -1385,11 +1437,12 @@ const ProductMovementReport = ({ onEditOrder }) => {
                                 className="border-0 p-0 min-w-[150px]"
                                 dropdownClassName="uppercase"
                                 value={selectedType}
-                                onChange={e => setSelectedType(e.target.value)}
+                                onChange={e => { setSelectedType(e.target.value); setCurrentPage(1); }}
                                 options={[
                                     { value: "", label: "TẤT CẢ BIẾN ĐỘNG" },
                                     { value: "Sale", label: "CHỈ BÁN HÀNG" },
-                                    { value: "Purchase", label: "CHỈ NHẬP HÀNG" }
+                                    { value: "Purchase", label: "CHỈ NHẬP HÀNG" },
+                                    { value: "Return", label: "CHỈ TRẢ HÀNG (KHÁCH TRẢ / TRẢ NCC)" }
                                 ]}
                             />
                         </div>
@@ -1607,7 +1660,7 @@ const ProductMovementReport = ({ onEditOrder }) => {
                                         ))}
                                     </tr>
                                 ))
-                            ) : movement.length === 0 ? (
+                            ) : processedMovement.length === 0 ? (
                                 <tr>
                                     <td colSpan="8" className="text-center py-24 text-gray-400">
                                         <div className="flex flex-col items-center gap-4">
@@ -1645,37 +1698,52 @@ const ProductMovementReport = ({ onEditOrder }) => {
                                         <td className="px-6 py-4 whitespace-nowrap text-center">
                                             <span className={cn(
                                                 "px-3 py-1 rounded-xl text-[10px] font-black uppercase shadow-sm border",
-                                                item.type === 'Nhập' ? "bg-amber-100 text-amber-700 border-amber-200" : "bg-emerald-100 text-emerald-700 border-emerald-200"
+                                                item.isCustomerReturn
+                                                    ? "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800"
+                                                    : item.isSupplierReturn
+                                                        ? "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800"
+                                                        : item.type === 'Nhập'
+                                                            ? "bg-amber-100 text-amber-700 border-amber-200"
+                                                            : "bg-emerald-100 text-emerald-700 border-emerald-200"
                                             )}>
                                                 {item.type}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-center">
                                             <div className="flex items-center justify-center gap-2">
-                                                <div className="w-2 h-2 rounded-full bg-primary/20"></div>
+                                                <div className={cn(
+                                                    "w-2 h-2 rounded-full",
+                                                    item.isReturn ? "bg-purple-500" : "bg-primary/20"
+                                                )}></div>
                                                 <span className="text-xs font-bold text-gray-600 dark:text-gray-400 truncate max-w-[140px]">
                                                     {item.partner_name || 'Khách lẻ'}
                                                 </span>
                                             </div>
                                         </td>
                                         <td className={cn(
-                                            "px-6 py-4 text-center font-black text-sm",
-                                            item.type === 'Nhập' ? "text-amber-600" : "text-emerald-600"
+                                            "px-6 py-4 text-center font-black text-sm tabular-nums",
+                                            item.isCustomerReturn
+                                                ? "text-purple-600 dark:text-purple-400"
+                                                : item.isSupplierReturn
+                                                    ? "text-rose-600 dark:text-rose-400"
+                                                    : item.type === 'Nhập'
+                                                        ? "text-amber-600"
+                                                        : "text-emerald-600"
                                         )}>
-                                            {item.type === 'Nhập' ? `+${Math.abs(Number(item.quantity || 0)).toLocaleString()}` : `-${Math.abs(Number(item.quantity || 0)).toLocaleString()}`}
+                                            {item.changeQty > 0 ? `+${item.absQty.toLocaleString()}` : `-${item.absQty.toLocaleString()}`}
                                         </td>
-                                        <td className="px-6 py-4 text-center font-bold text-gray-500 text-xs">
-                                            {item.price.toLocaleString()}
+                                        <td className="px-6 py-4 text-center font-bold text-gray-500 text-xs tabular-nums">
+                                            {(item.price || 0).toLocaleString()}
                                         </td>
-                                        <td className="px-6 py-4 text-center font-black text-foreground">
-                                            {item.total.toLocaleString()} đ
+                                        <td className="px-6 py-4 text-center font-black text-foreground tabular-nums">
+                                            {(item.total || 0).toLocaleString()} đ
                                         </td>
                                     </tr>
                                 ))
                             )}
                         </tbody>
 
-                        {!loading && movement.length > 0 && (
+                        {!loading && processedMovement.length > 0 && (
                             <tfoot className="sticky bottom-0 bg-card border-t border-border z-20 backdrop-blur-md">
                                 <tr className="bg-transparent">
                                     <td colSpan="5" className="px-6 py-2 font-black text-[10px] uppercase text-muted text-right">Tổng trang ({paginatedMovement.length} dòng):</td>
@@ -1692,8 +1760,11 @@ const ProductMovementReport = ({ onEditOrder }) => {
                                     <td colSpan="5" className="px-6 py-4 font-black text-xs uppercase text-primary text-right tracking-widest">Toàn bộ danh sách:</td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex flex-col gap-1">
-                                            <div className="text-amber-700 font-black text-xs">TỔNG NHẬP: {totals.qtyIn.toLocaleString()}</div>
-                                            <div className="text-emerald-700 font-black text-xs">TỔNG XUẤT: {totals.qtyOut.toLocaleString()}</div>
+                                            <div className="text-amber-700 font-black text-xs">TỔNG NHẬP: +{totals.qtyIn.toLocaleString()}</div>
+                                            <div className="text-emerald-700 font-black text-xs">TỔNG XUẤT: -{totals.qtyOut.toLocaleString()}</div>
+                                            {totals.qtyCustomerReturn > 0 && (
+                                                <div className="text-purple-700 dark:text-purple-400 font-black text-xs">KHÁCH TRẢ: +{totals.qtyCustomerReturn.toLocaleString()}</div>
+                                            )}
                                         </div>
                                     </td>
                                     <td></td>
@@ -1712,7 +1783,7 @@ const ProductMovementReport = ({ onEditOrder }) => {
                                 Trang {currentPage} / {totalPages}
                             </div>
                             <div className="text-[10px] font-black uppercase text-primary tracking-widest bg-primary/10 px-3 py-1.5 rounded-lg border border-primary/20">
-                                Tổng {movement.length.toLocaleString()} bản ghi
+                                Tổng {processedMovement.length.toLocaleString()} bản ghi
                             </div>
                         </div>
 

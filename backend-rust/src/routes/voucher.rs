@@ -186,15 +186,17 @@ pub async fn create_voucher(
     let v_type = payload.r#type.unwrap_or_else(|| "Payment".to_string());
     let source = payload.source.unwrap_or_else(|| "manual".to_string());
 
+    let now = chrono::Local::now();
+    let current_time_str = now.format("%H:%M:%S").to_string();
     let date_str = payload.date.as_deref().unwrap_or("");
     let formatted_date = if !date_str.is_empty() {
         if date_str.len() <= 10 {
-            format!("{} 12:00:00", date_str)
+            format!("{} {}", date_str, current_time_str)
         } else {
             date_str.replace('T', " ")
         }
     } else {
-        chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()
+        now.format("%Y-%m-%d %H:%M:%S").to_string()
     };
 
     let res = sqlx::query(
@@ -334,16 +336,41 @@ pub async fn update_voucher(
     let note = payload.note.or(existing.note);
     let v_type = payload.r#type.or(existing.r#type).unwrap_or_else(|| "Payment".into());
 
-    sqlx::query("UPDATE cash_voucher SET amount = ?, note = ?, type = ? WHERE id = ?")
+    let formatted_date = if let Some(ref d_str) = payload.date {
+        let trimmed = d_str.trim();
+        if trimmed.is_empty() {
+            existing.date.map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string())
+        } else if trimmed.len() <= 10 {
+            let time_part = existing.date
+                .map(|dt| dt.format("%H:%M:%S").to_string())
+                .unwrap_or_else(|| chrono::Local::now().format("%H:%M:%S").to_string());
+            Some(format!("{} {}", trimmed, time_part))
+        } else {
+            Some(trimmed.replace('T', " "))
+        }
+    } else {
+        existing.date.map(|dt| dt.format("%Y-%m-%d %H:%M:%S").to_string())
+    };
+
+    let new_partner_id = payload.partner_id.or(existing.partner_id);
+
+    sqlx::query("UPDATE cash_voucher SET amount = ?, note = ?, type = ?, date = ?, partner_id = ? WHERE id = ?")
         .bind(amount)
         .bind(note.as_deref())
         .bind(&v_type)
+        .bind(formatted_date)
+        .bind(new_partner_id)
         .bind(id)
         .execute(&pool)
         .await?;
 
     if let Some(pid) = existing.partner_id {
         recalculate_partner_debt_internal(&pool, pid).await?;
+    }
+    if let Some(pid) = new_partner_id {
+        if Some(pid) != existing.partner_id {
+            recalculate_partner_debt_internal(&pool, pid).await?;
+        }
     }
 
     Ok(Json(json!({

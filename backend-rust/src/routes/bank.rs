@@ -273,11 +273,23 @@ pub async fn create_bank_transaction(
         return Err(AppError::BadRequest("Số tiền giao dịch phải lớn hơn 0".into()));
     }
 
+    let date_str = payload.date.as_deref().unwrap_or("");
+    let formatted_date = if !date_str.is_empty() {
+        if date_str.len() <= 10 {
+            let now_time = chrono::Local::now().format("%H:%M:%S").to_string();
+            format!("{} {}", date_str, now_time)
+        } else {
+            date_str.replace('T', " ")
+        }
+    } else {
+        chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string()
+    };
+
     let mut tx = pool.begin().await?;
 
     let res = sqlx::query(
         "INSERT INTO bank_transaction (account_id, amount, type, note, partner_id, order_id, date) \
-         VALUES (?, ?, ?, ?, ?, ?, datetime('now', '+7 hours'))"
+         VALUES (?, ?, ?, ?, ?, ?, ?)"
     )
     .bind(payload.account_id)
     .bind(payload.amount)
@@ -285,6 +297,7 @@ pub async fn create_bank_transaction(
     .bind(payload.note.as_deref())
     .bind(payload.partner_id)
     .bind(payload.order_id)
+    .bind(&formatted_date)
     .execute(&mut *tx)
     .await?;
 

@@ -18,7 +18,7 @@ export default function LedgerLite() {
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Date filter states
   const [viewMode, setViewMode] = useState('transactions'); // 'transactions', 'movements'
   const [filterType, setFilterType] = useState('today'); // 'today', 'yesterday', '7days', 'month', 'custom'
@@ -32,7 +32,7 @@ export default function LedgerLite() {
       end: today.toISOString().split('T')[0]
     };
   });
-  
+
   const [searchQuery, setSearchQuery] = useState('');
   const [page, setPage] = useState(1);
   const pageSize = 15;
@@ -43,7 +43,7 @@ export default function LedgerLite() {
   const getRangeDates = (type) => {
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
-    
+
     if (type === 'today') {
       return { start: todayStr, end: todayStr };
     }
@@ -81,18 +81,18 @@ export default function LedgerLite() {
     setLoading(true);
     try {
       if (viewMode === 'transactions') {
-        const orderParams = { 
-          start_date: `${dateRange.start}T00:00:00`, 
+        const orderParams = {
+          start_date: `${dateRange.start}T00:00:00`,
           end_date: `${dateRange.end}T23:59:59`,
           search_partner: searchQuery,
           search_id: searchQuery
         };
-        
-        const voucherParams = { 
-          start_date: `${dateRange.start}T00:00:00`, 
+
+        const voucherParams = {
+          start_date: `${dateRange.start}T00:00:00`,
           end_date: `${dateRange.end}T23:59:59`,
-          search_partner: searchQuery, 
-          search_id: searchQuery 
+          search_partner: searchQuery,
+          search_id: searchQuery
         };
 
         const [resOrders, resVouchers] = await Promise.all([
@@ -115,10 +115,10 @@ export default function LedgerLite() {
         ].sort((a, b) => new Date(b.date) - new Date(a.date));
 
         const filtered = searchQuery
-          ? combined.filter(t => 
-              (t.partner_name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
-              (t.display_id || '').toLowerCase().includes(searchQuery.toLowerCase())
-            )
+          ? combined.filter(t =>
+            (t.partner_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (t.display_id || '').toLowerCase().includes(searchQuery.toLowerCase())
+          )
           : combined;
 
         setTransactions(filtered);
@@ -130,9 +130,9 @@ export default function LedgerLite() {
         };
         const res = await axios.get('/api/reports/product-movement', { params: movementParams });
         let movementsData = Array.isArray(res.data) ? res.data : [];
-        
+
         if (searchQuery) {
-          movementsData = movementsData.filter(m => 
+          movementsData = movementsData.filter(m =>
             (m.product_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
             (m.partner_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
             (m.order_id || '').toString().includes(searchQuery.toLowerCase())
@@ -413,31 +413,31 @@ export default function LedgerLite() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
               <span className="lite-ledger-label">Thời gian giao dịch</span>
               <div className="lite-ledger-capsules">
-                <button 
+                <button
                   className={cn("lite-ledger-capsule-btn", filterType === 'today' && "active")}
                   onClick={() => setFilterType('today')}
                 >
                   Hôm nay
                 </button>
-                <button 
+                <button
                   className={cn("lite-ledger-capsule-btn", filterType === 'yesterday' && "active")}
                   onClick={() => setFilterType('yesterday')}
                 >
                   Hôm qua
                 </button>
-                <button 
+                <button
                   className={cn("lite-ledger-capsule-btn", filterType === '7days' && "active")}
                   onClick={() => setFilterType('7days')}
                 >
                   7 ngày qua
                 </button>
-                <button 
+                <button
                   className={cn("lite-ledger-capsule-btn", filterType === 'month' && "active")}
                   onClick={() => setFilterType('month')}
                 >
                   Tháng này
                 </button>
-                <button 
+                <button
                   className={cn("lite-ledger-capsule-btn", filterType === 'custom' && "active")}
                   onClick={() => setFilterType('custom')}
                 >
@@ -451,8 +451,8 @@ export default function LedgerLite() {
               <div className="lite-ledger-custom-dates">
                 <div>
                   <label className="lite-ledger-label">Từ ngày</label>
-                  <input 
-                    type="date" 
+                  <input
+                    type="date"
                     value={dateRange.start}
                     onChange={(e) => {
                       setDateRange(prev => ({ ...prev, start: e.target.value }));
@@ -463,8 +463,8 @@ export default function LedgerLite() {
                 </div>
                 <div>
                   <label className="lite-ledger-label">Đến ngày</label>
-                  <input 
-                    type="date" 
+                  <input
+                    type="date"
                     value={dateRange.end}
                     onChange={(e) => {
                       setDateRange(prev => ({ ...prev, end: e.target.value }));
@@ -475,15 +475,15 @@ export default function LedgerLite() {
                 </div>
               </div>
             )}
-            
+
             {/* Search filter */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
               <label className="lite-ledger-label">
                 {viewMode === 'transactions' ? 'Tìm đối tác & mã giao dịch' : 'Tìm sản phẩm, đối tác, mã GD'}
               </label>
               <div style={{ position: 'relative' }}>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   placeholder={viewMode === 'transactions' ? "Nhập tên đối tác hoặc mã GD..." : "Nhập tên sản phẩm, đối tác..."}
                   value={searchQuery}
                   onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
@@ -491,7 +491,7 @@ export default function LedgerLite() {
                   style={{ paddingRight: '2.2rem' }}
                 />
                 {searchQuery ? (
-                  <button 
+                  <button
                     onClick={() => { setSearchQuery(''); setPage(1); }}
                     style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', border: 'none', background: 'transparent', color: '#ef4444', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
                   >
@@ -514,7 +514,7 @@ export default function LedgerLite() {
                 if (viewMode === 'transactions') {
                   let badgeClass = "";
                   let badgeText = "";
-                  
+
                   if (item.isVoucher) {
                     badgeText = item.type === 'Receipt' ? 'PHIẾU THU' : 'PHIẾU CHI';
                     badgeClass = item.type === 'Receipt' ? "color: #3b82f6;" : "color: #ef4444;";
@@ -530,14 +530,14 @@ export default function LedgerLite() {
                           <div style={{ fontFamily: 'monospace', fontWeight: 950, fontSize: '0.9rem' }}>
                             #{item.display_id || item.id}
                           </div>
-                          <div style={{ 
-                            fontSize: '0.65rem', 
-                            fontWeight: 900, 
-                            padding: '0.15rem 0.4rem', 
+                          <div style={{
+                            fontSize: '0.65rem',
+                            fontWeight: 900,
+                            padding: '0.15rem 0.4rem',
                             borderRadius: '4px',
                             border: '1px solid currentColor',
                             opacity: 0.8,
-                            ...(!item.isVoucher ? (item.type === 'Sale' ? {color: '#10b981'} : {color: '#f59e0b'}) : (item.type === 'Receipt' ? {color: '#3b82f6'} : {color: '#ef4444'}))
+                            ...(!item.isVoucher ? (item.type === 'Sale' ? { color: '#10b981' } : { color: '#f59e0b' }) : (item.type === 'Receipt' ? { color: '#3b82f6' } : { color: '#ef4444' }))
                           }}>
                             {badgeText}
                           </div>
@@ -551,10 +551,10 @@ export default function LedgerLite() {
                         </div>
                       </div>
                       <div style={{ textAlign: 'right', marginLeft: '1rem' }}>
-                        <div style={{ 
-                          fontWeight: 950, 
-                          fontSize: '1rem', 
-                          color: (item.isVoucher && item.type === 'Payment') || (!item.isVoucher && item.type === 'Purchase') ? "#ef4444" : "#10b981" 
+                        <div style={{
+                          fontWeight: 950,
+                          fontSize: '1rem',
+                          color: (item.isVoucher && item.type === 'Payment') || (!item.isVoucher && item.type === 'Purchase') ? "#ef4444" : "#10b981"
                         }}>
                           {((item.isVoucher && item.type === 'Payment') || (!item.isVoucher && item.type === 'Purchase') ? '-' : '+')}
                           {formatNumber(item.total_amount)}
@@ -567,7 +567,34 @@ export default function LedgerLite() {
                   );
                 } else {
                   // Movement Item
-                  const isSale = item.type === 'Xuất' || item.type === 'Sale';
+                  const rawQty = Number(item.quantity || 0);
+                  const isCustReturn = item.type === 'Khách trả hàng' || (item.type === 'Xuất' && rawQty < 0) || (item.type === 'Sale' && rawQty < 0);
+                  const isSuppReturn = item.type === 'Trả hàng NCC' || (item.type === 'Nhập' && rawQty < 0) || (item.type === 'Purchase' && rawQty < 0);
+                  const isSale = !isCustReturn && !isSuppReturn && (item.type === 'Xuất' || item.type === 'Sale');
+                  const isPurchase = !isCustReturn && !isSuppReturn && (item.type === 'Nhập' || item.type === 'Purchase');
+
+                  let badgeLabel = 'BÁN / XUẤT';
+                  let badgeColor = '#10b981';
+                  let qtySign = '-';
+                  let qtyColor = '#10b981';
+
+                  if (isCustReturn) {
+                    badgeLabel = 'KHÁCH TRẢ HÀNG';
+                    badgeColor = '#a855f7';
+                    qtySign = '+';
+                    qtyColor = '#a855f7';
+                  } else if (isSuppReturn) {
+                    badgeLabel = 'TRẢ HÀNG NCC';
+                    badgeColor = '#f43f5e';
+                    qtySign = '-';
+                    qtyColor = '#f43f5e';
+                  } else if (isPurchase) {
+                    badgeLabel = 'NHẬP KHO';
+                    badgeColor = '#f59e0b';
+                    qtySign = '+';
+                    qtyColor = '#f59e0b';
+                  }
+
                   return (
                     <div key={`mov-${idx}-${item.order_id}`} className="lite-ledger-card">
                       <div style={{ minWidth: 0, flex: 1 }}>
@@ -575,16 +602,16 @@ export default function LedgerLite() {
                           <div style={{ fontFamily: 'monospace', fontWeight: 950, fontSize: '0.85rem', opacity: 0.7 }}>
                             #{item.order_id}
                           </div>
-                          <div style={{ 
-                            fontSize: '0.65rem', 
-                            fontWeight: 900, 
-                            padding: '0.15rem 0.4rem', 
+                          <div style={{
+                            fontSize: '0.65rem',
+                            fontWeight: 900,
+                            padding: '0.15rem 0.4rem',
                             borderRadius: '4px',
                             border: '1px solid currentColor',
                             opacity: 0.8,
-                            color: isSale ? '#10b981' : '#f59e0b'
+                            color: badgeColor
                           }}>
-                            {isSale ? 'BÁN / XUẤT' : 'NHẬP KHO'}
+                            {badgeLabel}
                           </div>
                         </div>
                         <div style={{ fontSize: '0.85rem', fontWeight: 950, marginTop: '0.3rem' }}>
@@ -595,12 +622,12 @@ export default function LedgerLite() {
                         </div>
                       </div>
                       <div style={{ textAlign: 'right', marginLeft: '1rem' }}>
-                        <div style={{ 
-                          fontWeight: 950, 
-                          fontSize: '1rem', 
-                          color: isSale ? "#10b981" : "#f59e0b" 
+                        <div style={{
+                          fontWeight: 950,
+                          fontSize: '1rem',
+                          color: qtyColor
                         }}>
-                          {isSale ? '-' : '+'}{item.quantity}
+                          {qtySign}{Math.abs(rawQty)}
                         </div>
                         <div className="opacity-muted" style={{ fontSize: '0.62rem', fontWeight: 900, marginTop: '0.15rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                           Giá: {formatNumber(item.price)}
@@ -614,7 +641,7 @@ export default function LedgerLite() {
           </div>
 
           <div className="lite-ledger-pagination">
-            <button 
+            <button
               className="lite-ledger-pagination-btn"
               disabled={page === 1}
               onClick={() => setPage(p => Math.max(1, p - 1))}
@@ -624,7 +651,7 @@ export default function LedgerLite() {
             <span style={{ fontSize: '0.75rem', fontWeight: 900 }}>
               TRANG {page} / {totalPages}
             </span>
-            <button 
+            <button
               className="lite-ledger-pagination-btn"
               disabled={page >= totalPages}
               onClick={() => setPage(p => Math.min(totalPages, p + 1))}

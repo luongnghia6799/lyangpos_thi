@@ -662,7 +662,22 @@ pub async fn report_product_movement(
         sql.push_str(&format!(" AND o.partner_id = {}", pid));
     }
     if let Some(t) = &params.r#type {
-        sql.push_str(&format!(" AND o.type = '{}'", t));
+        match t.as_str() {
+            "Sale" | "sale" => {
+                sql.push_str(" AND o.type = 'Sale' AND od.quantity > 0");
+            }
+            "Purchase" | "purchase" => {
+                sql.push_str(" AND o.type = 'Purchase' AND od.quantity > 0");
+            }
+            "Return" | "return" => {
+                sql.push_str(" AND od.quantity < 0");
+            }
+            other => {
+                if !other.is_empty() {
+                    sql.push_str(&format!(" AND o.type = '{}'", other));
+                }
+            }
+        }
     }
 
     sql.push_str(" ORDER BY o.date DESC");
@@ -683,7 +698,19 @@ pub async fn report_product_movement(
         let unit: Option<String> = r.get("product_unit");
         let partner_name: Option<String> = r.get("partner_name");
 
-        let move_type = if order_type == "Sale" { "Xuất" } else { "Nhập" };
+        let (move_type, display_qty) = if order_type == "Sale" {
+            if quantity < 0.0 {
+                ("Khách trả hàng", quantity.abs())
+            } else {
+                ("Xuất", quantity)
+            }
+        } else {
+            if quantity < 0.0 {
+                ("Trả hàng NCC", quantity.abs())
+            } else {
+                ("Nhập", quantity)
+            }
+        };
         let default_partner = if order_type == "Sale" { "KHÁCH LẺ" } else { "NCC VÃNG LAI" };
 
         results.push(ProductMovementItemDto {
@@ -693,9 +720,9 @@ pub async fn report_product_movement(
             product_name: p_name_override.or(p_name).unwrap_or_else(|| "Sản phẩm đã xóa".into()),
             brand: brand.unwrap_or_default(),
             r#type: move_type.into(),
-            quantity,
+            quantity: display_qty,
             price,
-            total: quantity * price,
+            total: display_qty * price,
             partner_name: partner_name.unwrap_or_else(|| default_partner.into()),
             unit: unit.unwrap_or_default(),
         });

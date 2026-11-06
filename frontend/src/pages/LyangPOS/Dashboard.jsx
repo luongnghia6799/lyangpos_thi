@@ -77,10 +77,6 @@ import { checkIsAdmin } from '../../lib/auth';
 import Toast from '../../components/widgets/Toast';
 import LoadingOverlay from '../../components/layout/LoadingOverlay';
 import Portal from '../../components/widgets/Portal';
-import Dashboard3DChart from '../../components/three/Dashboard3DChart';
-import Tilt3DCard from '../../components/three/Tilt3DCard';
-import DebtTorus3D from '../../components/three/DebtTorus3D';
-import WeatherOrb3D from '../../components/three/WeatherOrb3D';
 
 
 ChartJS.register(
@@ -178,20 +174,20 @@ const ClockWidget = memo(() => {
         return () => clearInterval(timer);
     }, []);
     return (
-        <div className="relative p-5 flex flex-col justify-center overflow-hidden group hover:bg-[#8b6f47]/[0.03] dark:hover:bg-white/[0.02] transition-colors">
-            <div className="absolute -right-3 -bottom-3 text-[#2d5016]/[0.08] dark:text-emerald-400/[0.08] pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-transform duration-500">
+        <div className="relative p-5 flex flex-col justify-center overflow-hidden group hover:bg-primary/[0.03] dark:hover:bg-white/[0.02] transition-colors">
+            <div className="absolute -right-3 -bottom-3 text-primary/[0.08] pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-transform duration-500">
                 <Clock size={90} strokeWidth={1.8} />
             </div>
             <div className="relative z-10 flex flex-col">
-                <div className="text-4xl lg:text-5xl font-black text-[#2d5016] dark:text-[#e8dfd5] tracking-tight tabular-nums leading-none mb-2">
+                <div className="text-4xl lg:text-5xl font-black text-primary dark:text-foreground tracking-tight tabular-nums leading-none mb-2">
                     {currentTime.toLocaleTimeString('vi-VN', { hour12: false, hour: '2-digit', minute: '2-digit' })}
                 </div>
-                <div className="flex items-center gap-2 text-[#8b6f47] dark:text-[#d4a574] font-black text-[9.5px] uppercase tracking-wider">
-                    <Calendar size={12} className="text-[#2d5016] dark:text-emerald-400 shrink-0" />
+                <div className="flex items-center gap-2 text-[var(--text-muted)] font-black text-[9.5px] uppercase tracking-wider">
+                    <Calendar size={12} className="text-primary shrink-0" />
                     <span className="truncate">
                         {currentTime.toLocaleDateString('vi-VN', { weekday: 'short', day: 'numeric', month: 'short' })}
                         <span className="mx-1.5 opacity-40">•</span>
-                        <span className="text-[#2d5016] dark:text-emerald-400">
+                        <span className="text-primary">
                             ÂL {Lunar.fromDate(currentTime).getDay()}/{Lunar.fromDate(currentTime).getMonth()}
                         </span>
                     </span>
@@ -438,11 +434,6 @@ export default function Dashboard() {
     }, [appWallpaper]);
 
     const [gpuDisabled, setGpuDisabled] = useState(() => localStorage.getItem("pos_gpu_disabled") === "true");
-    const [chart3DMode, setChart3DMode] = useState(() => localStorage.getItem("dashboard_chart_3d") !== "false");
-    const toggleChart3DMode = (mode) => {
-        setChart3DMode(mode);
-        localStorage.setItem("dashboard_chart_3d", String(mode));
-    };
 
     useEffect(() => {
         const handleGpuState = () => {
@@ -1096,231 +1087,217 @@ export default function Dashboard() {
                 return null;
             })()}
 
-            <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-4 lg:gap-6 pb-12 w-full" style={{ transformStyle: 'preserve-3d' }}>
-                {/* 1. Header Hero - 3D Spatial Command Stage - Span 7 */}
+            <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-4 lg:gap-6 pb-12 w-full">
+                {/* 1. Header Hero - Span 7 (60% on desktop) */}
                 <m.div 
                     variants={itemVariants} 
-                    className="md:col-span-12 xl:col-span-7 relative z-30 flex flex-col justify-center"
+                    className="md:col-span-12 xl:col-span-7 relative z-30 flex flex-col justify-center py-1"
                 >
-                    <Tilt3DCard
-                        disabled={gpuDisabled}
-                        intensity={4.5}
-                        scale={1.006}
-                        className={cn(
-                            "argon-3d-panel p-5 sm:p-6 rounded-[2.2rem] border border-[#8b6f47]/25 dark:border-white/10 transition-all duration-300 h-full flex items-center",
-                            cardGlassEnabled ? "" : "bg-[#fbf9f4] dark:bg-[#1a1c18]"
-                        )}
-                        style={getCardGlassStyle()}
-                    >
-                        <div className="flex flex-col sm:flex-row items-center sm:items-stretch gap-5 lg:gap-6 relative z-10 text-center sm:text-left w-full" style={{ transformStyle: 'preserve-3d' }}>
-                            {/* 3D Extruded Avatar Pedestal */}
-                            <div className="relative group shrink-0 self-center sm:self-stretch flex items-center justify-center" style={{ transform: 'translateZ(24px)' }}>
-                                {/* 3D Ambient Halo Ring */}
-                                <div className="absolute -inset-1.5 rounded-[1.9rem] bg-gradient-to-tr from-emerald-500/35 via-teal-400/20 to-amber-500/30 blur-md opacity-70 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                                <m.div
-                                    whileHover={{ scale: 1.05, rotateY: 8 }}
-                                    whileTap={{ scale: 0.96 }}
-                                    onClick={() => setShowAvatarModal(true)}
-                                    className="argon-3d-panel w-32 h-32 sm:w-36 sm:h-36 aspect-square shrink-0 rounded-3xl cursor-pointer overflow-hidden relative flex items-center justify-center bg-[#2d5016]/5 dark:bg-white/5 border-2 border-white/40 dark:border-emerald-400/25 shadow-xl transition-all"
-                                >
-                                    {getAvatarSrc(avatarUrl) ? (
-                                        <img 
-                                            src={getAvatarSrc(avatarUrl)} 
-                                            alt="Avatar" 
-                                            className="w-full h-full aspect-square object-cover" 
-                                            onError={(e) => {
-                                                e.currentTarget.onerror = null;
-                                                e.currentTarget.src = "/logo.png";
-                                            }}
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full aspect-square flex items-center justify-center p-4">
-                                            <img src="/logo.png" alt="Logo LyangPOS" className="w-full h-full aspect-square object-contain drop-shadow-md" />
-                                        </div>
-                                    )}
-
-                                    {/* Hover Camera Badge */}
-                                    <div className="absolute inset-0 bg-black/45 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 text-white">
-                                        <Camera size={20} className="drop-shadow-sm" />
-                                        <span className="text-[9.5px] font-black uppercase tracking-wider">Đổi ảnh 3D</span>
+                    <div className="flex flex-col sm:flex-row items-center sm:items-stretch gap-5 lg:gap-6 relative z-10 text-center sm:text-left w-full h-full">
+                        {/* Modern Avatar Container - Full Height Proportion */}
+                        <div className="relative group shrink-0 self-center sm:self-stretch flex items-center justify-center">
+                            <m.div
+                                whileHover={{ scale: 1.04 }}
+                                whileTap={{ scale: 0.96 }}
+                                onClick={() => setShowAvatarModal(true)}
+                                className="w-32 h-32 sm:w-auto sm:h-full aspect-square shrink-0 rounded-3xl cursor-pointer overflow-hidden relative flex items-center justify-center bg-[#2d5016]/5 dark:bg-white/5 border border-[#8b6f47]/20 dark:border-white/10 shadow-sm hover:shadow-md transition-all min-h-[140px] max-h-[170px]"
+                            >
+                                {getAvatarSrc(avatarUrl) ? (
+                                    <img 
+                                        src={getAvatarSrc(avatarUrl)} 
+                                        alt="Avatar" 
+                                        className="w-full h-full aspect-square object-cover" 
+                                        onError={(e) => {
+                                            e.currentTarget.onerror = null;
+                                            e.currentTarget.src = "/logo.png";
+                                        }}
+                                    />
+                                ) : (
+                                    <div className="w-full h-full aspect-square flex items-center justify-center p-4">
+                                        <img src="/logo.png" alt="Logo LyangPOS" className="w-full h-full aspect-square object-contain drop-shadow-sm" />
                                     </div>
-                                </m.div>
-                                <input 
-                                    type="file" 
-                                    ref={fileInputRef} 
-                                    onChange={handleAvatarUpload} 
-                                    className="hidden" 
-                                    accept="image/png, image/jpeg, image/jpg, image/webp" 
-                                />
+                                )}
+
+                                {/* Hover Camera Badge */}
+                                <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 text-white">
+                                    <Camera size={20} className="drop-shadow-sm" />
+                                    <span className="text-[9.5px] font-black uppercase tracking-wider">Đổi ảnh</span>
+                                </div>
+                            </m.div>
+                            <input 
+                                type="file" 
+                                ref={fileInputRef} 
+                                onChange={handleAvatarUpload} 
+                                className="hidden" 
+                                accept="image/png, image/jpeg, image/jpg, image/webp" 
+                            />
+                        </div>
+ 
+                        {/* Greeting Message & Agency Info */}
+                        <div className="flex-1 min-w-0 flex flex-col justify-between py-1">
+                            {/* Agency / Store Info Badge Header */}
+                            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5 mb-1">
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-[#2d5016]/10 dark:bg-emerald-500/15 border border-[#2d5016]/20 dark:border-emerald-500/30 text-[10px] font-black text-[#2d5016] dark:text-emerald-300 shadow-2xs tracking-wide">
+                                    <Leaf size={11} className="text-[#2d5016] dark:text-emerald-400" />
+                                    <span className="uppercase tracking-wider font-extrabold">{shopInfo.shop_name || 'Lyang Nghĩa'}</span>
+                                </span>
+                                {shopInfo.shop_phone && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-black/[0.03] dark:bg-white/5 border border-border text-[9.5px] font-bold text-muted-foreground">
+                                        Hotline: <strong className="text-foreground/80">{shopInfo.shop_phone}</strong>
+                                    </span>
+                                )}
+                                {shopInfo.shop_address && (
+                                    <span className="hidden xl:inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-black/[0.03] dark:bg-white/5 border border-border text-[9.5px] font-medium text-muted-foreground truncate max-w-[220px]" title={shopInfo.shop_address}>
+                                        <MapPin size={9} className="shrink-0 text-muted-foreground" />
+                                        <span className="truncate">{shopInfo.shop_address}</span>
+                                    </span>
+                                )}
                             </div>
-     
-                            {/* Greeting Message & Agency Info */}
-                            <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5" style={{ transform: 'translateZ(16px)' }}>
-                                {/* Agency / Store Info Badge Header */}
-                                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5 mb-1">
-                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-[#2d5016]/10 dark:bg-emerald-500/15 border border-[#2d5016]/20 dark:border-emerald-500/30 text-[10px] font-black text-[#2d5016] dark:text-emerald-300 shadow-2xs tracking-wide">
-                                        <Leaf size={11} className="text-[#2d5016] dark:text-emerald-400" />
-                                        <span className="uppercase tracking-wider font-extrabold">{shopInfo.shop_name || 'Lyang Nghĩa'}</span>
-                                    </span>
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-gradient-to-r from-teal-600 to-emerald-600 text-white text-[9px] font-black uppercase tracking-widest shadow-xs">
-                                        <Sparkles size={10} />
-                                        <span>3D Spatial Cockpit</span>
-                                    </span>
-                                    {shopInfo.shop_phone && (
-                                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-black/[0.03] dark:bg-white/5 border border-border text-[9.5px] font-bold text-muted-foreground">
-                                            Hotline: <strong className="text-foreground/80">{shopInfo.shop_phone}</strong>
-                                        </span>
+
+                            {/* Greeting Title (Editable on Click) */}
+                            <div 
+                                className="group/greet inline-flex items-center justify-center sm:justify-start gap-2.5 cursor-pointer w-fit max-w-full my-1" 
+                                onClick={() => {
+                                    setTempGreetingTitle(customGreetingTitle || greeting.text);
+                                    setTempGreetingSubtitle(customGreetingSubtitle || greeting.desc);
+                                    setShowGreetingModal(true);
+                                }} 
+                                title="Bấm để chỉnh sửa lời chào"
+                            >
+                                <h2 className="text-3xl sm:text-4xl lg:text-[42px] xl:text-5xl font-black text-primary dark:text-foreground tracking-tight leading-none transition-colors group-hover/greet:opacity-85">
+                                    {customGreetingTitle || greeting.text}
+                                </h2>
+                                <Edit size={16} className="text-muted-foreground/40 group-hover/greet:text-primary transition-all shrink-0" />
+                            </div>
+
+                            {/* Greeting Subtitle */}
+                            <p 
+                                className="text-sm sm:text-base text-[var(--text-muted)] font-bold flex items-center justify-center sm:justify-start gap-2 tracking-normal cursor-pointer hover:opacity-80 transition-opacity"
+                                onClick={() => {
+                                    setTempGreetingTitle(customGreetingTitle || greeting.text);
+                                    setTempGreetingSubtitle(customGreetingSubtitle || greeting.desc);
+                                    setShowGreetingModal(true);
+                                }}
+                                title="Bấm để chỉnh sửa thông điệp"
+                            >
+                                <Wheat size={16} className="text-primary shrink-0 opacity-80" />
+                                <span className="truncate">{customGreetingSubtitle || greeting.desc}</span>
+                            </p>
+
+                            {/* Action Buttons Row */}
+                            <div className="flex items-center justify-center sm:justify-start gap-2 pt-1">
+
+                                {/* Appearance Customizer Button */}
+                                <button
+                                    onClick={() => setShowWallpaperSettings(true)}
+                                    className={cn(
+                                        "w-8 h-8 rounded-full border active:scale-90 hover:scale-110 transition-all duration-200 flex items-center justify-center cursor-pointer shadow-2xs",
+                                        (appWallpaper.image || cardGlassEnabled || cardGlowEnabled)
+                                            ? "bg-primary text-white border-primary shadow-xs"
+                                            : "bg-primary/10 text-primary border-primary/20 hover:bg-primary hover:text-white"
                                     )}
-                                </div>
-
-                                {/* Greeting Title (Editable on Click) */}
-                                <div 
-                                    className="group/greet inline-flex items-center justify-center sm:justify-start gap-2.5 cursor-pointer w-fit max-w-full my-1" 
-                                    onClick={() => {
-                                        setTempGreetingTitle(customGreetingTitle || greeting.text);
-                                        setTempGreetingSubtitle(customGreetingSubtitle || greeting.desc);
-                                        setShowGreetingModal(true);
-                                    }} 
-                                    title="Bấm để chỉnh sửa lời chào"
+                                    title="Tùy chỉnh Giao diện: Hình nền, Kính mờ & Viền Glow"
                                 >
-                                    <h2 className="text-3xl sm:text-4xl lg:text-[40px] font-black text-[#2d5016] dark:text-[#e8dfd5] tracking-tight leading-none transition-colors group-hover/greet:text-[#3d6820] dark:group-hover/greet:text-emerald-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.06)]">
-                                        {customGreetingTitle || greeting.text}
-                                    </h2>
-                                    <Edit size={16} className="text-muted-foreground/40 group-hover/greet:text-primary transition-all shrink-0" />
-                                </div>
+                                    <Sparkles size={14} className={(appWallpaper.image || cardGlassEnabled || cardGlowEnabled) ? "text-amber-300" : "text-primary"} />
+                                </button>
 
-                                {/* Greeting Subtitle */}
-                                <p 
-                                    className="text-sm sm:text-base text-[#8b6f47] dark:text-[#d4a574] font-bold flex items-center justify-center sm:justify-start gap-2 tracking-normal cursor-pointer hover:opacity-80 transition-opacity"
-                                    onClick={() => {
-                                        setTempGreetingTitle(customGreetingTitle || greeting.text);
-                                        setTempGreetingSubtitle(customGreetingSubtitle || greeting.desc);
-                                        setShowGreetingModal(true);
-                                    }}
-                                    title="Bấm để chỉnh sửa thông điệp"
+                                {/* Ẩn/Hiện Chỉ Số Button */}
+                                <button
+                                    onClick={() => setHideStats(prev => {
+                                        const next = !prev;
+                                        localStorage.setItem('hide_dashboard_stats', String(next));
+                                        return next;
+                                    })}
+                                    className="w-8 h-8 rounded-full bg-primary/10 dark:bg-white/5 text-[var(--text-muted)] hover:text-foreground border border-[var(--border-color)] hover:border-primary/40 hover:scale-110 active:scale-90 transition-all duration-200 flex items-center justify-center cursor-pointer shadow-2xs"
+                                    title={hideStats ? "Hiện số liệu" : "Ẩn số liệu"}
                                 >
-                                    <Wheat size={16} className="text-[#2d5016] dark:text-emerald-400 shrink-0 opacity-80" />
-                                    <span className="truncate">{customGreetingSubtitle || greeting.desc}</span>
-                                </p>
-
-                                {/* Action Buttons Row */}
-                                <div className="flex items-center justify-center sm:justify-start gap-2 pt-2">
-                                    {/* Appearance Customizer Button */}
-                                    <button
-                                        onClick={() => setShowWallpaperSettings(true)}
-                                        className={cn(
-                                            "btn-3d px-3 py-1.5 rounded-xl border transition-all duration-200 flex items-center gap-1.5 cursor-pointer text-[10px] font-black uppercase tracking-wider",
-                                            (appWallpaper.image || cardGlassEnabled || cardGlowEnabled)
-                                                ? "bg-[#2d5016] text-white border-[#2d5016] dark:bg-emerald-600 dark:border-emerald-500 shadow-xs"
-                                                : "bg-[#2d5016]/10 text-[#2d5016] dark:bg-emerald-500/15 dark:text-emerald-300 border-[#2d5016]/20 dark:border-emerald-500/30 hover:bg-[#2d5016] hover:text-white"
-                                        )}
-                                        title="Tùy chỉnh Giao diện: Hình nền, Kính mờ & Viền Glow"
-                                    >
-                                        <Sparkles size={13} className={(appWallpaper.image || cardGlassEnabled || cardGlowEnabled) ? "text-amber-300" : "text-[#2d5016] dark:text-emerald-400"} />
-                                        <span>Hiệu ứng Kính & Glow</span>
-                                    </button>
-
-                                    {/* Ẩn/Hiện Chỉ Số Button */}
-                                    <button
-                                        onClick={() => setHideStats(prev => {
-                                            const next = !prev;
-                                            localStorage.setItem('hide_dashboard_stats', String(next));
-                                            return next;
-                                        })}
-                                        className="btn-3d px-3 py-1.5 rounded-xl bg-[#8b6f47]/10 dark:bg-white/5 text-[#8b6f47] dark:text-muted-foreground hover:text-foreground border border-[#8b6f47]/20 dark:border-white/10 hover:border-primary/40 transition-all duration-200 flex items-center gap-1.5 cursor-pointer text-[10px] font-black uppercase tracking-wider"
-                                        title={hideStats ? "Hiện số liệu" : "Ẩn số liệu"}
-                                    >
-                                        {hideStats ? <EyeOff size={13} /> : <Eye size={13} />}
-                                        <span>{hideStats ? "Hiện số" : "Ẩn số"}</span>
-                                    </button>
-                                </div>
+                                    <AnimatePresence mode="wait">
+                                        <m.div
+                                            key={hideStats ? "hidden" : "visible"}
+                                            initial={{ opacity: 0, scale: 0.8 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            exit={{ opacity: 0, scale: 0.8 }}
+                                            transition={{ duration: 0.15 }}
+                                            className="flex items-center justify-center"
+                                        >
+                                            {hideStats ? <EyeOff size={14} /> : <Eye size={14} />}
+                                        </m.div>
+                                    </AnimatePresence>
+                                </button>
                             </div>
                         </div>
-                    </Tilt3DCard>
+                    </div>
                 </m.div>
 
-                {/* 2. Top Right Box: 3D Chrono & Weather Biosphere Station - Span 5 */}
-                <m.div variants={itemVariants} className="md:col-span-12 xl:col-span-5 flex flex-col justify-between gap-3">
-                    {/* Top Row: Integrated 3D Clock & Weather Orb Strip */}
-                    <Tilt3DCard
-                        disabled={gpuDisabled}
-                        intensity={5.5}
-                        scale={1.008}
+                {/* 2. Top Right Box: Filters & Info - Integrated Panorama Widgets - Span 5 (40% on desktop) */}
+                <m.div variants={itemVariants} className="md:col-span-12 xl:col-span-5 flex flex-col justify-center gap-3 py-1">
+                    {/* Top Row: Integrated Clock & Weather Strip */}
+                    <div 
                         className={cn(
-                            "argon-3d-panel relative overflow-hidden rounded-[2rem] border border-[#8b6f47]/25 dark:border-white/10 grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-[#8b6f47]/15 dark:divide-white/10 transition-all duration-300",
-                            cardGlassEnabled ? "" : "bg-[#fbf9f4] dark:bg-[#1a1c18]"
+                            "relative overflow-hidden rounded-[2rem] border border-[var(--border-color)] shadow-[var(--shadow-card)] grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-[var(--border-color)] transition-all duration-300",
+                            cardGlassEnabled ? "" : "bg-[var(--card-bg)] shadow-md"
                         )}
                         style={getCardGlassStyle()}
                     >
                         {/* Clock Widget with Watermark */}
                         <ClockWidget />
 
-                        {/* 3D Weather Biosphere Widget */}
+                        {/* Weather Widget with Watermark */}
                         <div 
                             onClick={handleSyncGPS} 
-                            className="relative p-4 sm:p-5 flex items-center justify-between gap-2 overflow-hidden group cursor-pointer hover:bg-[#8b6f47]/[0.03] dark:hover:bg-white/[0.02] transition-colors"
+                            className="relative p-5 flex flex-col justify-center overflow-hidden group cursor-pointer hover:bg-primary/[0.03] dark:hover:bg-white/[0.02] transition-colors"
                             title="Click để đồng bộ vị trí GPS"
                         >
-                            <div className="relative z-10 flex flex-col justify-between flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <button 
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleSyncGPS();
-                                        }}
-                                        disabled={isWeatherLoading}
-                                        className="btn-3d text-[8.5px] font-black text-[#2d5016] dark:text-emerald-400 bg-[#2d5016]/10 border border-[#2d5016]/20 hover:bg-[#2d5016] hover:text-white px-2 py-0.5 rounded-full flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50"
-                                        title="Định vị vị trí hiện tại"
-                                    >
-                                        {isWeatherLoading ? (
-                                            <Loader2 size={9} className="animate-spin" />
-                                        ) : (
-                                            <MapPin size={9} />
-                                        )}
-                                        {isWeatherLoading ? 'ĐỊNH VỊ...' : 'GPS 3D'}
-                                    </button>
-                                </div>
-                                <div className="text-3xl lg:text-4xl font-black text-[#2d5016] dark:text-[#e8dfd5] tracking-tight leading-none tabular-nums my-0.5">
-                                    {weather.temp}°C
-                                </div>
-                                <div className="text-[9.5px] font-black uppercase text-[#8b6f47] dark:text-[#d4a574] tracking-wider flex items-center gap-1.5 mt-1">
-                                    <span 
-                                        onClick={handleEditLocation} 
-                                        className="hover:text-[#2d5016] dark:hover:text-emerald-300 cursor-pointer flex items-center gap-1 group/city bg-[#2d5016]/5 hover:bg-[#2d5016]/10 px-1.5 py-0.5 rounded transition-all truncate max-w-[110px]"
-                                        title="Click để nhập địa điểm thủ công"
-                                    >
-                                        <span className="truncate">{weather.city}</span>
-                                        <Edit size={8} className="opacity-60 group-hover/city:opacity-100 shrink-0" />
-                                    </span>
-                                    <span className="text-[#2d5016] dark:text-emerald-400 truncate">{weather.desc}</span>
-                                </div>
+                            <div className="absolute -right-3 -bottom-3 text-primary/[0.08] pointer-events-none group-hover:scale-110 group-hover:rotate-12 transition-transform duration-500">
+                                <weather.icon size={90} strokeWidth={1.8} />
                             </div>
-
-                            {/* Live 3D WebGL Celestial Weather Sphere */}
-                            {!gpuDisabled ? (
-                                <WeatherOrb3D
-                                    temp={weather.temp}
-                                    desc={weather.desc}
-                                    size={70}
-                                    isDark={typeof document !== 'undefined' && document.documentElement.classList.contains('dark')}
-                                />
-                            ) : (
-                                <weather.icon size={48} className="text-[#2d5016]/40 dark:text-emerald-400/40 shrink-0" />
-                            )}
+                            <div className="relative z-10 flex items-center justify-between mb-1.5">
+                                <button 
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleSyncGPS();
+                                    }}
+                                    disabled={isWeatherLoading}
+                                    className="text-[9px] font-black text-primary bg-primary/10 border border-primary/20 hover:bg-primary hover:text-white active:scale-95 px-2.5 py-1 rounded-full flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50"
+                                    title="Định vị vị trí hiện tại"
+                                >
+                                    {isWeatherLoading ? (
+                                        <Loader2 size={9} className="animate-spin" />
+                                    ) : (
+                                        <MapPin size={9} />
+                                    )}
+                                    {isWeatherLoading ? 'ĐANG ĐỊNH VỊ...' : 'ĐỊNH VỊ'}
+                                </button>
+                                <span className="text-3xl lg:text-4xl font-black text-primary dark:text-foreground tracking-tight leading-none tabular-nums">
+                                    {weather.temp}°
+                                </span>
+                            </div>
+                            <div className="text-[9px] sm:text-[10px] font-black uppercase text-[var(--text-muted)] tracking-wider relative z-10 flex items-center gap-2">
+                                <span 
+                                    onClick={handleEditLocation} 
+                                    className="hover:text-primary cursor-pointer flex items-center gap-1 group/city bg-primary/5 hover:bg-primary/10 px-1.5 py-0.5 rounded transition-all truncate max-w-[130px]"
+                                    title="Click để nhập địa điểm thủ công"
+                                >
+                                    <span className="truncate">{weather.city}</span>
+                                    <Edit size={9} className="opacity-60 group-hover/city:opacity-100 transition-opacity shrink-0" />
+                                </span>
+                                <span className="opacity-40">•</span>
+                                <span className="text-primary truncate">{weather.desc}</span>
+                            </div>
                         </div>
-                    </Tilt3DCard>
+                    </div>
 
-                    {/* Filter & IP Row - 3D Extruded Control Bar */}
+                    {/* Filter & IP Row - Seamless Integrated Strip */}
                     <div 
                         className={cn(
-                            "argon-3d-panel relative overflow-hidden px-5 py-3 rounded-[1.8rem] border border-[#8b6f47]/25 dark:border-white/10 flex flex-wrap lg:flex-nowrap items-center justify-between gap-3 transition-all duration-300",
-                            cardGlassEnabled ? "" : "bg-[#fbf9f4] dark:bg-[#1a1c18]"
+                            "relative overflow-hidden px-5 py-3 rounded-[1.8rem] border border-[var(--border-color)] shadow-[var(--shadow-card)] flex flex-wrap lg:flex-nowrap items-center justify-between gap-3 transition-all duration-300",
+                            cardGlassEnabled ? "" : "bg-[var(--card-bg)] shadow-md"
                         )}
                         style={getCardGlassStyle()}
                     >
                         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                            <span className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-wider flex items-center gap-1.5 shrink-0">
-                                <Calendar size={13} className="text-[#2d5016] dark:text-emerald-400" />
+                            <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider flex items-center gap-1.5 shrink-0">
+                                <Calendar size={13} className="text-primary" />
                                 Lọc ngày:
                             </span>
 
@@ -1337,13 +1314,13 @@ export default function Dashboard() {
                                             setFilters({ year: y, month: m, day: d });
                                         }
                                     }}
-                                    inputClassName="!bg-[#8b6f47]/[0.08] hover:!bg-[#8b6f47]/[0.12] dark:!bg-white/[0.06] dark:hover:!bg-white/[0.1] !border-[#8b6f47]/25 dark:!border-white/15 rounded-2xl hover:!border-[#2d5016]/50 shadow-none text-xs font-bold text-[#2d5016] dark:text-emerald-300 transition-all"
+                                    inputClassName="!bg-primary/[0.06] hover:!bg-primary/[0.1] dark:!bg-white/[0.06] dark:hover:!bg-white/[0.1] !border-[var(--border-color)] rounded-2xl hover:!border-primary/50 shadow-none text-xs font-bold text-primary transition-all tabular-nums"
                                     placeholder="Chọn ngày..."
                                 />
                             </div>
 
                             {/* Quick Day Presets (Hôm nay / Hôm qua) */}
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-1">
                                 <button
                                     type="button"
                                     onClick={() => {
@@ -1355,15 +1332,15 @@ export default function Dashboard() {
                                         });
                                     }}
                                     className={cn(
-                                        "btn-3d px-2.5 py-1 text-[10.5px] font-black rounded-xl transition-all border cursor-pointer",
+                                        "px-2.5 py-1 text-[10.5px] font-black rounded-xl transition-all border cursor-pointer",
                                         (() => {
                                             const now = new Date();
                                             const isToday = filters.year === now.getFullYear().toString() &&
                                                 filters.month === (now.getMonth() + 1).toString().padStart(2, '0') &&
                                                 filters.day === now.getDate().toString().padStart(2, '0');
                                             return isToday
-                                                ? "bg-[#2d5016] text-white border-[#2d5016] shadow-sm shadow-[#2d5016]/30 dark:bg-emerald-600 dark:border-emerald-500"
-                                                : "bg-[#2d5016]/5 dark:bg-white/5 text-[#2d5016] dark:text-emerald-400 border-[#2d5016]/20 dark:border-white/10 hover:bg-[#2d5016]/15 hover:border-[#2d5016]/40";
+                                                ? "bg-primary text-white border-primary shadow-sm shadow-primary/30"
+                                                : "bg-primary/5 dark:bg-white/5 text-primary border-primary/20 dark:border-white/10 hover:bg-primary/15 hover:border-primary/40";
                                         })()
                                     )}
                                 >
@@ -1381,7 +1358,7 @@ export default function Dashboard() {
                                         });
                                     }}
                                     className={cn(
-                                        "btn-3d px-2.5 py-1 text-[10.5px] font-black rounded-xl transition-all border cursor-pointer",
+                                        "px-2.5 py-1 text-[10.5px] font-black rounded-xl transition-all border cursor-pointer",
                                         (() => {
                                             const yest = new Date();
                                             yest.setDate(yest.getDate() - 1);
@@ -1389,8 +1366,8 @@ export default function Dashboard() {
                                                 filters.month === (yest.getMonth() + 1).toString().padStart(2, '0') &&
                                                 filters.day === yest.getDate().toString().padStart(2, '0');
                                             return isYest
-                                                ? "bg-[#2d5016] text-white border-[#2d5016] shadow-sm shadow-[#2d5016]/30 dark:bg-emerald-600 dark:border-emerald-500"
-                                                : "bg-[#2d5016]/5 dark:bg-white/5 text-[#2d5016] dark:text-emerald-400 border-[#2d5016]/20 dark:border-white/10 hover:bg-[#2d5016]/15 hover:border-[#2d5016]/40";
+                                                ? "bg-primary text-white border-primary shadow-sm shadow-primary/30"
+                                                : "bg-primary/5 dark:bg-white/5 text-primary border-primary/20 dark:border-white/10 hover:bg-primary/15 hover:border-primary/40";
                                         })()
                                     )}
                                 >
@@ -1401,12 +1378,12 @@ export default function Dashboard() {
 
                         {/* Modern Glowing IP Badge */}
                         {remoteInfo && (
-                            <div className="group relative flex items-center gap-2 px-3.5 py-1.5 bg-gradient-to-r from-[#2d5016]/15 to-[#2d5016]/8 dark:from-emerald-950/40 dark:to-emerald-900/20 rounded-2xl text-[10px] font-black text-[#2d5016] dark:text-emerald-300 border border-[#2d5016]/30 dark:border-emerald-500/30 shadow-[0_2px_10px_rgba(45,80,22,0.08)] shrink-0 hover:border-[#2d5016] dark:hover:border-emerald-400 transition-all">
+                            <div className="group relative flex items-center gap-2 px-3.5 py-1.5 bg-primary/10 rounded-2xl text-[10px] font-black text-primary border border-primary/25 shadow-2xs shrink-0 hover:border-primary transition-all">
                                 <span className="relative flex h-2 w-2">
                                     <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-xs"></span>
                                 </span>
-                                <div className="flex items-center gap-1.5 font-mono">
-                                    <span className="text-[#8b6f47] dark:text-emerald-400/70 uppercase text-[9px] tracking-wider font-sans font-extrabold">IP Mạng:</span>
+                                <div className="flex items-center gap-1.5 font-mono tabular-nums">
+                                    <span className="text-[var(--text-muted)] uppercase text-[9px] tracking-wider font-sans font-extrabold">IP Mạng:</span>
                                     <span className="font-bold tracking-tight">{remoteInfo.ip}:{remoteInfo.port || (window.location.port || '3579')}</span>
                                 </div>
                             </div>
@@ -1414,486 +1391,315 @@ export default function Dashboard() {
                     </div>
                 </m.div>
 
-                {/* 3. Main Stats - 4 Independent 3D Extruded Spatial Monolith Cards + 4 3D Tactile Status Pods */}
-                <m.div variants={itemVariants} className="md:col-span-12 xl:col-span-12 space-y-4">
-                    {/* 4 Primary 3D Monolith KPI Cards */}
-                    <div className={cn(
-                        "grid gap-4 lg:gap-5",
-                        isAdmin ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" : "grid-cols-1 sm:grid-cols-3 lg:grid-cols-3"
-                    )}>
-                        {/* 1. Doanh thu 3D Monolith */}
-                        <Tilt3DCard
-                            disabled={gpuDisabled}
-                            intensity={9}
-                            scale={1.02}
-                            className={cn(
-                                "argon-3d-panel relative p-6 rounded-[2rem] border border-emerald-500/25 dark:border-emerald-400/20 overflow-hidden group transition-all duration-300",
-                                cardGlassEnabled ? "" : "bg-[#fbf9f4] dark:bg-[#1a1c18]"
-                            )}
-                            style={getCardGlassStyle()}
-                        >
-                            {/* Top 3D Specular Rim Beam */}
-                            <div className="absolute top-0 inset-x-6 h-[2px] bg-gradient-to-r from-transparent via-emerald-500/60 to-transparent pointer-events-none" />
-                            <div className="absolute -right-4 -bottom-4 text-[#2d5016]/[0.08] dark:text-emerald-400/[0.08] pointer-events-none group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500">
-                                <Wheat size={125} strokeWidth={1.6} />
-                            </div>
-                            <div className="relative z-10 flex flex-col justify-between h-full min-h-[136px]" style={{ transformStyle: 'preserve-3d' }}>
-                                <div className="flex items-center justify-between" style={{ transform: 'translateZ(24px)' }}>
-                                    <div className="flex items-center gap-2.5">
-                                        <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-[0_6px_16px_rgba(16,185,129,0.35)] border border-white/30">
-                                            <Wheat size={17} strokeWidth={2.4} />
-                                        </div>
-                                        <span className="text-[10.5px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-[0.18em]">
+                {/* 3. Main Stats - Modern Integrated Panorama Strip Layout with Watermark Icons */}
+                <m.div variants={itemVariants} className="md:col-span-12 xl:col-span-12">
+                    <div 
+                        className={cn(
+                            "relative overflow-hidden rounded-[2.5rem] border border-[var(--border-color)] shadow-[var(--shadow-card)] transition-all duration-300",
+                            cardGlassEnabled ? "" : "bg-[var(--card-bg)] shadow-lg"
+                        )}
+                        style={getCardGlassStyle()}
+                    >
+                        {/* 4 Primary Key Indicators Row */}
+                        <div className={cn(
+                            "grid divide-y sm:divide-y-0 sm:divide-x divide-[var(--border-color)]",
+                            isAdmin ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4" : "grid-cols-1 sm:grid-cols-3 lg:grid-cols-3"
+                        )}>
+                            
+                            {/* 1. Doanh thu */}
+                            <div className="relative p-6 lg:p-7 overflow-hidden group hover:bg-primary/[0.03] dark:hover:bg-white/[0.02] transition-colors">
+                                {/* Large Watermark Icon Inset in Card Background */}
+                                <div className="absolute -right-4 -bottom-4 text-primary/[0.08] pointer-events-none group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500">
+                                    <Wheat size={120} strokeWidth={1.8} />
+                                </div>
+                                <div className="relative z-10 flex flex-col justify-between h-full min-h-[120px]">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.2em]">
                                             Doanh thu
                                         </span>
-                                    </div>
-                                    {stats.revenue_trend !== undefined && (
-                                        <span className={cn(
-                                            "px-2.5 py-0.5 rounded-full flex items-center gap-1 text-[9.5px] font-black tracking-tight shadow-2xs",
-                                            stats.revenue_trend >= 0 
-                                                ? "bg-emerald-500/15 text-emerald-700 border border-emerald-500/30 dark:text-emerald-300" 
-                                                : "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30"
-                                        )}>
-                                            {stats.revenue_trend >= 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-                                            {Math.abs(stats.revenue_trend)}%
-                                        </span>
-                                    )}
-                                </div>
-                                <div className="my-3 min-h-[40px] flex items-center" style={{ transform: 'translateZ(18px)' }}>
-                                    <AnimatePresence mode="wait">
-                                        <m.h3 
-                                            key={hideStats ? "hidden-rev" : "visible-rev"}
-                                            initial={{ opacity: 0, y: 6 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            exit={{ opacity: 0, y: -6 }}
-                                            transition={{ duration: 0.2 }}
-                                            className="text-3xl lg:text-4xl font-black text-[#2d5016] dark:text-[#e8dfd5] tracking-tight leading-none tabular-nums drop-shadow-[0_2px_4px_rgba(0,0,0,0.06)]"
-                                        >
-                                            {hideStats ? "••••••••" : formatCurrency(stats.revenue)}
-                                        </m.h3>
-                                    </AnimatePresence>
-                                </div>
-                                <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-[#8b6f47]/15 dark:border-white/10 text-[10px] font-bold text-[#8b6f47] dark:text-[#d4a574]" style={{ transform: 'translateZ(12px)' }}>
-                                    <span className="flex items-center gap-1 truncate">
-                                        <Wallet size={11} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                                        TM: <strong className="text-[#2d5016] dark:text-[#e8dfd5] font-black tabular-nums">{hideStats ? "••••" : formatCurrency(stats.cash_revenue || 0)}</strong>
-                                    </span>
-                                    <span className="flex items-center gap-1 truncate">
-                                        <Users size={11} className="text-amber-600 dark:text-amber-400 shrink-0" />
-                                        Nợ: <strong className="text-[#2d5016] dark:text-[#e8dfd5] font-black tabular-nums">{hideStats ? "••••" : formatCurrency(stats.debt_revenue || 0)}</strong>
-                                    </span>
-                                </div>
-                            </div>
-                        </Tilt3DCard>
-
-                        {/* 2. Lợi nhuận 3D Monolith */}
-                        {isAdmin && (
-                            <Tilt3DCard
-                                disabled={gpuDisabled}
-                                intensity={9}
-                                scale={1.02}
-                                className={cn(
-                                    "argon-3d-panel relative p-6 rounded-[2rem] border border-amber-500/25 dark:border-amber-400/20 overflow-hidden group transition-all duration-300",
-                                    cardGlassEnabled ? "" : "bg-[#fbf9f4] dark:bg-[#1a1c18]"
-                                )}
-                                style={getCardGlassStyle()}
-                            >
-                                <div className="absolute top-0 inset-x-6 h-[2px] bg-gradient-to-r from-transparent via-amber-500/60 to-transparent pointer-events-none" />
-                                <div className="absolute -right-4 -bottom-4 text-[#8b6f47]/[0.08] dark:text-[#d4a574]/[0.08] pointer-events-none group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-500">
-                                    <Coins size={125} strokeWidth={1.6} />
-                                </div>
-                                <div className="relative z-10 flex flex-col justify-between h-full min-h-[136px]" style={{ transformStyle: 'preserve-3d' }}>
-                                    <div className="flex items-center justify-between" style={{ transform: 'translateZ(24px)' }}>
-                                        <div className="flex items-center gap-2.5">
-                                            <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-[0_6px_16px_rgba(245,158,11,0.35)] border border-white/30">
-                                                <Coins size={17} strokeWidth={2.4} />
-                                            </div>
-                                            <span className="text-[10.5px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-[0.18em]">
-                                                Lợi nhuận
-                                            </span>
-                                        </div>
-                                        {stats.profit_trend !== undefined && (
+                                        {stats.revenue_trend !== undefined && (
                                             <span className={cn(
-                                                "px-2.5 py-0.5 rounded-full flex items-center gap-1 text-[9.5px] font-black tracking-tight shadow-2xs",
-                                                stats.profit_trend >= 0 
-                                                    ? "bg-emerald-500/15 text-emerald-700 border border-emerald-500/30 dark:text-emerald-300" 
-                                                    : "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30"
+                                                "px-2 py-0.5 rounded-full flex items-center gap-1 text-[9.5px] font-black tracking-tight tabular-nums",
+                                                stats.revenue_trend >= 0 
+                                                    ? "bg-primary/10 text-primary border border-primary/20" 
+                                                    : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
                                             )}>
-                                                {stats.profit_trend >= 0 ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
-                                                {Math.abs(stats.profit_trend)}%
+                                                {stats.revenue_trend >= 0 ? <TrendingUp size={9} /> : <TrendingDown size={9} />}
+                                                {Math.abs(stats.revenue_trend)}%
                                             </span>
                                         )}
                                     </div>
-                                    <div className="my-3 min-h-[40px] flex items-center" style={{ transform: 'translateZ(18px)' }}>
+                                    <div className="my-2 min-h-[40px] flex items-center">
                                         <AnimatePresence mode="wait">
                                             <m.h3 
-                                                key={hideStats ? "hidden-prof" : "visible-prof"}
-                                                initial={{ opacity: 0, y: 6 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                exit={{ opacity: 0, y: -6 }}
-                                                transition={{ duration: 0.2 }}
-                                                className="text-3xl lg:text-4xl font-black text-[#2d5016] dark:text-[#e8dfd5] tracking-tight leading-none tabular-nums drop-shadow-[0_2px_4px_rgba(0,0,0,0.06)]"
+                                                key={hideStats ? "hidden-rev" : "visible-rev"}
+                                                initial={{ opacity: 0, y: 6, filter: 'blur(6px)' }}
+                                                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                                                exit={{ opacity: 0, y: -6, filter: 'blur(6px)' }}
+                                                transition={{ duration: 0.25, ease: 'easeOut' }}
+                                                className="text-3xl lg:text-4xl font-black text-primary dark:text-foreground tracking-tight leading-none tabular-nums"
                                             >
-                                                {hideStats ? "••••••••" : formatCurrency(stats.profit)}
+                                                {hideStats ? "••••••••" : formatCurrency(stats.revenue)}
                                             </m.h3>
                                         </AnimatePresence>
                                     </div>
-                                    <div className="flex items-center justify-between pt-2.5 border-t border-[#8b6f47]/15 dark:border-white/10 text-[10px] font-bold text-[#8b6f47] dark:text-[#d4a574]" style={{ transform: 'translateZ(12px)' }}>
-                                        <div className="flex items-center gap-1.5">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                                            <span>Sau khi trừ vốn nhập</span>
-                                        </div>
-                                        <span className="font-black text-amber-700 dark:text-amber-300 tabular-nums">
-                                            {stats.revenue > 0 ? `${((stats.profit / stats.revenue) * 100).toFixed(1)}%` : '0%'}
+                                    <div className="flex items-center gap-3 pt-2 border-t border-[var(--border-color)] text-[10px] font-bold text-[var(--text-muted)]">
+                                        <span className="flex items-center gap-1">
+                                            <Wallet size={11} className="text-primary" />
+                                            Tiền mặt: <strong className="text-primary dark:text-foreground font-black tabular-nums">{hideStats ? "••••••" : formatCurrency(stats.cash_revenue || 0)}</strong>
+                                        </span>
+                                        <span className="opacity-40">•</span>
+                                        <span className="flex items-center gap-1">
+                                            <Users size={11} className="text-[var(--text-muted)]" />
+                                            Công nợ: <strong className="text-primary dark:text-foreground font-black tabular-nums">{hideStats ? "••••••" : formatCurrency(stats.debt_revenue || 0)}</strong>
                                         </span>
                                     </div>
                                 </div>
-                            </Tilt3DCard>
-                        )}
-
-                        {/* 3. Tổng nợ thu 3D Monolith */}
-                        <Tilt3DCard
-                            disabled={gpuDisabled}
-                            intensity={9}
-                            scale={1.02}
-                            className={cn(
-                                "argon-3d-panel relative p-6 rounded-[2rem] border border-teal-500/25 dark:border-teal-400/20 overflow-hidden group transition-all duration-300",
-                                cardGlassEnabled ? "" : "bg-[#fbf9f4] dark:bg-[#1a1c18]"
-                            )}
-                            style={getCardGlassStyle()}
-                        >
-                            <div className="absolute top-0 inset-x-6 h-[2px] bg-gradient-to-r from-transparent via-teal-500/60 to-transparent pointer-events-none" />
-                            <div className="absolute -right-4 -bottom-4 text-[#2d5016]/[0.08] dark:text-emerald-400/[0.08] pointer-events-none group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500">
-                                <Users size={125} strokeWidth={1.6} />
                             </div>
-                            <div className="relative z-10 flex flex-col justify-between h-full min-h-[136px]" style={{ transformStyle: 'preserve-3d' }}>
-                                <div className="flex items-center justify-between" style={{ transform: 'translateZ(24px)' }}>
-                                    <div className="flex items-center gap-2.5">
-                                        <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-600 text-white flex items-center justify-center shadow-[0_6px_16px_rgba(20,184,166,0.35)] border border-white/30">
-                                            <Users size={17} strokeWidth={2.4} />
+
+                            {/* 2. Lợi nhuận */}
+                            {isAdmin && (
+                                <div className="relative p-6 lg:p-7 overflow-hidden group hover:bg-primary/[0.03] dark:hover:bg-white/[0.02] transition-colors">
+                                    <div className="absolute -right-4 -bottom-4 text-primary/[0.08] pointer-events-none group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-500">
+                                        <Coins size={120} strokeWidth={1.8} />
+                                    </div>
+                                    <div className="relative z-10 flex flex-col justify-between h-full min-h-[120px]">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.2em]">
+                                                Lợi nhuận
+                                            </span>
+                                            {stats.profit_trend !== undefined && (
+                                                <span className={cn(
+                                                    "px-2 py-0.5 rounded-full flex items-center gap-1 text-[9.5px] font-black tracking-tight tabular-nums",
+                                                    stats.profit_trend >= 0 
+                                                        ? "bg-primary/10 text-primary border border-primary/20" 
+                                                        : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
+                                                )}>
+                                                    {stats.profit_trend >= 0 ? <TrendingUp size={9} /> : <TrendingDown size={9} />}
+                                                    {Math.abs(stats.profit_trend)}%
+                                                </span>
+                                            )}
                                         </div>
-                                        <span className="text-[10.5px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-[0.18em]">
+                                        <div className="my-2 min-h-[40px] flex items-center">
+                                            <AnimatePresence mode="wait">
+                                                <m.h3 
+                                                    key={hideStats ? "hidden-prof" : "visible-prof"}
+                                                    initial={{ opacity: 0, y: 6, filter: 'blur(6px)' }}
+                                                    animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                                                    exit={{ opacity: 0, y: -6, filter: 'blur(6px)' }}
+                                                    transition={{ duration: 0.25, ease: 'easeOut' }}
+                                                    className="text-3xl lg:text-4xl font-black text-primary dark:text-foreground tracking-tight leading-none tabular-nums"
+                                                >
+                                                    {hideStats ? "••••••••" : formatCurrency(stats.profit)}
+                                                </m.h3>
+                                            </AnimatePresence>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 pt-2 border-t border-[var(--border-color)] text-[10px] font-bold text-[var(--text-muted)]">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-primary/70" />
+                                            <span>Sau khi trừ vốn nhập</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* 3. Tổng nợ thu */}
+                            <div className="relative p-6 lg:p-7 overflow-hidden group hover:bg-primary/[0.03] dark:hover:bg-white/[0.02] transition-colors">
+                                <div className="absolute -right-4 -bottom-4 text-primary/[0.08] pointer-events-none group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500">
+                                    <Users size={120} strokeWidth={1.8} />
+                                </div>
+                                <div className="relative z-10 flex flex-col justify-between h-full min-h-[120px]">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.2em]">
                                             Tổng nợ thu
                                         </span>
                                     </div>
-                                    <span className="px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-700 dark:text-teal-300 border border-teal-500/25 text-[9px] font-black uppercase">
-                                        {stats.customer_debt_list?.length || 0} KH
-                                    </span>
-                                </div>
-                                <div className="my-3 min-h-[40px] flex items-center" style={{ transform: 'translateZ(18px)' }}>
-                                    <AnimatePresence mode="wait">
-                                        <m.h3 
-                                            key={hideStats ? "hidden-debt" : "visible-debt"}
-                                            initial={{ opacity: 0, y: 6 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            exit={{ opacity: 0, y: -6 }}
-                                            transition={{ duration: 0.2 }}
-                                            className="text-3xl lg:text-4xl font-black text-[#2d5016] dark:text-[#e8dfd5] tracking-tight leading-none tabular-nums drop-shadow-[0_2px_4px_rgba(0,0,0,0.06)]"
-                                        >
-                                            {hideStats ? "••••••••" : formatCurrency(Math.abs(stats.customer_debt))}
-                                        </m.h3>
-                                    </AnimatePresence>
-                                </div>
-                                <div className="flex items-center gap-1.5 pt-2.5 border-t border-[#8b6f47]/15 dark:border-white/10 text-[10px] font-bold text-[#8b6f47] dark:text-[#d4a574]" style={{ transform: 'translateZ(12px)' }}>
-                                    <div className="w-1.5 h-1.5 rounded-full bg-teal-500" />
-                                    <span>Khách hàng còn nợ</span>
+                                    <div className="my-2 min-h-[40px] flex items-center">
+                                        <AnimatePresence mode="wait">
+                                            <m.h3 
+                                                key={hideStats ? "hidden-debt" : "visible-debt"}
+                                                initial={{ opacity: 0, y: 6, filter: 'blur(6px)' }}
+                                                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                                                exit={{ opacity: 0, y: -6, filter: 'blur(6px)' }}
+                                                transition={{ duration: 0.25, ease: 'easeOut' }}
+                                                className="text-3xl lg:text-4xl font-black text-primary dark:text-foreground tracking-tight leading-none tabular-nums"
+                                            >
+                                                {hideStats ? "••••••••" : formatCurrency(Math.abs(stats.customer_debt))}
+                                            </m.h3>
+                                        </AnimatePresence>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 pt-2 border-t border-[var(--border-color)] text-[10px] font-bold text-[var(--text-muted)]">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                                        <span>Khách hàng còn nợ</span>
+                                    </div>
                                 </div>
                             </div>
-                        </Tilt3DCard>
 
-                        {/* 4. Tổng nợ trả 3D Monolith */}
-                        <Tilt3DCard
-                            disabled={gpuDisabled}
-                            intensity={9}
-                            scale={1.02}
-                            className={cn(
-                                "argon-3d-panel relative p-6 rounded-[2rem] border border-rose-500/25 dark:border-rose-400/20 overflow-hidden group transition-all duration-300",
-                                cardGlassEnabled ? "" : "bg-[#fbf9f4] dark:bg-[#1a1c18]"
-                            )}
-                            style={getCardGlassStyle()}
-                        >
-                            <div className="absolute top-0 inset-x-6 h-[2px] bg-gradient-to-r from-transparent via-rose-500/60 to-transparent pointer-events-none" />
-                            <div className="absolute -right-4 -bottom-4 text-rose-500/[0.08] dark:text-rose-400/[0.08] pointer-events-none group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-500">
-                                <Truck size={125} strokeWidth={1.6} />
-                            </div>
-                            <div className="relative z-10 flex flex-col justify-between h-full min-h-[136px]" style={{ transformStyle: 'preserve-3d' }}>
-                                <div className="flex items-center justify-between" style={{ transform: 'translateZ(24px)' }}>
-                                    <div className="flex items-center gap-2.5">
-                                        <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-rose-500 to-pink-600 text-white flex items-center justify-center shadow-[0_6px_16px_rgba(244,63,94,0.35)] border border-white/30">
-                                            <Truck size={17} strokeWidth={2.4} />
-                                        </div>
-                                        <span className="text-[10.5px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-[0.18em]">
+                            {/* 4. Tổng nợ trả */}
+                            <div className="relative p-6 lg:p-7 overflow-hidden group hover:bg-primary/[0.03] dark:hover:bg-white/[0.02] transition-colors">
+                                <div className="absolute -right-4 -bottom-4 text-rose-500/[0.08] dark:text-rose-400/[0.08] pointer-events-none group-hover:scale-110 group-hover:-rotate-6 transition-transform duration-500">
+                                    <Truck size={120} strokeWidth={1.8} />
+                                </div>
+                                <div className="relative z-10 flex flex-col justify-between h-full min-h-[120px]">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-[0.2em]">
                                             Tổng nợ trả
                                         </span>
                                     </div>
-                                    <span className="px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-300 border border-rose-500/25 text-[9px] font-black uppercase">
-                                        {stats.supplier_debt_list?.length || 0} NCC
-                                    </span>
-                                </div>
-                                <div className="my-3 min-h-[40px] flex items-center" style={{ transform: 'translateZ(18px)' }}>
-                                    <AnimatePresence mode="wait">
-                                        <m.h3 
-                                            key={hideStats ? "hidden-supp" : "visible-supp"}
-                                            initial={{ opacity: 0, y: 6 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            exit={{ opacity: 0, y: -6 }}
-                                            transition={{ duration: 0.2 }}
-                                            className="text-3xl lg:text-4xl font-black text-rose-600 dark:text-rose-400 tracking-tight leading-none tabular-nums drop-shadow-[0_2px_4px_rgba(244,63,94,0.1)]"
-                                        >
-                                            {hideStats ? "••••••••" : formatCurrency(Math.abs(stats.supplier_debt))}
-                                        </m.h3>
-                                    </AnimatePresence>
-                                </div>
-                                <div className="flex items-center gap-1.5 pt-2.5 border-t border-[#8b6f47]/15 dark:border-white/10 text-[10px] font-bold text-rose-600/80 dark:text-rose-400/80" style={{ transform: 'translateZ(12px)' }}>
-                                    <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                                    <span>Nợ nhà cung cấp</span>
+                                    <div className="my-2 min-h-[40px] flex items-center">
+                                        <AnimatePresence mode="wait">
+                                            <m.h3 
+                                                key={hideStats ? "hidden-supp" : "visible-supp"}
+                                                initial={{ opacity: 0, y: 6, filter: 'blur(6px)' }}
+                                                animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+                                                exit={{ opacity: 0, y: -6, filter: 'blur(6px)' }}
+                                                transition={{ duration: 0.25, ease: 'easeOut' }}
+                                                className="text-3xl lg:text-4xl font-black text-rose-600 dark:text-rose-400 tracking-tight leading-none tabular-nums"
+                                            >
+                                                {hideStats ? "••••••••" : formatCurrency(Math.abs(stats.supplier_debt))}
+                                            </m.h3>
+                                        </AnimatePresence>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 pt-2 border-t border-[var(--border-color)] text-[10px] font-bold text-rose-600/80 dark:text-rose-400/80">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                                        <span>Nợ nhà cung cấp</span>
+                                    </div>
                                 </div>
                             </div>
-                        </Tilt3DCard>
-                    </div>
 
-                    {/* 4 Secondary 3D Tactile Status Pods */}
-                    <div className={cn(
-                        "grid gap-3.5 lg:gap-5",
-                        isAdmin ? "grid-cols-2 lg:grid-cols-4" : "grid-cols-1 sm:grid-cols-3"
-                    )}>
-                        <div 
-                            onClick={() => navigate('/products?filter=near_expiry')}
-                            className={cn(
-                                "argon-3d-panel btn-3d relative px-5 py-3.5 rounded-2xl border border-[#8b6f47]/25 dark:border-white/10 flex items-center justify-between group cursor-pointer transition-all overflow-hidden",
-                                cardGlassEnabled ? "" : "bg-[#fbf9f4] dark:bg-[#1a1c18]"
-                            )}
-                            style={getCardGlassStyle()}
-                        >
-                            <div className="flex items-center gap-3 relative z-10">
-                                <div className="w-9 h-9 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                                    <Package size={18} strokeWidth={2.2} />
-                                </div>
-                                <div>
-                                    <p className="text-[9px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-[0.16em]">Sắp hết hạn</p>
-                                    <p className="text-xl font-black text-[#2d5016] dark:text-[#e8dfd5] leading-tight tabular-nums">{stats.expiry?.near || 0}</p>
-                                </div>
-                            </div>
-                            <ArrowRight size={15} className="text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-1 transition-all relative z-10" />
                         </div>
 
-                        <div 
-                            onClick={() => navigate('/products?filter=expired')}
-                            className={cn(
-                                "argon-3d-panel btn-3d relative px-5 py-3.5 rounded-2xl border border-rose-500/25 dark:border-rose-500/20 flex items-center justify-between group cursor-pointer transition-all overflow-hidden",
-                                cardGlassEnabled ? "" : "bg-[#fbf9f4] dark:bg-[#1a1c18]"
-                            )}
-                            style={getCardGlassStyle()}
-                        >
-                            <div className="flex items-center gap-3 relative z-10">
-                                <div className="w-9 h-9 rounded-xl bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/25 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                                    <AlertCircle size={18} strokeWidth={2.2} />
+                        {/* Secondary Indicators Strip with Watermark Details */}
+                        <div className={cn(
+                            "divide-y sm:divide-y-0 sm:divide-x divide-[var(--border-color)] border-t border-[var(--border-color)] bg-primary/[0.03] dark:bg-white/[0.02]",
+                            isAdmin ? "grid grid-cols-2 lg:grid-cols-4" : "grid grid-cols-1 sm:grid-cols-3"
+                        )}>
+                            
+                            <div 
+                                onClick={() => navigate('/products?filter=near_expiry')}
+                                className="relative px-6 py-4 flex items-center justify-between group cursor-pointer hover:bg-primary/[0.08] dark:hover:bg-white/5 transition-colors overflow-hidden"
+                            >
+                                <div className="absolute -right-2 -bottom-2 text-primary/[0.08] dark:text-white/[0.06] pointer-events-none group-hover:scale-110 transition-transform">
+                                    <Package size={54} strokeWidth={1.5} />
                                 </div>
-                                <div>
-                                    <p className="text-[9px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-[0.16em]">Đã quá hạn</p>
+                                <div className="relative z-10">
+                                    <p className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-[0.18em]">Sắp hết hạn</p>
+                                    <p className="text-xl font-black text-primary dark:text-foreground leading-tight tabular-nums">{stats.expiry?.near || 0}</p>
+                                </div>
+                            </div>
+
+                            <div 
+                                onClick={() => navigate('/products?filter=expired')}
+                                className="relative px-6 py-4 flex items-center justify-between group cursor-pointer hover:bg-primary/[0.08] dark:hover:bg-white/5 transition-colors overflow-hidden"
+                            >
+                                <div className="absolute -right-2 -bottom-2 text-rose-500/[0.08] dark:text-rose-400/[0.06] pointer-events-none group-hover:scale-110 transition-transform">
+                                    <AlertCircle size={54} strokeWidth={1.5} />
+                                </div>
+                                <div className="relative z-10">
+                                    <p className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-[0.18em]">Đã quá hạn</p>
                                     <p className="text-xl font-black text-rose-600 dark:text-rose-400 leading-tight tabular-nums">{stats.expiry?.expired || 0}</p>
                                 </div>
                             </div>
-                            <ArrowRight size={15} className="text-rose-400/50 group-hover:text-rose-500 group-hover:translate-x-1 transition-all relative z-10" />
-                        </div>
 
-                        <div 
-                            onClick={() => navigate('/products?filter=warning')}
-                            className={cn(
-                                "argon-3d-panel btn-3d relative px-5 py-3.5 rounded-2xl border border-[#8b6f47]/25 dark:border-white/10 flex items-center justify-between group cursor-pointer transition-all overflow-hidden",
-                                cardGlassEnabled ? "" : "bg-[#fbf9f4] dark:bg-[#1a1c18]"
-                            )}
-                            style={getCardGlassStyle()}
-                        >
-                            <div className="flex items-center gap-3 relative z-10">
-                                <div className="w-9 h-9 rounded-xl bg-teal-500/15 text-teal-600 dark:text-teal-400 border border-teal-500/25 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                                    <ShoppingBag size={18} strokeWidth={2.2} />
+                            <div 
+                                onClick={() => navigate('/products?filter=warning')}
+                                className="relative px-6 py-4 flex items-center justify-between group cursor-pointer hover:bg-primary/[0.08] dark:hover:bg-white/5 transition-colors overflow-hidden"
+                            >
+                                <div className="absolute -right-2 -bottom-2 text-primary/[0.08] dark:text-white/[0.06] pointer-events-none group-hover:scale-110 transition-transform">
+                                    <ShoppingBag size={54} strokeWidth={1.5} />
                                 </div>
-                                <div>
-                                    <p className="text-[9px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-[0.16em]">Cần nhập ngay</p>
-                                    <p className="text-xl font-black text-[#2d5016] dark:text-[#e8dfd5] leading-tight tabular-nums">{stats.low_stock || 0}</p>
+                                <div className="relative z-10">
+                                    <p className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-[0.18em]">Cần nhập ngay</p>
+                                    <p className="text-xl font-black text-primary dark:text-foreground leading-tight tabular-nums">{stats.low_stock || 0}</p>
                                 </div>
                             </div>
-                            <ArrowRight size={15} className="text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-1 transition-all relative z-10" />
-                        </div>
 
-                        {isAdmin && (
-                            <div 
-                                className={cn(
-                                    "argon-3d-panel relative px-5 py-3.5 rounded-2xl border border-emerald-500/25 dark:border-emerald-500/20 flex items-center justify-between group overflow-hidden",
-                                    cardGlassEnabled ? "" : "bg-[#fbf9f4] dark:bg-[#1a1c18]"
-                                )}
-                                style={getCardGlassStyle()}
-                            >
-                                <div className="flex items-center gap-3 relative z-10">
-                                    <div className="w-9 h-9 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                                        <Target size={18} strokeWidth={2.2} />
+                            {isAdmin && (
+                                <div className="relative px-6 py-4 flex items-center justify-between group overflow-hidden">
+                                    <div className="absolute -right-2 -bottom-2 text-primary/[0.08] pointer-events-none group-hover:scale-110 transition-transform">
+                                        <Target size={54} strokeWidth={1.5} />
                                     </div>
-                                    <div>
-                                        <p className="text-[9px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-[0.16em]">Tỷ suất LN</p>
+                                    <div className="relative z-10">
+                                        <p className="text-[9px] font-black text-[var(--text-muted)] uppercase tracking-[0.18em]">Tỷ suất LN</p>
                                         <p className="text-xl font-black text-emerald-600 dark:text-emerald-400 leading-tight tabular-nums">
                                             {stats.revenue > 0 ? `${((stats.profit / stats.revenue) * 100).toFixed(1)}%` : '0%'}
                                         </p>
                                     </div>
                                 </div>
-                                <Sparkles size={15} className="text-emerald-500/50 relative z-10" />
-                            </div>
-                        )}
+                            )}
+
+                        </div>
                     </div>
                 </m.div>
 
-                {/* 5. Full 3D WebGL Analytics Dual Stage */}
+                {/* 5. Charts - Seamless Panorama Strip with Watermark Backgrounds */}
                 <m.div layout="position" variants={itemVariants} className="md:col-span-12 xl:col-span-12">
-                    <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 lg:gap-6">
+                    <div 
+                        className={cn(
+                            "grid grid-cols-1 xl:grid-cols-12 overflow-hidden rounded-[2.5rem] border border-[var(--border-color)] shadow-[var(--shadow-card)] divide-y xl:divide-y-0 xl:divide-x divide-[var(--border-color)] transition-all duration-300",
+                            cardGlassEnabled ? "" : "bg-[var(--card-bg)] shadow-lg"
+                        )}
+                        style={getCardGlassStyle()}
+                    >
                         
-                        {/* 5.1 3D WebGL Financial Prism Stage - Span 8 */}
-                        <div 
-                            className={cn(
-                                "argon-3d-panel xl:col-span-8 p-6 lg:p-7 rounded-[2.4rem] border border-[#8b6f47]/25 dark:border-white/10 relative overflow-hidden group transition-all duration-300",
-                                cardGlassEnabled ? "" : "bg-[#fbf9f4] dark:bg-[#1a1c18]"
-                            )}
-                            style={getCardGlassStyle()}
-                        >
+                        {/* 5.1 Bar Chart Span 8 */}
+                        <div className="xl:col-span-8 p-6 lg:p-8 relative overflow-hidden group">
                             {/* Watermark Icon */}
-                            <div className="absolute -right-6 -bottom-6 text-[#2d5016]/[0.05] dark:text-emerald-400/[0.04] pointer-events-none group-hover:scale-105 transition-transform duration-500">
+                            <div className="absolute -right-6 -bottom-6 text-primary/[0.06] pointer-events-none group-hover:scale-105 transition-transform duration-500">
                                 <BarChart3 size={200} strokeWidth={1.5} />
                             </div>
 
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 relative z-10 gap-3">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 relative z-10 gap-4">
                                 <div>
-                                    <h3 className="text-base lg:text-lg font-black text-[#2d5016] dark:text-[#e8dfd5] uppercase tracking-tight flex items-center gap-2.5">
-                                        <span>Hiệu suất 7 ngày qua</span>
-                                        {chart3DMode && !gpuDisabled && (
-                                            <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-widest rounded-lg bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-xs">
-                                                Argon 3D Stage
-                                            </span>
-                                        )}
+                                    <h3 className="text-base lg:text-lg font-black text-primary dark:text-foreground uppercase tracking-tight flex items-center gap-2.5">
+                                        Hiệu suất 7 ngày qua
                                     </h3>
-                                    <p className="text-[10px] text-[#8b6f47] dark:text-[#d4a574] font-black tracking-wider mt-0.5 uppercase">
-                                        {isAdmin ? 'Cột tinh thể 3D Doanh thu & Lợi nhuận' : 'Cột tinh thể 3D Doanh thu'}
+                                    <p className="text-[10px] text-[var(--text-muted)] font-black tracking-wider mt-0.5 uppercase">
+                                        {isAdmin ? 'Doanh thu & Lợi nhuận' : 'Doanh thu'}
                                     </p>
                                 </div>
-                                <div className="flex flex-wrap items-center gap-2">
-                                     {!gpuDisabled && (
-                                         <div className="flex items-center p-0.5 rounded-full bg-black/[0.05] dark:bg-white/[0.06] border border-[#8b6f47]/20 dark:border-white/10 mr-1">
-                                             <button
-                                                 type="button"
-                                                 onClick={() => toggleChart3DMode(true)}
-                                                 className={cn(
-                                                     "px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer",
-                                                     chart3DMode
-                                                         ? "bg-primary text-white shadow-xs"
-                                                         : "text-slate-600 dark:text-slate-400 hover:text-primary"
-                                                 )}
-                                             >
-                                                 Khối 3D
-                                             </button>
-                                             <button
-                                                 type="button"
-                                                 onClick={() => toggleChart3DMode(false)}
-                                                 className={cn(
-                                                     "px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer",
-                                                     !chart3DMode
-                                                         ? "bg-primary text-white shadow-xs"
-                                                         : "text-slate-600 dark:text-slate-400 hover:text-primary"
-                                                 )}
-                                             >
-                                                 2D Phẳng
-                                             </button>
-                                         </div>
-                                     )}
-                                     <div className="flex items-center gap-1.5 px-3 py-1 bg-[#2d5016]/10 rounded-full border border-[#2d5016]/20 text-[9px] font-black uppercase tracking-wider text-[#2d5016] dark:text-emerald-400">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-[#2d5016] dark:bg-emerald-400" /> Doanh thu
+                                <div className="flex gap-2">
+                                     <div className="flex items-center gap-1.5 px-3 py-1 bg-primary/10 rounded-full border border-primary/20 text-[9px] font-black uppercase tracking-wider text-primary">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-primary" /> Doanh thu
                                      </div>
                                      {isAdmin && (
-                                         <div className="flex items-center gap-1.5 px-3 py-1 bg-[#8b6f47]/15 rounded-full border border-[#8b6f47]/25 text-[9px] font-black uppercase tracking-wider text-[#8b6f47] dark:text-[#d4a574]">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-[#8b6f47] dark:bg-[#d4a574]" /> Lợi nhuận
+                                         <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-500/10 rounded-full border border-amber-500/20 text-[9px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-amber-500" /> Lợi nhuận
                                          </div>
                                      )}
                                 </div>
                             </div>
                             
-                            <div className="h-[320px] relative z-10">
-                                {chart3DMode && !gpuDisabled ? (
-                                    <Dashboard3DChart
-                                        labels={stats.chart?.labels || []}
-                                        revenueData={hideStats ? (stats.chart?.labels || []).map(() => 0) : (stats.chart?.data || [])}
-                                        profitData={hideStats ? (stats.chart?.labels || []).map(() => 0) : (stats.chart?.profit_data || [])}
-                                        showProfit={isAdmin}
-                                        isDark={typeof document !== 'undefined' && document.documentElement.classList.contains('dark')}
-                                    />
-                                ) : (
-                                    <Bar options={chartOptions('Hiệu suất tài chính')} data={chartData} />
-                                )}
+                            <div className="h-[290px] relative z-10">
+                                <Bar options={chartOptions('Hiệu suất tài chính')} data={chartData} />
                             </div>
                         </div>
 
-                        {/* 5.2 3D WebGL Gyroscopic Debt Torus Stage - Span 4 */}
-                        <div 
-                            className={cn(
-                                "argon-3d-panel xl:col-span-4 p-6 lg:p-7 rounded-[2.4rem] border border-[#8b6f47]/25 dark:border-white/10 relative overflow-hidden flex flex-col justify-between group transition-all duration-300",
-                                cardGlassEnabled ? "" : "bg-[#fbf9f4] dark:bg-[#1a1c18]"
-                            )}
-                            style={getCardGlassStyle()}
-                        >
+                        {/* 5.2 Debt Doughnut Chart Span 4 */}
+                        <div className="xl:col-span-4 p-6 lg:p-8 relative overflow-hidden flex flex-col justify-between group">
                             {/* Watermark Icon */}
-                            <div className="absolute -right-6 -bottom-6 text-[#8b6f47]/[0.05] dark:text-[#d4a574]/[0.04] pointer-events-none group-hover:scale-105 transition-transform duration-500">
+                            <div className="absolute -right-6 -bottom-6 text-primary/[0.06] pointer-events-none group-hover:scale-105 transition-transform duration-500">
                                 <PieChart size={180} strokeWidth={1.5} />
                             </div>
 
-                            <div className="flex items-center justify-between mb-2 relative z-10">
-                                <div>
-                                    <h3 className="text-base lg:text-lg font-black text-[#2d5016] dark:text-[#e8dfd5] uppercase tracking-tight flex items-center gap-2">
-                                        <span>Cân bằng nợ</span>
-                                        {chart3DMode && !gpuDisabled && (
-                                            <span className="px-2 py-0.5 text-[8.5px] font-black uppercase tracking-widest rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
-                                                3D Gyro
-                                            </span>
-                                        )}
-                                    </h3>
-                                    <p className="text-[10px] text-[#8b6f47] dark:text-[#d4a574] font-black tracking-wider mt-0.5 uppercase">
-                                        Tỷ lệ Phải Thu / Phải Trả
-                                    </p>
-                                </div>
+                            <div className="mb-4 relative z-10">
+                                <h3 className="text-base lg:text-lg font-black text-primary dark:text-foreground uppercase tracking-tight">
+                                    Cân bằng nợ
+                                </h3>
+                                <p className="text-[10px] text-[var(--text-muted)] font-black tracking-wider mt-0.5 uppercase">
+                                    Tỷ lệ Phải Thu / Phải Trả
+                                </p>
                             </div>
 
-                            <div className="flex-1 min-h-[240px] flex items-center justify-center relative z-10">
-                                {chart3DMode && !gpuDisabled ? (
-                                    <DebtTorus3D
-                                        customerDebt={stats.customer_debt}
-                                        supplierDebt={stats.supplier_debt}
-                                        hideStats={hideStats}
-                                        isDark={typeof document !== 'undefined' && document.documentElement.classList.contains('dark')}
-                                    />
-                                ) : (
-                                    <>
-                                        <Doughnut options={doughnutOptions} data={debtChartData} />
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                             <div className="flex flex-col items-center justify-center">
-                                                <span className="text-[8px] font-black uppercase text-[#8b6f47] dark:text-[#d4a574] tracking-[0.2em]">Tỷ lệ nợ</span>
-                                                <span className="text-2xl font-black text-[#2d5016] dark:text-[#e8dfd5] tracking-tight leading-none my-0.5">
-                                                    {Math.round((Math.abs(stats.customer_debt) / (Math.max(1, Math.abs(stats.customer_debt) + Math.abs(stats.supplier_debt)))) * 100)}%
-                                                </span>
-                                                <span className="text-[8px] font-black uppercase tracking-widest text-[#2d5016] dark:text-emerald-400">Phải thu</span>
-                                             </div>
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-
-                            {/* 3D Legend Strip */}
-                            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-[#8b6f47]/15 dark:border-white/10 relative z-10">
-                                <div className="px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between">
-                                    <span className="text-[9px] font-black uppercase text-emerald-700 dark:text-emerald-300">Phải thu</span>
-                                    <span className="text-[10px] font-black text-emerald-800 dark:text-emerald-200 tabular-nums">
-                                        {hideStats ? '••••' : formatCurrency(Math.abs(stats.customer_debt))}
-                                    </span>
-                                </div>
-                                <div className="px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-between">
-                                    <span className="text-[9px] font-black uppercase text-amber-700 dark:text-amber-300">Phải trả</span>
-                                    <span className="text-[10px] font-black text-amber-800 dark:text-amber-200 tabular-nums">
-                                        {hideStats ? '••••' : formatCurrency(Math.abs(stats.supplier_debt))}
-                                    </span>
+                            <div className="flex-1 min-h-[220px] flex items-center justify-center relative z-10">
+                                <Doughnut options={doughnutOptions} data={debtChartData} />
+                                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                     <div className="flex flex-col items-center justify-center">
+                                        <span className="text-[8px] font-black uppercase text-[var(--text-muted)] tracking-[0.2em]">Tỷ lệ nợ</span>
+                                        <span className="text-2xl font-black text-primary dark:text-foreground tracking-tight leading-none my-0.5 tabular-nums">
+                                            {Math.round((Math.abs(stats.customer_debt) / (Math.max(1, Math.abs(stats.customer_debt) + Math.abs(stats.supplier_debt)))) * 100)}%
+                                        </span>
+                                        <span className="text-[8px] font-black uppercase tracking-widest text-primary">Phải thu</span>
+                                     </div>
                                 </div>
                             </div>
                         </div>
@@ -1901,183 +1707,117 @@ export default function Dashboard() {
                     </div>
                 </m.div>
 
-                {/* 6. Debt Lists - 2 Independent 3D Spatial Podium Panels */}
+                {/* 6. Debt Lists - Seamless Panorama Dual Panel with Watermark Icons */}
                 <m.div layout="position" variants={itemVariants} className="md:col-span-12 xl:col-span-12">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+                    <div 
+                        className={cn(
+                            "grid grid-cols-1 lg:grid-cols-2 overflow-hidden rounded-[2.5rem] border border-[var(--border-color)] shadow-[var(--shadow-card)] divide-y lg:divide-y-0 lg:divide-x divide-[var(--border-color)] transition-all duration-300",
+                            cardGlassEnabled ? "" : "bg-[var(--card-bg)] shadow-lg"
+                        )}
+                        style={getCardGlassStyle()}
+                    >
                         
-                        {/* 6.1 Khách hàng nợ 3D Spatial Podium */}
-                        <Tilt3DCard
-                            disabled={gpuDisabled}
-                            intensity={3.5}
-                            scale={1.005}
-                            className={cn(
-                                "argon-3d-panel p-6 lg:p-7 rounded-[2.4rem] border border-[#8b6f47]/25 dark:border-white/10 relative overflow-hidden group transition-all duration-300",
-                                cardGlassEnabled ? "" : "bg-[#fbf9f4] dark:bg-[#1a1c18]"
-                            )}
-                            style={getCardGlassStyle()}
-                        >
+                        {/* 6.1 Khách hàng nợ */}
+                        <div className="p-6 lg:p-8 relative overflow-hidden group">
                             {/* Watermark Icon */}
-                            <div className="absolute -right-4 -bottom-4 text-[#2d5016]/[0.05] dark:text-emerald-400/[0.04] pointer-events-none group-hover:scale-105 transition-transform duration-500">
+                            <div className="absolute -right-4 -bottom-4 text-primary/[0.06] pointer-events-none group-hover:scale-105 transition-transform duration-500">
                                 <Users size={180} strokeWidth={1.5} />
                             </div>
 
                             <div className="flex items-center justify-between gap-4 mb-5 relative z-10">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-md border border-white/30">
-                                        <Users size={19} strokeWidth={2.3} />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-base font-black text-[#2d5016] dark:text-[#e8dfd5] uppercase tracking-tight">
-                                            Khách hàng nợ
-                                        </h3>
-                                        <p className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-wider mt-0.5">Top 10 dư nợ cao nhất (3D Podium)</p>
-                                    </div>
+                                <div>
+                                    <h3 className="text-base font-black text-primary dark:text-foreground uppercase tracking-tight">
+                                        Khách hàng nợ
+                                    </h3>
+                                    <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider mt-0.5">Top 10 nợ cao nhất</p>
                                 </div>
-                                <Link to="/partners" className="btn-3d px-3.5 py-1.5 bg-[#2d5016]/10 text-[#2d5016] dark:bg-emerald-500/15 dark:text-emerald-300 border border-[#2d5016]/20 rounded-xl text-[9.5px] font-black uppercase tracking-wider hover:bg-[#2d5016] hover:text-white transition-colors shrink-0">
+                                <Link to="/partners" className="px-3.5 py-1.5 bg-primary/10 text-primary border border-primary/20 rounded-xl text-[9.5px] font-black uppercase tracking-wider hover:bg-primary hover:text-white transition-colors shrink-0">
                                     Chi tiết ➔
                                 </Link>
                             </div>
 
-                            <div className="space-y-2.5 max-h-[360px] overflow-y-auto no-scrollbar pr-1 relative z-10">
+                            <div className="space-y-2.5 max-h-[350px] overflow-y-auto no-scrollbar pr-1 relative z-10">
                                 {stats.customer_debt_list?.length > 0 ? (
-                                    (() => {
-                                        const maxCustDebt = Math.max(1, ...stats.customer_debt_list.slice(0, 10).map(x => Math.abs(Number(x.balance) || 0)));
-                                        return stats.customer_debt_list.slice(0, 10).map((p, idx) => {
-                                            const pct = Math.min(100, Math.round((Math.abs(Number(p.balance) || 0) / maxCustDebt) * 100));
-                                            const rankBadgeClass = idx === 0
-                                                ? "bg-gradient-to-br from-amber-400 to-yellow-600 text-white shadow-sm border border-amber-200/50"
-                                                : idx === 1
-                                                    ? "bg-gradient-to-br from-slate-300 to-slate-500 text-white shadow-sm"
-                                                    : idx === 2
-                                                        ? "bg-gradient-to-br from-amber-600 to-amber-800 text-white shadow-sm"
-                                                        : "bg-[#8b6f47]/10 text-[#8b6f47] dark:bg-white/10 dark:text-[#d4a574]";
-                                            return (
-                                                <m.div
-                                                    key={p.id}
-                                                    initial={{ opacity: 0, y: 10 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    transition={{ delay: idx * 0.03 }}
-                                                    whileHover={{ x: 5, scale: 1.008 }}
-                                                    className="relative overflow-hidden flex items-center justify-between p-3 bg-white/60 dark:bg-white/[0.04] rounded-2xl border border-[#8b6f47]/20 dark:border-white/10 hover:border-emerald-500/50 transition-all shadow-xs group/row"
-                                                >
-                                                    {/* 3D Depth Progress Bar Fill */}
-                                                    <div
-                                                        className="absolute left-0 bottom-0 h-[3px] bg-gradient-to-r from-emerald-500 to-teal-400 transition-all duration-500 opacity-75"
-                                                        style={{ width: `${pct}%` }}
-                                                    />
-                                                    <div className="flex items-center gap-3 min-w-0 relative z-10">
-                                                        <div className="w-9 h-9 rounded-xl bg-[#2d5016]/10 text-[#2d5016] dark:bg-emerald-500/15 dark:text-emerald-400 font-black text-xs border border-[#2d5016]/20 flex items-center justify-center shrink-0 shadow-2xs">
-                                                            {getInitials(p.name)}
-                                                        </div>
-                                                        <span className="font-black text-slate-800 dark:text-[#e8dfd5] text-sm truncate">{p.name}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2.5 shrink-0 relative z-10">
-                                                        <span className="font-black text-[#2d5016] dark:text-emerald-400 text-sm tracking-tight tabular-nums">
-                                                            {hideStats ? "••••••••" : formatDebt(p.balance)}
-                                                        </span>
-                                                        <span className={cn("text-[9px] font-black w-6 h-6 flex items-center justify-center rounded-lg", rankBadgeClass)}>
-                                                            #{idx + 1}
-                                                        </span>
-                                                    </div>
-                                                </m.div>
-                                            );
-                                        });
-                                    })()
+                                    stats.customer_debt_list.slice(0, 10).map((p, idx) => (
+                                        <m.div
+                                            key={p.id}
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: idx * 0.03 }}
+                                            whileHover={{ x: 4, backgroundColor: 'rgba(255,255,255,0.1)' }}
+                                            className="flex items-center justify-between p-3 bg-white/50 dark:bg-white/[0.03] rounded-2xl border border-[var(--border-color)] hover:border-primary/40 transition-all shadow-none group"
+                                        >
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary font-black text-xs border border-primary/20 flex items-center justify-center shrink-0">
+                                                    {getInitials(p.name)}
+                                                </div>
+                                                <span className="font-black text-slate-800 dark:text-foreground text-sm truncate">{p.name}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2.5 shrink-0">
+                                                <span className="font-black text-primary text-sm tracking-tight tabular-nums">{formatDebt(p.balance)}</span>
+                                                <span className="text-[9px] font-black w-5 h-5 flex items-center justify-center bg-primary/10 text-primary rounded-md tabular-nums">#{idx + 1}</span>
+                                            </div>
+                                        </m.div>
+                                    ))
                                 ) : (
                                     <div className="flex flex-col items-center justify-center py-16 opacity-50">
-                                        <Users size={36} className="text-[#2d5016] mb-2 opacity-50" />
-                                        <p className="font-black uppercase tracking-wider text-xs italic text-[#8b6f47]">Không có công nợ</p>
+                                        <Users size={36} className="text-primary mb-2 opacity-50" />
+                                        <p className="font-black uppercase tracking-wider text-xs italic text-[var(--text-muted)]">Không có công nợ</p>
                                     </div>
                                 )}
                             </div>
-                        </Tilt3DCard>
+                        </div>
 
-                        {/* 6.2 Nợ nhà cung cấp 3D Spatial Podium */}
-                        <Tilt3DCard
-                            disabled={gpuDisabled}
-                            intensity={3.5}
-                            scale={1.005}
-                            className={cn(
-                                "argon-3d-panel p-6 lg:p-7 rounded-[2.4rem] border border-[#8b6f47]/25 dark:border-white/10 relative overflow-hidden group transition-all duration-300",
-                                cardGlassEnabled ? "" : "bg-[#fbf9f4] dark:bg-[#1a1c18]"
-                            )}
-                            style={getCardGlassStyle()}
-                        >
+                        {/* 6.2 Nợ nhà cung cấp */}
+                        <div className="p-6 lg:p-8 relative overflow-hidden group">
                             {/* Watermark Icon */}
-                            <div className="absolute -right-4 -bottom-4 text-rose-500/[0.05] dark:text-rose-400/[0.04] pointer-events-none group-hover:scale-105 transition-transform duration-500">
+                            <div className="absolute -right-4 -bottom-4 text-rose-500/[0.06] dark:text-rose-400/[0.05] pointer-events-none group-hover:scale-105 transition-transform duration-500">
                                 <Truck size={180} strokeWidth={1.5} />
                             </div>
 
                             <div className="flex items-center justify-between gap-4 mb-5 relative z-10">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-rose-500 to-pink-600 text-white flex items-center justify-center shadow-md border border-white/30">
-                                        <Truck size={19} strokeWidth={2.3} />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-base font-black text-[#2d5016] dark:text-[#e8dfd5] uppercase tracking-tight">
-                                            Nợ nhà cung cấp
-                                        </h3>
-                                        <p className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-wider mt-0.5">Cần thanh toán (3D Podium)</p>
-                                    </div>
+                                <div>
+                                    <h3 className="text-base font-black text-primary dark:text-foreground uppercase tracking-tight">
+                                        Nợ nhà cung cấp
+                                    </h3>
+                                    <p className="text-[10px] font-black text-[var(--text-muted)] uppercase tracking-wider mt-0.5">Cần thanh toán</p>
                                 </div>
-                                <Link to="/partners" className="btn-3d px-3.5 py-1.5 bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 rounded-xl text-[9.5px] font-black uppercase tracking-wider hover:bg-rose-600 hover:text-white transition-colors shrink-0">
+                                <Link to="/partners" className="px-3.5 py-1.5 bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 rounded-xl text-[9.5px] font-black uppercase tracking-wider hover:bg-rose-600 hover:text-white transition-colors shrink-0">
                                     Chi tiết ➔
                                 </Link>
                             </div>
 
-                            <div className="space-y-2.5 max-h-[360px] overflow-y-auto no-scrollbar pr-1 relative z-10">
+                            <div className="space-y-2.5 max-h-[350px] overflow-y-auto no-scrollbar pr-1 relative z-10">
                                 {stats.supplier_debt_list?.length > 0 ? (
-                                    (() => {
-                                        const maxSuppDebt = Math.max(1, ...stats.supplier_debt_list.slice(0, 10).map(x => Math.abs(Number(x.balance) || 0)));
-                                        return stats.supplier_debt_list.slice(0, 10).map((p, idx) => {
-                                            const pct = Math.min(100, Math.round((Math.abs(Number(p.balance) || 0) / maxSuppDebt) * 100));
-                                            const rankBadgeClass = idx === 0
-                                                ? "bg-gradient-to-br from-rose-500 to-amber-600 text-white shadow-sm border border-rose-200/50"
-                                                : idx === 1
-                                                    ? "bg-gradient-to-br from-slate-400 to-slate-600 text-white shadow-sm"
-                                                    : idx === 2
-                                                        ? "bg-gradient-to-br from-amber-600 to-orange-700 text-white shadow-sm"
-                                                        : "bg-rose-500/10 text-rose-600 dark:text-rose-400";
-                                            return (
-                                                <m.div
-                                                    key={p.id}
-                                                    initial={{ opacity: 0, y: 10 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    transition={{ delay: idx * 0.03 }}
-                                                    whileHover={{ x: 5, scale: 1.008 }}
-                                                    className="relative overflow-hidden flex items-center justify-between p-3 bg-white/60 dark:bg-white/[0.04] rounded-2xl border border-[#8b6f47]/20 dark:border-white/10 hover:border-rose-500/50 transition-all shadow-xs group/row"
-                                                >
-                                                    {/* 3D Depth Progress Bar Fill */}
-                                                    <div
-                                                        className="absolute left-0 bottom-0 h-[3px] bg-gradient-to-r from-rose-500 to-amber-500 transition-all duration-500 opacity-75"
-                                                        style={{ width: `${pct}%` }}
-                                                    />
-                                                    <div className="flex items-center gap-3 min-w-0 relative z-10">
-                                                        <div className="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400 font-black text-xs border border-rose-500/20 flex items-center justify-center shrink-0 shadow-2xs">
-                                                            {getInitials(p.name)}
-                                                        </div>
-                                                        <span className="font-black text-slate-800 dark:text-[#e8dfd5] text-sm truncate">{p.name}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-2.5 shrink-0 relative z-10">
-                                                        <span className="font-black text-rose-600 dark:text-rose-400 text-sm tracking-tight tabular-nums">
-                                                            {hideStats ? "••••••••" : formatDebt(p.balance)}
-                                                        </span>
-                                                        <span className={cn("text-[9px] font-black w-6 h-6 flex items-center justify-center rounded-lg", rankBadgeClass)}>
-                                                            #{idx + 1}
-                                                        </span>
-                                                    </div>
-                                                </m.div>
-                                            );
-                                        });
-                                    })()
+                                    stats.supplier_debt_list.slice(0, 10).map((p, idx) => (
+                                        <m.div
+                                            key={p.id}
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ delay: idx * 0.03 }}
+                                            whileHover={{ x: 4, backgroundColor: 'rgba(255,255,255,0.1)' }}
+                                            className="flex items-center justify-between p-3 bg-white/50 dark:bg-white/[0.03] rounded-2xl border border-[var(--border-color)] hover:border-rose-500/40 transition-all shadow-none group"
+                                        >
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <div className="w-9 h-9 rounded-xl bg-rose-500/10 text-rose-600 dark:bg-rose-500/15 dark:text-rose-400 font-black text-xs border border-rose-500/20 flex items-center justify-center shrink-0">
+                                                    {getInitials(p.name)}
+                                                </div>
+                                                <span className="font-black text-slate-800 dark:text-foreground text-sm truncate">{p.name}</span>
+                                            </div>
+                                            <div className="flex items-center gap-2.5 shrink-0">
+                                                <span className="font-black text-rose-600 dark:text-rose-400 text-sm tracking-tight tabular-nums">{formatDebt(p.balance)}</span>
+                                                <span className="text-[9px] font-black w-5 h-5 flex items-center justify-center bg-rose-500/10 text-rose-600 dark:text-rose-400 rounded-md tabular-nums">#{idx + 1}</span>
+                                            </div>
+                                        </m.div>
+                                    ))
                                 ) : (
                                     <div className="flex flex-col items-center justify-center py-16 opacity-50">
                                         <Truck size={36} className="text-rose-500 mb-2 opacity-50" />
-                                        <p className="font-black uppercase tracking-wider text-xs italic text-[#8b6f47]">Chưa có nợ</p>
+                                        <p className="font-black uppercase tracking-wider text-xs italic text-[var(--text-muted)]">Chưa có nợ</p>
                                     </div>
                                 )}
                             </div>
-                        </Tilt3DCard>
+                        </div>
 
                     </div>
                 </m.div>

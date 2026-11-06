@@ -75,7 +75,6 @@ import CartColorCustomizerModal, { applyCartThemeToDom } from '../modals/CartCol
 import DynamicIcon from '../widgets/DynamicIcon';
 import { MASCOT_LIST, playPopSound } from '../../lib/mascots';
 import SidebarLogoCustomizerModal, { getDashboardAvatar } from '../modals/SidebarLogoCustomizerModal';
-import Spatial3DBackground from '../three/Spatial3DBackground';
 
 const Portal = ({ children }) => {
     return createPortal(children, document.body);
@@ -1670,16 +1669,6 @@ export default function Layout({ children }) {
     const [appTheme, setAppTheme] = useState(localStorage.getItem('app_theme') || 'agri');
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [gpuDisabled, setGpuDisabled] = useState(() => localStorage.getItem("pos_gpu_disabled") === "true");
-    const [spatial3DEnabled, setSpatial3DEnabled] = useState(() => localStorage.getItem("pos_spatial_3d") !== "false");
-
-    const toggleSpatial3D = () => {
-        setSpatial3DEnabled(prev => {
-            const next = !prev;
-            localStorage.setItem("pos_spatial_3d", String(next));
-            window.dispatchEvent(new Event("spatial_3d_changed"));
-            return next;
-        });
-    };
 
     useEffect(() => {
         const handleGpuState = () => {
@@ -2581,11 +2570,6 @@ export default function Layout({ children }) {
             style={isLiteMode ? { backgroundColor: liteTheme.bg } : {}}
             className="relative flex h-screen w-full main-content-bg overflow-hidden transition-colors selection:bg-emerald-100 dark:selection:bg-emerald-900/40"
         >
-            <Spatial3DBackground
-                enabled={spatial3DEnabled && !gpuDisabled && !isLiteMode}
-                appTheme={appTheme}
-                isDark={theme === 'dark'}
-            />
             <ContextMenu />
             <ButtonMascotOverlay />
 
@@ -2689,30 +2673,6 @@ export default function Layout({ children }) {
                                         <span>Cài đặt hệ thống</span>
                                     </Link>
                                 </>
-                            )}
-
-                            {!isLiteMode && (
-                                <button
-                                    onClick={toggleSpatial3D}
-                                    className={cn(
-                                        "flex items-center justify-between w-full p-2.5 rounded-xl font-bold text-xs transition-colors my-0.5 cursor-pointer",
-                                        spatial3DEnabled && !gpuDisabled
-                                            ? "bg-teal-500/15 text-teal-800 dark:text-teal-300 border border-teal-500/30"
-                                            : "hover:bg-[#2d5016]/5 dark:hover:bg-white/5 text-gray-700 dark:text-emerald-100/70"
-                                    )}
-                                    title="Bật/Tắt môi trường không gian 3D WebGL (Argon 3D Spatial Engine)"
-                                >
-                                    <div className="flex items-center gap-2.5">
-                                        <Sparkles size={16} className={spatial3DEnabled && !gpuDisabled ? "text-teal-500" : "text-gray-400"} />
-                                        <span>Không gian 3D (WebGL)</span>
-                                    </div>
-                                    <span className={cn(
-                                        "text-[10px] px-2 py-0.5 rounded-md font-black tracking-wide",
-                                        spatial3DEnabled && !gpuDisabled ? "bg-teal-600 text-white shadow-xs" : "bg-black/5 dark:bg-white/10 text-gray-500 dark:text-gray-400"
-                                    )}>
-                                        {spatial3DEnabled && !gpuDisabled ? "3D BẬT" : "TẮT"}
-                                    </span>
-                                </button>
                             )}
 
                             <button

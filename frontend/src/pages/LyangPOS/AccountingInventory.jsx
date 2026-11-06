@@ -832,19 +832,19 @@ export default function AccountingInventory() {
                 <div className="relative overflow-hidden rounded-3xl bg-transparent p-2 md:p-4 border-0">
                     <div className="relative z-10 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-6">
                         <div className="flex items-center gap-4">
-                            <div className="w-13 h-13 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 rounded-2xl flex items-center justify-center border border-emerald-500/20 shadow-inner">
+                            <div className="w-13 h-13 bg-primary/10 text-primary rounded-2xl flex items-center justify-center border border-primary/20 shadow-inner">
                                 <Scale size={28} />
                             </div>
                             <div>
                                 <div className="flex items-center gap-3">
-                                    <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight uppercase">
+                                    <h1 className="text-2xl font-black text-primary tracking-tight uppercase">
                                         {view === 'invoices' ? 'Theo Dõi Xuất Hóa Đơn Khách Hàng' : 'Sổ Kế Toán & Đối Soát Kho'}
                                     </h1>
-                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700">
+                                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-primary/10 text-primary border border-primary/25">
                                         {view === 'invoices' ? 'Theo Ngày & Nợ HĐ' : (view === 'import' ? `Đối Soát Bước ${step}/3` : 'Sổ Sách Hiện Tại')}
                                     </span>
                                 </div>
-                                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 font-medium">
+                                <p className="text-xs text-[var(--text-muted)] mt-1 font-medium">
                                     {view === 'invoices'
                                         ? 'Theo dõi hóa đơn đã xuất hoặc cần xuất thêm theo từng khách hàng, từng đơn hàng trong ngày và nợ HĐ.'
                                         : 'Đối soát chênh lệch giữa Kho thực tế (POS) và Kho sổ sách (Kế toán), hỗ trợ xuất file Excel và kiểm kê nhanh.'}

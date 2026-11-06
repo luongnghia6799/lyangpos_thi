@@ -25,10 +25,10 @@ const TabButton = ({ active, onClick, icon, label }) => (
     <button
         onClick={onClick}
         className={cn(
-            "relative px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 overflow-hidden",
+            "relative px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 overflow-hidden cursor-pointer",
             active
-                ? 'text-white'
-                : 'text-[#8b6f47] dark:text-[#d4a574]/60 hover:text-[#2d5016] dark:hover:text-[#d4a574] hover:bg-primary/10'
+                ? 'text-white shadow-xs'
+                : 'text-[var(--text-muted)] hover:text-primary hover:bg-primary/10'
         )}
     >
         {active && (
@@ -51,15 +51,15 @@ const KPICard = ({ title, value, isMoney = true, icon }) => (
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         className={cn(
-            "relative group overflow-hidden rounded-2xl px-3.5 py-2 border border-border/80 pos-card transition-all duration-300 bg-white/40 dark:bg-slate-900/40 flex items-center gap-2.5 shadow-sm"
+            "relative group overflow-hidden rounded-2xl px-3.5 py-2.5 border border-[var(--border-color)] pos-card transition-all duration-300 bg-[var(--card-bg)] flex items-center gap-2.5 shadow-[var(--shadow-card)]"
         )}
     >
         <div className="p-2 bg-primary/10 dark:bg-primary/20 rounded-xl text-primary shrink-0">
             {icon}
         </div>
         <div className="min-w-0 flex-1">
-            <h3 className="text-[8.5px] font-black uppercase tracking-[0.12em] text-muted truncate leading-none mb-1">{title}</h3>
-            <div className="text-sm font-black tracking-tight flex items-baseline gap-0.5 text-foreground leading-none truncate">
+            <h3 className="text-[8.5px] font-black uppercase tracking-[0.12em] text-[var(--text-muted)] truncate leading-none mb-1">{title}</h3>
+            <div className="text-sm font-black tracking-tight flex items-baseline gap-0.5 text-foreground leading-none truncate tabular-nums">
                 {isMoney ? (Number(value) || 0).toLocaleString() : value}
                 {isMoney && <span className="text-[9px] font-bold opacity-60">₫</span>}
             </div>

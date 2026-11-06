@@ -475,19 +475,19 @@ export default function CashVoucher() {
                         <div className="flex bg-transparent p-1 rounded-2xl border border-border shadow-none">
                             <button
                                 onClick={() => setActiveMainTab('fund')}
-                                className={cn("px-5 py-2 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all duration-300", activeMainTab === 'fund' ? "bg-gradient-to-r from-[#2d5016] to-[#4a7c59] text-white shadow-sm" : "text-[#8b6f47] hover:bg-[#d4a574]/10")}
+                                className={cn("px-5 py-2 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all duration-300 cursor-pointer", activeMainTab === 'fund' ? "bg-primary text-white shadow-sm" : "text-[var(--text-muted)] hover:text-primary hover:bg-primary/10")}
                             >
                                 TẠO PHIẾU
                             </button>
                             <button
                                 onClick={() => setActiveMainTab('cash_ledger')}
-                                className={cn("px-5 py-2 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all duration-300", activeMainTab === 'cash_ledger' ? "bg-gradient-to-r from-[#2d5016] to-[#4a7c59] text-white shadow-sm" : "text-[#8b6f47] hover:bg-[#d4a574]/10")}
+                                className={cn("px-5 py-2 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all duration-300 cursor-pointer", activeMainTab === 'cash_ledger' ? "bg-primary text-white shadow-sm" : "text-[var(--text-muted)] hover:text-primary hover:bg-primary/10")}
                             >
                                 SỔ TIỀN MẶT
                             </button>
                             <button
                                 onClick={() => setActiveMainTab('bank_ledger')}
-                                className={cn("px-5 py-2 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all duration-300", activeMainTab === 'bank_ledger' ? "bg-gradient-to-r from-[#2d5016] to-[#4a7c59] text-white shadow-sm" : "text-[#8b6f47] hover:bg-[#d4a574]/10")}
+                                className={cn("px-5 py-2 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all duration-300 cursor-pointer", activeMainTab === 'bank_ledger' ? "bg-primary text-white shadow-sm" : "text-[var(--text-muted)] hover:text-primary hover:bg-primary/10")}
                             >
                                 SỔ NGÂN HÀNG
                             </button>

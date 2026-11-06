@@ -350,8 +350,8 @@ export default function History() {
             <div className="no-print space-y-6">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 px-4 md:px-0">
                     <div>
-                        <h1 className="text-3xl md:text-4xl font-black text-[#2d5016] dark:text-[#4a7c59] uppercase tracking-tight flex items-center gap-3 pt-2 pb-0.5 leading-relaxed">
-                            <HistoryIcon className="text-[#2d5016] dark:text-[#4a7c59]" size={32} />
+                        <h1 className="text-3xl md:text-4xl font-black text-primary uppercase tracking-tight flex items-center gap-3 pt-2 pb-0.5 leading-relaxed">
+                            <HistoryIcon className="text-primary" size={32} />
                             Nhật Ký Vụ Mùa
                         </h1>
                         <div className="flex items-center gap-2">
@@ -364,8 +364,8 @@ export default function History() {
                         <button
                             onClick={() => { setActiveTab('Sale'); setPage(1); }}
                             className={cn(
-                                "relative z-10 px-8 py-2.5 rounded-xl text-sm font-black uppercase transition-all flex items-center gap-2",
-                                activeTab === 'Sale' ? "text-white" : "text-[#8b6f47] hover:text-[#2d5016] dark:text-[#d4a574]/60 dark:hover:text-[#d4a574]"
+                                "relative z-10 px-8 py-2.5 rounded-xl text-sm font-black uppercase transition-all flex items-center gap-2 cursor-pointer",
+                                activeTab === 'Sale' ? "text-white" : "text-[var(--text-muted)] hover:text-primary"
                             )}
                         >
                             <Wheat size={18} /> BÁN HÀNG
@@ -380,8 +380,8 @@ export default function History() {
                         <button
                             onClick={() => { setActiveTab('Purchase'); setPage(1); }}
                             className={cn(
-                                "relative z-10 px-8 py-2.5 rounded-xl text-sm font-black uppercase transition-all flex items-center gap-2",
-                                activeTab === 'Purchase' ? "text-white" : "text-[#8b6f47] hover:text-[#2d5016] dark:text-[#d4a574]/60 dark:hover:text-[#d4a574]"
+                                "relative z-10 px-8 py-2.5 rounded-xl text-sm font-black uppercase transition-all flex items-center gap-2 cursor-pointer",
+                                activeTab === 'Purchase' ? "text-white" : "text-[var(--text-muted)] hover:text-primary"
                             )}
                         >
                             <Sprout size={18} /> NHẬP HÀNG

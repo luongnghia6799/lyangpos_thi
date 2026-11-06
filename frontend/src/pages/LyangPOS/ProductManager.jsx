@@ -52,15 +52,15 @@ const ThemeCheckbox = ({ checked, indeterminate, onChange, title, className }) =
         className={cn(
             "w-4.5 h-4.5 rounded-[6px] border-2 flex items-center justify-center transition-all duration-200 cursor-pointer select-none outline-none shrink-0",
             checked
-                ? "bg-gradient-to-br from-[#2d5016] to-[#4a7c59] border-[#2d5016] text-white shadow-sm shadow-[#2d5016]/30 scale-105"
+                ? "bg-primary border-primary text-white shadow-sm shadow-primary/30 scale-105"
                 : indeterminate
-                    ? "bg-[#2d5016]/15 border-[#4a7c59] text-[#2d5016]"
-                    : "bg-white dark:bg-slate-800 border-[#d4a574]/40 hover:border-[#4a7c59] dark:border-slate-600 hover:scale-105 shadow-2xs",
+                    ? "bg-primary/15 border-primary text-primary"
+                    : "bg-white dark:bg-slate-800 border-[var(--border-color)] hover:border-primary hover:scale-105 shadow-2xs",
             className
         )}
     >
         {checked && <Check size={12} strokeWidth={3.5} className="text-white" />}
-        {!checked && indeterminate && <span className="w-2 h-0.5 bg-[#2d5016] dark:bg-emerald-400 rounded-full" />}
+        {!checked && indeterminate && <span className="w-2 h-0.5 bg-primary rounded-full" />}
     </button>
 );
 const containerVariants = {
@@ -760,8 +760,8 @@ export default function ProductManager() {
                 <m.div variants={itemVariants} className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 px-4 md:px-0">
                     <div className="flex items-center gap-5">
                         <div>
-                            <h1 className="text-3xl md:text-4xl font-black text-[#2d5016] dark:text-[#4a7c59] uppercase tracking-tight flex items-center gap-3 pt-2 pb-0.5 leading-relaxed">
-                                <Package className="text-[#2d5016] dark:text-[#4a7c59]" size={32} />
+                            <h1 className="text-3xl md:text-4xl font-black text-primary uppercase tracking-tight flex items-center gap-3 pt-2 pb-0.5 leading-relaxed">
+                                <Package className="text-primary" size={32} />
                                 Danh Mục Sản Phẩm
                             </h1>
                             <div className="flex items-center gap-2">
@@ -781,7 +781,7 @@ export default function ProductManager() {
                                         animate={{ opacity: 1, scale: 1, x: 0 }}
                                         exit={{ opacity: 0, scale: 0.9, x: 20 }}
                                         onClick={() => setSelectedIds([])}
-                                        className="bg-[#faf8f3] dark:bg-slate-800 text-[#8b6f47] dark:text-[#d4a574] border border-[#d4a574]/40 hover:bg-[#d4a574]/15 hover:border-[#8b6f47] px-4 py-3 rounded-2xl flex items-center gap-1.5 transition-all font-black uppercase text-[10px] tracking-wider shadow-sm"
+                                        className="bg-[var(--card-bg)] text-[var(--text-muted)] border border-[var(--border-color)] hover:bg-primary/10 hover:text-primary hover:border-primary/40 px-4 py-3 rounded-2xl flex items-center gap-1.5 transition-all font-black uppercase text-[10px] tracking-wider shadow-sm"
                                         title="Bỏ chọn tất cả các trang"
                                     >
                                         <X size={14} /> Bỏ chọn ({selectedIds.length})
@@ -792,7 +792,7 @@ export default function ProductManager() {
                                         animate={{ opacity: 1, scale: 1, x: 0 }}
                                         exit={{ opacity: 0, scale: 0.9, x: 20 }}
                                         onClick={handleBulkDelete}
-                                        className="bg-[#c84b31] hover:bg-[#b03e26] text-white px-4.5 py-3 rounded-2xl flex items-center gap-2 transition-all shadow-md shadow-[#c84b31]/25 hover:shadow-[#c84b31]/40 hover:scale-[1.02] font-black uppercase text-[10px] tracking-wider"
+                                        className="bg-rose-600 hover:bg-rose-700 text-white px-4.5 py-3 rounded-2xl flex items-center gap-2 transition-all shadow-md shadow-rose-600/25 hover:scale-[1.02] font-black uppercase text-[10px] tracking-wider"
                                     >
                                         <Trash2 size={15} strokeWidth={2.5} /> Xóa ({selectedIds.length})
                                     </m.button>
@@ -802,31 +802,31 @@ export default function ProductManager() {
                                         animate={{ opacity: 1, scale: 1, x: 0 }}
                                         exit={{ opacity: 0, scale: 0.9, x: 20 }}
                                         onClick={openQuickEdit}
-                                        className="bg-gradient-to-r from-[#2d5016] to-[#4a7c59] text-white px-5 py-3 rounded-2xl flex items-center gap-2 transition-all shadow-md shadow-[#2d5016]/25 hover:shadow-[#2d5016]/40 hover:scale-[1.02] font-black uppercase text-[10px] tracking-wider"
+                                        className="bg-primary hover:opacity-95 text-white px-5 py-3 rounded-2xl flex items-center gap-2 transition-all shadow-md shadow-primary/25 hover:scale-[1.02] font-black uppercase text-[10px] tracking-wider"
                                     >
                                         <Sparkles size={15} strokeWidth={2.5} /> SỬA NHANH ({selectedIds.length})
                                     </m.button>
                                 </div>
                             )}
                         </AnimatePresence>
-                        <div className="flex bg-[#faf8f3] dark:bg-slate-800/80 p-1 rounded-2xl border border-[#d4a574]/30 shadow-sm">
-                            <button onClick={handleDownloadTemplate} className="px-3.5 py-2 text-[#8b6f47] dark:text-[#d4a574] rounded-xl flex items-center gap-1.5 hover:bg-[#d4a574]/15 transition-all font-black uppercase text-[10px] tracking-wider">
+                        <div className="flex bg-[var(--card-bg)] p-1 rounded-2xl border border-[var(--border-color)] shadow-sm">
+                            <button onClick={handleDownloadTemplate} className="px-3.5 py-2 text-[var(--text-muted)] hover:text-primary rounded-xl flex items-center gap-1.5 hover:bg-primary/10 transition-all font-black uppercase text-[10px] tracking-wider">
                                 <FileDown size={15} /> Mẫu Excel
                             </button>
-                            <button onClick={handleExportList} className="px-3.5 py-2 text-[#2d5016] dark:text-emerald-400 rounded-xl flex items-center gap-1.5 hover:bg-[#2d5016]/10 dark:hover:bg-emerald-950/40 transition-all font-black uppercase text-[10px] tracking-wider">
+                            <button onClick={handleExportList} className="px-3.5 py-2 text-primary rounded-xl flex items-center gap-1.5 hover:bg-primary/10 transition-all font-black uppercase text-[10px] tracking-wider">
                                 <FileText size={15} /> Xuất DS
                             </button>
                         </div>
                         {/* 3 CHẾ ĐỘ: SẢN PHẨM | NHẬP / SỬA NHANH | DANH MỤC */}
-                        <div className="flex bg-[#faf8f3] dark:bg-slate-800/80 p-1 rounded-2xl border border-[#d4a574]/30 shadow-sm">
+                        <div className="flex bg-[var(--card-bg)] p-1 rounded-2xl border border-[var(--border-color)] shadow-sm">
                             <button
                                 type="button"
                                 onClick={() => setViewMode('table')}
                                 className={cn(
                                     "px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all font-black uppercase text-[10px] tracking-wider cursor-pointer",
                                     viewMode === 'table'
-                                        ? "bg-gradient-to-r from-emerald-600 to-[#2d5016] text-white shadow-xs"
-                                        : "text-stone-600 dark:text-stone-300 hover:text-emerald-700 hover:bg-black/5"
+                                        ? "bg-primary text-white shadow-xs"
+                                        : "text-[var(--text-muted)] hover:text-primary hover:bg-primary/5"
                                 )}
                             >
                                 <Package size={14} />
@@ -841,8 +841,8 @@ export default function ProductManager() {
                                 className={cn(
                                     "px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all font-black uppercase text-[10px] tracking-wider cursor-pointer",
                                     viewMode === 'ingredient'
-                                        ? "bg-gradient-to-r from-emerald-600 to-[#2d5016] text-white shadow-xs"
-                                        : "text-stone-600 dark:text-stone-300 hover:text-emerald-700 hover:bg-black/5"
+                                        ? "bg-primary text-white shadow-xs"
+                                        : "text-[var(--text-muted)] hover:text-primary hover:bg-primary/5"
                                 )}
                             >
                                 <SlidersHorizontal size={14} />
@@ -857,19 +857,19 @@ export default function ProductManager() {
                                 className={cn(
                                     "px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all font-black uppercase text-[10px] tracking-wider cursor-pointer",
                                     viewMode === 'master_data'
-                                        ? "bg-gradient-to-r from-emerald-600 to-[#2d5016] text-white shadow-xs"
-                                        : "text-stone-600 dark:text-stone-300 hover:text-emerald-700 hover:bg-black/5"
+                                        ? "bg-primary text-white shadow-xs"
+                                        : "text-[var(--text-muted)] hover:text-primary hover:bg-black/5"
                                 )}
                             >
                                 <Layers size={14} />
                                 <span>Danh Mục</span>
                             </button>
                         </div>
-                        <label className="bg-white dark:bg-slate-800 text-[#2d5016] dark:text-emerald-400 border border-[#d4a574]/40 hover:border-[#4a7c59] hover:bg-[#2d5016]/5 px-4.5 py-3 rounded-2xl flex items-center gap-2 transition-all font-black uppercase text-[10px] tracking-wider shadow-sm cursor-pointer">
+                        <label className="bg-[var(--card-bg)] text-primary border border-[var(--border-color)] hover:border-primary hover:bg-primary/5 px-4.5 py-3 rounded-2xl flex items-center gap-2 transition-all font-black uppercase text-[10px] tracking-wider shadow-sm cursor-pointer">
                             <Upload size={15} strokeWidth={2.5} /> Nhập Kho
                             <input type="file" ref={fileInputRef} className="hidden" accept=".xlsx, .xls" onChange={handleImport} />
                         </label>
-                        <button onClick={openAdd} className="bg-gradient-to-r from-[#2d5016] to-[#4a7c59] text-white px-5 py-3 rounded-2xl flex items-center gap-2 transition-all shadow-md shadow-[#2d5016]/25 hover:shadow-[#2d5016]/40 hover:scale-[1.02] font-black uppercase text-[10px] tracking-wider">
+                        <button onClick={openAdd} className="bg-primary text-white px-5 py-3 rounded-2xl flex items-center gap-2 transition-all shadow-md shadow-primary/25 hover:scale-[1.02] font-black uppercase text-[10px] tracking-wider">
                             <Plus size={16} strokeWidth={3} /> Thêm Mới
                         </button>
                     </div>

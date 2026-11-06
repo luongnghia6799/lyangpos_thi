@@ -546,12 +546,12 @@ export default function PartnerProfile() {
                 <m.div variants={itemVariants} className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 shrink-0 relative z-[110] px-4 lg:px-0">
                     <div className="flex items-center gap-4">
                         <div>
-                            <h1 className="text-3xl md:text-4xl font-black text-primary dark:text-[#d4a574] uppercase tracking-tight flex items-center gap-3 pt-2 pb-0.5 leading-relaxed">
-                                <Users className="text-primary dark:text-[#d4a574]" size={32} />
+                            <h1 className="text-3xl md:text-4xl font-black text-primary uppercase tracking-tight flex items-center gap-3 pt-2 pb-0.5 leading-relaxed">
+                                <Users className="text-primary" size={32} />
                                 Hồ sơ đối tác
                             </h1>
                             <div className="flex items-center gap-2">
-                                <span className="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-black uppercase rounded-lg tracking-tighter">LyangPOS by Lyang</span>
+                                <span className="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-black uppercase rounded-lg tracking-tighter">LyangPOS Argon Engine</span>
                                 <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
                                 <p className="text-[11px] font-bold text-gray-400 dark:text-gray-500">Xem thông tin chi tiết khách hàng, nhà cung cấp và công nợ</p>
                             </div>

@@ -784,12 +784,12 @@ export default function Settings() {
             {/* Compact Premium Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 relative z-10 px-4 md:px-0">
                 <div>
-                    <h1 className="text-3xl md:text-4xl font-black text-[#2d5016] dark:text-[#4a7c59] tracking-tight flex items-center gap-3 pt-2 pb-0.5 leading-relaxed">
-                        <SettingsIcon className="text-[#2d5016] dark:text-[#4a7c59]" size={32} />
+                    <h1 className="text-3xl md:text-4xl font-black text-primary tracking-tight flex items-center gap-3 pt-2 pb-0.5 leading-relaxed">
+                        <SettingsIcon className="text-primary" size={32} />
                         CẤU HÌNH HỆ THỐNG
                     </h1>
                         <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-black uppercase rounded-lg tracking-tighter">LyangPOS by Lyang</span>
+                            <span className="px-2 py-0.5 bg-primary/10 text-primary text-[10px] font-black uppercase rounded-lg tracking-tighter">LyangPOS Argon Engine</span>
                             <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
                             <p className="text-[11px] font-bold text-gray-400 dark:text-gray-500">Quản trị & Cá nhân hóa vận hành POS</p>
                         </div>
@@ -799,7 +799,7 @@ export default function Settings() {
                     whileTap={{ scale: 0.98 }}
                     onClick={handleSave}
                     disabled={loading}
-                    className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white px-6 py-3 rounded-xl font-black shadow-md shadow-emerald-500/20 active:scale-95 disabled:opacity-50 transition-all uppercase text-[10px] tracking-[0.15em] border border-white/10 shrink-0"
+                    className="flex items-center gap-2 bg-primary hover:opacity-95 text-white px-6 py-3 rounded-xl font-black shadow-md shadow-primary/20 active:scale-95 disabled:opacity-50 transition-all uppercase text-[10px] tracking-[0.15em] border border-white/10 shrink-0 cursor-pointer"
                 >
                     <Save size={14} />
                     {loading ? 'ĐANG LƯU...' : 'LƯU THAY ĐỔI'}
@@ -810,9 +810,9 @@ export default function Settings() {
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start relative z-10 flex-1 overflow-hidden">
                 
                 {/* Left Side Tab Navigation List */}
-                <div className="lg:col-span-1 flex flex-col gap-2 bg-[#fbf9f5] dark:bg-stone-900/90 backdrop-blur-md p-2.5 rounded-3xl border border-stone-200/80 dark:border-stone-800 shadow-xs">
-                    <div className="px-3.5 py-2 border-b border-stone-200/60 dark:border-stone-800 mb-0.5 flex items-center justify-between">
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#8b6f47] dark:text-emerald-400">Danh Mục Cài Đặt</span>
+                <div className="lg:col-span-1 flex flex-col gap-2 bg-[var(--card-bg)] backdrop-blur-md p-2.5 rounded-3xl border border-[var(--border-color)] shadow-xs">
+                    <div className="px-3.5 py-2 border-b border-[var(--border-color)] mb-0.5 flex items-center justify-between">
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Danh Mục Cài Đặt</span>
                         <span className="text-[9px] font-bold text-stone-400 dark:text-stone-500 font-mono">5 mục</span>
                     </div>
                     {TABS.map((tab) => {
@@ -825,15 +825,15 @@ export default function Settings() {
                                 className={cn(
                                     "flex items-center gap-3.5 p-3 rounded-2xl text-left transition-all duration-150 group cursor-pointer border",
                                     isSelected 
-                                        ? "bg-white dark:bg-emerald-950/30 border-emerald-500/35 dark:border-emerald-500/40 shadow-xs" 
-                                        : "border-transparent hover:bg-stone-200/40 dark:hover:bg-stone-800/40"
+                                        ? "bg-primary/10 border-primary/35 shadow-xs" 
+                                        : "border-transparent hover:bg-primary/5"
                                 )}
                             >
                                 <div className={cn(
                                     "w-10 h-10 rounded-xl transition-all duration-150 flex items-center justify-center shrink-0 shadow-xs",
                                     isSelected 
-                                        ? "bg-[#2d5016] dark:bg-emerald-600 text-white" 
-                                        : "bg-stone-200/50 dark:bg-stone-800/60 text-stone-500 dark:text-stone-400 group-hover:bg-[#2d5016]/10 group-hover:text-[#2d5016] dark:group-hover:text-emerald-400"
+                                        ? "bg-primary text-white" 
+                                        : "bg-stone-200/50 dark:bg-stone-800/60 text-stone-500 dark:text-stone-400 group-hover:bg-primary/10 group-hover:text-primary"
                                 )}>
                                     <Icon size={18} />
                                 </div>
@@ -841,22 +841,22 @@ export default function Settings() {
                                     <p className={cn(
                                         "text-xs font-black uppercase tracking-wider leading-tight mb-1 transition-colors duration-150",
                                         isSelected 
-                                            ? "text-[#2d5016] dark:text-emerald-300" 
-                                            : "text-stone-700 dark:text-stone-300 group-hover:text-[#2d5016] dark:group-hover:text-white"
+                                            ? "text-primary" 
+                                            : "text-stone-700 dark:text-stone-300 group-hover:text-primary"
                                     )}>
                                         {tab.label}
                                     </p>
                                     <p className={cn(
                                         "text-[10px] font-medium line-clamp-1 leading-snug transition-colors duration-150",
                                         isSelected 
-                                            ? "text-[#2d5016]/75 dark:text-emerald-400/80" 
+                                            ? "text-primary/75" 
                                             : "text-stone-400 dark:text-stone-500 group-hover:text-stone-600 dark:group-hover:text-stone-400"
                                     )}>
                                         {tab.desc}
                                     </p>
                                 </div>
                                 {isSelected && (
-                                    <div className="w-1.5 h-1.5 rounded-full bg-[#2d5016] dark:bg-emerald-400 shrink-0 mr-1" />
+                                    <div className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 mr-1" />
                                 )}
                             </button>
                         );

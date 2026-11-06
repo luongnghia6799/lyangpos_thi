@@ -500,16 +500,18 @@ pub async fn ensure_schema(pool: &SqlitePool) -> anyhow::Result<()> {
         "CREATE INDEX IF NOT EXISTS idx_air_name ON active_ingredient_research(name)"
     ).execute(pool).await?;
 
-    // 8. Argon Performance Composite Indexes for hot queries (POS, Dashboard, Reports, Debt Ledger)
-    let composite_indexes = [
-        "CREATE INDEX IF NOT EXISTS idx_order_date_type_status ON \"order\"(date, type, status)",
+    // 8. Argon Engine High-Frequency Composite Indexes
+    let index_queries = [
+        "CREATE INDEX IF NOT EXISTS idx_order_date_type ON \"order\"(date, type, status)",
         "CREATE INDEX IF NOT EXISTS idx_order_partner_date ON \"order\"(partner_id, date)",
-        "CREATE INDEX IF NOT EXISTS idx_order_detail_order_product ON order_detail(order_id, product_id)",
-        "CREATE INDEX IF NOT EXISTS idx_cash_voucher_date_partner_type ON cash_voucher(date, partner_id, type)",
-        "CREATE INDEX IF NOT EXISTS idx_product_active_category ON product(is_active, category_id)",
+        "CREATE INDEX IF NOT EXISTS idx_order_detail_order_id ON order_detail(order_id)",
+        "CREATE INDEX IF NOT EXISTS idx_order_detail_product_id ON order_detail(product_id)",
+        "CREATE INDEX IF NOT EXISTS idx_cash_voucher_partner_date ON cash_voucher(partner_id, date, type)",
+        "CREATE INDEX IF NOT EXISTS idx_product_active_cat ON product(is_active, category_id)",
+        "CREATE INDEX IF NOT EXISTS idx_partner_type_debt ON partner(is_customer, is_supplier, debt_balance)",
         "CREATE INDEX IF NOT EXISTS idx_stock_batch_product_qty ON stock_batch(product_id, current_quantity)",
     ];
-    for idx_sql in composite_indexes {
+    for idx_sql in index_queries {
         let _ = sqlx::query(idx_sql).execute(pool).await;
     }
 

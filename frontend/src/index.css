@@ -1182,40 +1182,8 @@ body {
 }
 
 /* ==========================================================================
-   ARGON FULL 3D SPATIAL & TACTILE EXTRUSION ENGINE
+   ARGON CLEAN ENTERPRISE DESIGN SYSTEM & UTILITY LAYER
    ========================================================================== */
-:root {
-  --3d-bevel-light: rgba(255, 255, 255, 0.85);
-  --3d-bevel-edge: rgba(31, 77, 46, 0.16);
-  --3d-extrude-shadow:
-    0 3px 0 0 rgba(31, 77, 46, 0.12),
-    0 14px 28px -6px rgba(15, 23, 42, 0.1),
-    0 4px 10px -2px rgba(15, 23, 42, 0.05),
-    inset 0 1.5px 0 0 rgba(255, 255, 255, 0.85),
-    inset 0 -1px 0 0 rgba(31, 77, 46, 0.08);
-  --3d-extrude-hover:
-    0 6px 0 0 rgba(var(--primary-rgb, 31, 77, 46), 0.18),
-    0 22px 40px -8px rgba(15, 23, 42, 0.16),
-    0 8px 16px -4px rgba(var(--primary-rgb, 31, 77, 46), 0.1),
-    inset 0 1.5px 0 0 rgba(255, 255, 255, 0.95);
-}
-
-.dark {
-  --3d-bevel-light: rgba(255, 255, 255, 0.14);
-  --3d-bevel-edge: rgba(0, 0, 0, 0.75);
-  --3d-extrude-shadow:
-    0 4px 0 0 rgba(2, 6, 14, 0.9),
-    0 18px 38px -6px rgba(0, 0, 0, 0.7),
-    0 0 0 1px rgba(255, 255, 255, 0.07),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.14),
-    inset 0 -1px 0 0 rgba(0, 0, 0, 0.5);
-  --3d-extrude-hover:
-    0 6px 0 0 rgba(2, 6, 14, 0.95),
-    0 24px 48px -8px rgba(0, 0, 0, 0.85),
-    0 0 22px -4px rgba(var(--primary-rgb, 45, 212, 191), 0.28),
-    inset 0 1.5px 0 0 rgba(255, 255, 255, 0.22);
-}
-
 table td,
 table th,
 input[type="number"],
@@ -1224,94 +1192,11 @@ input[type="number"],
   font-variant-numeric: tabular-nums;
 }
 
-/* Global 3D Perspective Stage */
-html:not(.gpu-disabled) #main-content {
-  perspective: 1400px;
-  transform-style: preserve-3d;
-}
-
-/* Full 3D Extruded Panels & Cards across the entire app */
-html:not(.gpu-disabled) .pos-card,
-html:not(.gpu-disabled) .argon-card,
-html:not(.gpu-disabled) .glass-panel,
-html:not(.gpu-disabled) .glass-card,
-html:not(.gpu-disabled) .minimal-card,
-html:not(.gpu-disabled) .argon-3d-panel {
-  box-shadow: var(--3d-extrude-shadow) !important;
-  transition:
-    transform 0.26s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.26s cubic-bezier(0.22, 1, 0.36, 1),
-    border-color 0.2s ease !important;
-}
-
-html:not(.gpu-disabled) .pos-card:hover,
-html:not(.gpu-disabled) .argon-card:hover,
-html:not(.gpu-disabled) .minimal-card:hover,
-html:not(.gpu-disabled) .argon-3d-lift:hover {
-  transform: translate3d(0, -2.5px, 8px);
-  box-shadow: var(--3d-extrude-hover) !important;
-}
-
-/* 3D Tactile Keycap Buttons */
-html:not(.gpu-disabled) .btn-3d,
-html:not(.gpu-disabled) .argon-btn,
-html:not(.gpu-disabled) .btn-gradient {
-  box-shadow:
-    0 3px 0 0 rgba(0, 0, 0, 0.28),
-    0 8px 18px -4px rgba(var(--primary-rgb, 31, 77, 46), 0.35),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.35) !important;
-  transition:
-    transform 0.14s cubic-bezier(0.22, 1, 0.36, 1),
-    box-shadow 0.14s cubic-bezier(0.22, 1, 0.36, 1),
-    filter 0.18s ease !important;
-}
-
-html:not(.gpu-disabled) .btn-3d:hover:not(:disabled),
-html:not(.gpu-disabled) .argon-btn:hover:not(:disabled),
-html:not(.gpu-disabled) .btn-gradient:hover:not(:disabled) {
-  transform: translateY(-1.5px);
-  filter: brightness(1.05);
-  box-shadow:
-    0 4.5px 0 0 rgba(0, 0, 0, 0.3),
-    0 12px 24px -4px rgba(var(--primary-rgb, 31, 77, 46), 0.45),
-    inset 0 1.5px 0 0 rgba(255, 255, 255, 0.45) !important;
-}
-
-html:not(.gpu-disabled) .btn-3d:active:not(:disabled),
-html:not(.gpu-disabled) .argon-btn:active:not(:disabled),
-html:not(.gpu-disabled) .btn-gradient:active:not(:disabled) {
-  transform: translateY(2px) !important;
-  box-shadow:
-    0 1px 0 0 rgba(0, 0, 0, 0.25),
-    0 3px 8px -2px rgba(var(--primary-rgb, 31, 77, 46), 0.25),
-    inset 0 1px 2px 0 rgba(0, 0, 0, 0.2) !important;
-}
-
-/* 3D Floating Modals & Popovers */
-html:not(.gpu-disabled) [role="dialog"],
-html:not(.gpu-disabled) .modal-premium,
-html:not(.gpu-disabled) .dropdown-premium {
-  box-shadow:
-    0 6px 0 0 rgba(15, 23, 42, 0.15),
-    0 32px 70px -12px rgba(0, 0, 0, 0.38),
-    inset 0 1.5px 0 0 rgba(255, 255, 255, 0.7) !important;
-}
-
-html.dark:not(.gpu-disabled) [role="dialog"],
-html.dark:not(.gpu-disabled) .modal-premium,
-html.dark:not(.gpu-disabled) .dropdown-premium {
-  box-shadow:
-    0 6px 0 0 rgba(0, 0, 0, 0.9),
-    0 36px 80px -10px rgba(0, 0, 0, 0.88),
-    0 0 28px -6px rgba(var(--primary-rgb, 45, 212, 191), 0.2),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.16) !important;
-}
-
 .argon-card {
   background-color: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-card, 1rem);
-  box-shadow: var(--3d-extrude-shadow);
+  box-shadow: var(--shadow-elevated);
   transition: border-color 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1), transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -1324,7 +1209,7 @@ html.dark:not(.gpu-disabled) .dropdown-premium {
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   border: 1px solid var(--border-color);
-  box-shadow: var(--3d-extrude-shadow);
+  box-shadow: var(--shadow-elevated);
 }
 
 .dark .argon-glass {
@@ -1365,13 +1250,12 @@ html.dark:not(.gpu-disabled) .dropdown-premium {
   color: var(--text-main);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-control, 0.75rem);
-  box-shadow: inset 0 2px 4px 0 rgba(15, 23, 42, 0.04), 0 1px 0 0 rgba(255, 255, 255, 0.8);
   transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
 }
 
 .argon-input:focus {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(var(--primary-rgb, 31, 77, 46), 0.14), inset 0 1px 2px 0 rgba(15, 23, 42, 0.03);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb, 31, 77, 46), 0.14);
 }
 
 .argon-btn {

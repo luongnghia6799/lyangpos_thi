@@ -393,6 +393,10 @@ async fn main() -> anyhow::Result<()> {
             "/api/misa/sync-inventory",
             post(routes::misa::sync_misa_inventory),
         )
+        .route(
+            "/api/misa/stocks",
+            post(routes::misa::get_misa_stocks),
+        )
         // Settings & Print templates
         .route(
             "/api/settings",

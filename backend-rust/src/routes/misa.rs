@@ -18,6 +18,7 @@ pub struct MisaConfig {
     pub org_company_code: Option<String>,
     pub branch_id: Option<String>,
     pub stock_code: Option<String>,
+    pub to_date: Option<String>,
 }
 
 pub async fn get_misa_config(State(pool): State<SqlitePool>) -> Result<impl IntoResponse, AppError> {
@@ -142,6 +143,9 @@ async fn get_effective_config(pool: &SqlitePool, override_cfg: Option<MisaConfig
         if let Some(s) = ov.stock_code {
             cfg.stock_code = Some(s);
         }
+        if let Some(td) = ov.to_date {
+            cfg.to_date = Some(td);
+        }
     }
 
     Ok(cfg)
@@ -233,6 +237,7 @@ pub async fn sync_misa_inventory(
     let org_company_code = cfg.org_company_code.clone().unwrap_or_default();
     let branch_id = cfg.branch_id.clone().filter(|s| !s.trim().is_empty());
     let filter_stock = cfg.stock_code.clone().filter(|s| !s.trim().is_empty());
+    let to_date = cfg.to_date.clone().filter(|s| !s.trim().is_empty());
     let base_url = cfg
         .api_url
         .unwrap_or_else(|| "https://actapp.misa.vn".into())
@@ -282,13 +287,24 @@ pub async fn sync_misa_inventory(
     }
 
     let token = if let Some(s) = connect_json.get("Data").and_then(|v| v.as_str()) {
-        s.to_string()
-    } else if let Some(s) = connect_json
-        .get("Data")
-        .and_then(|d| d.get("access_token"))
-        .and_then(|v| v.as_str())
-    {
-        s.to_string()
+        if let Ok(data_obj) = serde_json::from_str::<Value>(s) {
+            data_obj
+                .get("access_token")
+                .or_else(|| data_obj.get("AccessToken"))
+                .or_else(|| data_obj.get("token"))
+                .and_then(|v| v.as_str())
+                .unwrap_or(s)
+                .to_string()
+        } else {
+            s.to_string()
+        }
+    } else if let Some(d) = connect_json.get("Data") {
+        d.get("access_token")
+            .or_else(|| d.get("AccessToken"))
+            .or_else(|| d.get("token"))
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string()
     } else {
         return Err(AppError::BadRequest(
             "Không tìm thấy access_token trong phản hồi của MISA".into(),
@@ -302,13 +318,22 @@ pub async fn sync_misa_inventory(
     let take = 500;
 
     loop {
-        let body = json!({
+        let mut body = json!({
             "app_id": app_id.trim(),
             "branch_id": branch_id,
             "skip": skip,
             "take": take,
             "last_sync_time": Value::Null
         });
+
+        if let Some(ref d) = to_date {
+            let formatted_date = if d.contains('T') {
+                d.clone()
+            } else {
+                format!("{}T23:59:59", d.trim())
+            };
+            body["to_date"] = json!(formatted_date);
+        }
 
         let inv_resp = client
             .post(&inventory_url)
@@ -318,10 +343,23 @@ pub async fn sync_misa_inventory(
             .await
             .map_err(|e| AppError::BadRequest(format!("Lỗi truy vấn tồn kho MISA: {}", e)))?;
 
-        let inv_json: Value = inv_resp
-            .json()
-            .await
-            .map_err(|e| AppError::BadRequest(format!("Lỗi đọc dữ liệu tồn kho từ MISA: {}", e)))?;
+        let status = inv_resp.status();
+        let resp_text = inv_resp.text().await.map_err(|e| {
+            AppError::BadRequest(format!("Lỗi đọc phản hồi tồn kho từ MISA: {}", e))
+        })?;
+
+        if !status.is_success() {
+            return Err(AppError::BadRequest(format!(
+                "MISA trả về lỗi HTTP {} ({}): {}",
+                status.as_u16(),
+                status.canonical_reason().unwrap_or(""),
+                resp_text
+            )));
+        }
+
+        let inv_json: Value = serde_json::from_str(&resp_text).map_err(|e| {
+            AppError::BadRequest(format!("Lỗi giải mã JSON từ MISA: {} - Phản hồi: {}", e, resp_text))
+        })?;
 
         let success = inv_json
             .get("Success")
@@ -336,9 +374,13 @@ pub async fn sync_misa_inventory(
             return Err(AppError::BadRequest(format!("MISA báo lỗi: {}", msg)));
         }
 
-        let data_arr = match inv_json.get("Data").and_then(|v| v.as_array()) {
-            Some(arr) => arr.clone(),
-            None => break,
+        let data_val = inv_json.get("Data");
+        let data_arr: Vec<Value> = if let Some(s) = data_val.and_then(|v| v.as_str()) {
+            serde_json::from_str(s).unwrap_or_default()
+        } else if let Some(arr) = data_val.and_then(|v| v.as_array()) {
+            arr.clone()
+        } else {
+            break;
         };
 
         let fetch_count = data_arr.len();
@@ -347,7 +389,11 @@ pub async fn sync_misa_inventory(
         }
 
         for item in data_arr {
-            let item_stock_code = item.get("StockCode").and_then(|v| v.as_str()).unwrap_or("");
+            let item_stock_code = item
+                .get("stock_code")
+                .or_else(|| item.get("StockCode"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
             if let Some(ref target_stock) = filter_stock {
                 if !target_stock.is_empty() && item_stock_code != target_stock {
                     continue;
@@ -355,31 +401,52 @@ pub async fn sync_misa_inventory(
             }
 
             let code = item
-                .get("InventoryItemCode")
+                .get("inventory_item_code")
+                .or_else(|| item.get("InventoryItemCode"))
                 .and_then(|v| v.as_str())
                 .unwrap_or("")
                 .trim()
                 .to_string();
             let name = item
-                .get("InventoryItemName")
+                .get("inventory_item_name")
+                .or_else(|| item.get("InventoryItemName"))
                 .and_then(|v| v.as_str())
                 .unwrap_or("")
                 .trim()
                 .to_string();
             let unit = item
-                .get("UnitName")
+                .get("unit_name")
+                .or_else(|| item.get("UnitName"))
                 .and_then(|v| v.as_str())
                 .unwrap_or("")
                 .trim()
                 .to_string();
-            let stock = item.get("Quantity").and_then(|v| v.as_f64()).unwrap_or(0.0);
-            let amount = item.get("Amount").and_then(|v| v.as_f64()).unwrap_or(0.0);
+            let stock = item
+                .get("quantity_balance")
+                .or_else(|| item.get("Quantity"))
+                .or_else(|| item.get("quantity"))
+                .and_then(|v| v.as_f64())
+                .unwrap_or(0.0);
+            let amount = item
+                .get("amount_balance")
+                .or_else(|| item.get("Amount"))
+                .or_else(|| item.get("amount"))
+                .and_then(|v| v.as_f64())
+                .unwrap_or(0.0);
             let stock_name = item
-                .get("StockName")
+                .get("stock_name")
+                .or_else(|| item.get("StockName"))
                 .and_then(|v| v.as_str())
                 .unwrap_or("")
                 .to_string();
-            let price = if stock != 0.0 {
+            let explicit_price = item
+                .get("unit_price")
+                .or_else(|| item.get("UnitPrice"))
+                .and_then(|v| v.as_f64())
+                .unwrap_or(0.0);
+            let price = if explicit_price > 0.0 {
+                explicit_price.round()
+            } else if stock != 0.0 && amount != 0.0 {
                 (amount / stock).round()
             } else {
                 0.0
@@ -411,5 +478,161 @@ pub async fn sync_misa_inventory(
         "success": true,
         "total_count": all_items.len(),
         "items": all_items
+    })))
+}
+
+pub async fn get_misa_stocks(
+    State(pool): State<SqlitePool>,
+    Json(payload): Json<Option<MisaConfig>>,
+) -> Result<impl IntoResponse, AppError> {
+    let cfg = get_effective_config(&pool, payload).await?;
+
+    let app_id = cfg.app_id.clone().unwrap_or_default();
+    let access_code = cfg.access_code.clone().unwrap_or_default();
+    let org_company_code = cfg.org_company_code.clone().unwrap_or_default();
+    let branch_id = cfg.branch_id.clone().filter(|s| !s.trim().is_empty());
+    let base_url = cfg
+        .api_url
+        .unwrap_or_else(|| "https://actapp.misa.vn".into())
+        .trim_end_matches('/')
+        .to_string();
+
+    if app_id.trim().is_empty() || access_code.trim().is_empty() {
+        return Err(AppError::BadRequest(
+            "Vui lòng cấu hình App ID và Access Code trước khi tải danh sách kho MISA".into(),
+        ));
+    }
+
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(30))
+        .build()
+        .map_err(|e| AppError::BadRequest(format!("Lỗi tạo HTTP client: {}", e)))?;
+
+    // Connect to get token
+    let connect_url = format!("{}/api/oauth/actopen/connect", base_url);
+    let connect_resp = client
+        .post(&connect_url)
+        .json(&json!({
+            "app_id": app_id.trim(),
+            "access_code": access_code.trim(),
+            "org_company_code": org_company_code.trim()
+        }))
+        .send()
+        .await
+        .map_err(|e| AppError::BadRequest(format!("Lỗi kết nối MISA: {}", e)))?;
+
+    let connect_json: Value = connect_resp
+        .json()
+        .await
+        .map_err(|e| AppError::BadRequest(format!("Lỗi đọc token từ MISA: {}", e)))?;
+
+    let is_success = connect_json
+        .get("Success")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+
+    if !is_success {
+        let msg = connect_json
+            .get("ErrorMessage")
+            .and_then(|v| v.as_str())
+            .unwrap_or("Không thể xác thực với MISA");
+        return Err(AppError::BadRequest(format!("Lỗi đăng nhập MISA: {}", msg)));
+    }
+
+    let token = if let Some(s) = connect_json.get("Data").and_then(|v| v.as_str()) {
+        if let Ok(data_obj) = serde_json::from_str::<Value>(s) {
+            data_obj
+                .get("access_token")
+                .or_else(|| data_obj.get("AccessToken"))
+                .or_else(|| data_obj.get("token"))
+                .and_then(|v| v.as_str())
+                .unwrap_or(s)
+                .to_string()
+        } else {
+            s.to_string()
+        }
+    } else if let Some(d) = connect_json.get("Data") {
+        d.get("access_token")
+            .or_else(|| d.get("AccessToken"))
+            .or_else(|| d.get("token"))
+            .and_then(|v| v.as_str())
+            .unwrap_or_default()
+            .to_string()
+    } else {
+        return Err(AppError::BadRequest(
+            "Không tìm thấy access_token trong phản hồi của MISA".into(),
+        ));
+    };
+
+    let dict_url = format!("{}/apir/sync/actopen/get_dictionary", base_url);
+    let dict_resp = client
+        .post(&dict_url)
+        .header("X-MISA-AccessToken", &token)
+        .header("Content-Type", "application/json")
+        .json(&json!({
+            "app_id": app_id.trim(),
+            "data_type": 3,
+            "branch_id": branch_id,
+            "skip": 0,
+            "take": 100,
+            "last_sync_time": Value::Null
+        }))
+        .send()
+        .await
+        .map_err(|e| AppError::BadRequest(format!("Lỗi kết nối tải danh mục kho MISA: {}", e)))?;
+
+    let status = dict_resp.status();
+    let resp_text = dict_resp.text().await.map_err(|e| {
+        AppError::BadRequest(format!("Lỗi đọc phản hồi danh mục kho: {}", e))
+    })?;
+
+    if !status.is_success() {
+        return Err(AppError::BadRequest(format!(
+            "MISA báo lỗi HTTP {} ({}): {}",
+            status.as_u16(),
+            status.canonical_reason().unwrap_or(""),
+            resp_text
+        )));
+    }
+
+    let dict_json: Value = serde_json::from_str(&resp_text).map_err(|e| {
+        AppError::BadRequest(format!("Lỗi giải mã danh mục kho từ MISA: {}", e))
+    })?;
+
+    let success = dict_json.get("Success").and_then(|v| v.as_bool()).unwrap_or(false);
+    if !success {
+        let msg = dict_json.get("ErrorMessage").and_then(|v| v.as_str()).unwrap_or("Không thể tải danh sách kho");
+        return Err(AppError::BadRequest(format!("MISA báo lỗi: {}", msg)));
+    }
+
+    let data_val = dict_json.get("Data");
+    let data_arr: Vec<Value> = if let Some(s) = data_val.and_then(|v| v.as_str()) {
+        serde_json::from_str(s).unwrap_or_default()
+    } else if let Some(arr) = data_val.and_then(|v| v.as_array()) {
+        arr.clone()
+    } else {
+        Vec::new()
+    };
+
+    let mut stocks = Vec::new();
+    for s in data_arr {
+        let code = s.get("stock_code").or_else(|| s.get("StockCode")).and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
+        let name = s.get("stock_name").or_else(|| s.get("StockName")).and_then(|v| v.as_str()).unwrap_or("").trim().to_string();
+        let id = s.get("stock_id").or_else(|| s.get("StockId")).and_then(|v| v.as_str()).unwrap_or("").to_string();
+        let inactive = s.get("inactive").or_else(|| s.get("Inactive")).and_then(|v| v.as_bool()).unwrap_or(false);
+
+        if !code.is_empty() {
+            stocks.push(json!({
+                "stock_id": id,
+                "stock_code": code,
+                "stock_name": name,
+                "inactive": inactive
+            }));
+        }
+    }
+
+    Ok(Json(json!({
+        "success": true,
+        "stocks": stocks
     })))
 }

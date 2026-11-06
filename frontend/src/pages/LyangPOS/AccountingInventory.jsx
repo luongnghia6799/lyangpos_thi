@@ -34,7 +34,8 @@ import {
     BookOpen,
     Lightbulb,
     Info,
-    Cloud
+    Cloud,
+    Settings
 } from 'lucide-react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -42,6 +43,7 @@ import { toast } from 'react-hot-toast';
 import * as XLSX from 'xlsx';
 import QuickAuditPopout from '../../components/modals/QuickAuditPopout';
 import MisaSyncModal from '../../components/modals/MisaSyncModal';
+import { executeMisaAccountingSync } from '../../lib/misaSync';
 import { useQueryClient } from '@tanstack/react-query';
 import { cn } from '../../lib/utils';
 import SearchableSelect from '../../components/forms/SearchableSelect';
@@ -57,6 +59,7 @@ export default function AccountingInventory() {
     const [showOnlyCoded, setShowOnlyCoded] = useState(() => localStorage.getItem('accounting_inventory_coded') === 'true');
     const [showGuideModal, setShowGuideModal] = useState(false);
     const [showMisaModal, setShowMisaModal] = useState(false);
+    const [misaMeta, setMisaMeta] = useState(null);
 
     // Pagination Dashboard
     const [currentPage, setCurrentPage] = useState(() => {
@@ -434,11 +437,13 @@ export default function AccountingInventory() {
         setIsUpdateSuccess(false);
     };
 
-    const startMatchingFromMisa = (misaItems) => {
+    const startMatchingFromMisa = async (misaItems, meta = {}) => {
         if (!misaItems || misaItems.length === 0) {
             toast.error("Không có dữ liệu tồn kho từ MISA để đối soát!");
             return;
         }
+
+        setMisaMeta(meta);
 
         const cleanStr = (s) => (s || '').replace(/[\u200B-\u200D\uFEFF]/g, '').trim().toLowerCase().normalize('NFC');
 
@@ -498,11 +503,70 @@ export default function AccountingInventory() {
 
         setMatchedData(result);
         setFileData([]);
-        setUploadedFileName(`MISA_AMIS_${new Date().toLocaleDateString('vi-VN').replace(/\//g, '-')}`);
-        setView('import');
-        setStep(3);
-        setImportPage(1);
-        setIsUpdateSuccess(false);
+        const stockSuffix = meta.stock_name ? `_${meta.stock_name}` : (meta.stock_code ? `_${meta.stock_code}` : '');
+        const dateSuffix = meta.to_date ? `_chot_${meta.to_date}` : `_${new Date().toLocaleDateString('vi-VN').replace(/\//g, '-')}`;
+        setUploadedFileName(`MISA_AMIS${stockSuffix}${dateSuffix}`);
+
+        // Tự động cập nhật trực tiếp vào kho kế toán mà không cần qua bước xác nhận thủ công Step 3
+        const updateList = result
+            .filter(item => item.matchedProduct)
+            .map(item => ({
+                id: item.matchedProduct.id,
+                accounting_price: item.excelPrice || 0,
+                accounting_stock: item.excelStock || 0
+                // Tuyệt đối không cập nhật ĐVT (unit)
+            }));
+
+        if (updateList.length === 0) {
+            toast.error("Không tìm thấy mặt hàng nào trên POS khớp với dữ liệu MISA!");
+            setView('import');
+            setStep(3);
+            setImportPage(1);
+            return;
+        }
+
+        setUpdating(true);
+        const toastId = toast.loading(`Đang tự động cập nhật ${updateList.length} mặt hàng vào kho kế toán...`);
+        try {
+            const res = await axios.post('/api/products/bulk-accounting-update', updateList);
+            toast.success(res.data.message || `Đã tự động đồng bộ & cập nhật ${updateList.length}/${result.length} sản phẩm từ MISA vào kho kế toán!`, { id: toastId, duration: 5000 });
+            await fetchProducts();
+            setIsUpdateSuccess(true);
+            queryClient.invalidateQueries(["products"]);
+            const syncChannel = new BroadcastChannel("pos_data_sync");
+            syncChannel.postMessage({ type: "PRODUCT_UPDATED" });
+            syncChannel.close();
+            // Bỏ qua bước cập nhật vào kho: Giữ ở màn hình danh sách kho kế toán
+            setView('list');
+        } catch (error) {
+            console.error("Auto update MISA error:", error);
+            toast.error("Lỗi khi tự động lưu dữ liệu MISA vào hệ thống", { id: toastId });
+            setView('import');
+            setStep(3);
+        } finally {
+            setUpdating(false);
+        }
+    };
+
+    const handleQuickMisaSync = async () => {
+        setUpdating(true);
+        const toastId = toast.loading("Đang đồng bộ tồn kho từ MISA AMIS...");
+        try {
+            const res = await executeMisaAccountingSync(products);
+            if (res.success) {
+                await fetchProducts();
+                queryClient.invalidateQueries(["products"]);
+                toast.success(res.message, { id: toastId, duration: 5000 });
+            } else {
+                toast.error(res.message, { id: toastId, duration: 5000 });
+            }
+        } catch (err) {
+            console.error("MISA quick sync error:", err);
+            const msg = err.message || err.response?.data?.error || "Lỗi khi đồng bộ tồn kho từ MISA";
+            toast.error(msg, { id: toastId, duration: 5000 });
+        } finally {
+            setUpdating(false);
+        }
     };
 
     const handleManualMatch = (product) => {
@@ -870,12 +934,24 @@ export default function AccountingInventory() {
                                     <motion.button
                                         whileHover={{ scale: 1.02, y: -1 }}
                                         whileTap={{ scale: 0.98 }}
-                                        onClick={() => setShowMisaModal(true)}
-                                        className="px-4.5 py-2.5 bg-blue-50/60 hover:bg-blue-100/70 dark:bg-blue-950/30 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-2 border border-blue-300 dark:border-blue-700 transition-all cursor-pointer shadow-xs"
-                                        title="Lấy trực tiếp số tồn kho từ phần mềm MISA AMIS Kế toán"
+                                        onClick={handleQuickMisaSync}
+                                        disabled={updating}
+                                        className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer shadow-xs disabled:opacity-50"
+                                        title="Đồng bộ ngay tồn kho MISA AMIS theo cấu hình đã lưu"
                                     >
-                                        <Cloud size={16} className="text-blue-600 dark:text-blue-400" />
-                                        <span>Đồng Bộ MISA AMIS</span>
+                                        <Cloud size={16} className={updating ? "animate-spin" : ""} />
+                                        <span>Đồng Bộ MISA Nhanh</span>
+                                    </motion.button>
+
+                                    <motion.button
+                                        whileHover={{ scale: 1.02, y: -1 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        onClick={() => setShowMisaModal(true)}
+                                        className="px-3.5 py-2.5 bg-blue-50/60 hover:bg-blue-100/70 dark:bg-blue-950/30 dark:hover:bg-blue-900/40 text-blue-700 dark:text-blue-300 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center gap-2 border border-blue-300 dark:border-blue-700 transition-all cursor-pointer shadow-xs"
+                                        title="Mở bảng cấu hình kho, ngày chốt sổ và kết nối MISA AMIS"
+                                    >
+                                        <Settings size={16} className="text-blue-600 dark:text-blue-400" />
+                                        <span>Cấu Hình MISA</span>
                                     </motion.button>
 
                                     <motion.button
@@ -1644,6 +1720,41 @@ export default function AccountingInventory() {
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* MISA Metadata Summary Banner (Kho & Ngày chốt) */}
+                                {misaMeta && (
+                                    <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/80 dark:border-blue-900/40 rounded-2xl text-xs font-bold text-blue-900 dark:text-blue-200">
+                                        <div className="flex flex-wrap items-center gap-3">
+                                            <div className="flex items-center gap-2">
+                                                <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                                                <span className="text-blue-700 dark:text-blue-400 uppercase text-[10px] tracking-wider font-black">Nguồn:</span>
+                                                <span className="font-extrabold text-blue-800 dark:text-blue-300">MISA AMIS Kế Toán (API)</span>
+                                            </div>
+                                            <div className="h-4 w-[1px] bg-blue-300 dark:bg-blue-800 hidden sm:block" />
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="text-slate-500 dark:text-slate-400 font-semibold">Kho đối soát:</span>
+                                                <span className="px-2.5 py-0.5 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 font-black">
+                                                    {misaMeta.stock_name || misaMeta.stock_code || 'Tất cả các kho'}
+                                                </span>
+                                            </div>
+                                            <div className="h-4 w-[1px] bg-blue-300 dark:bg-blue-800 hidden sm:block" />
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="text-slate-500 dark:text-slate-400 font-semibold">Chốt tồn đến ngày:</span>
+                                                <span className="px-2.5 py-0.5 rounded-lg bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 font-black">
+                                                    {misaMeta.to_date || 'Mới nhất'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowMisaModal(true)}
+                                            className="text-[11px] font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 cursor-pointer"
+                                        >
+                                            <RefreshCw size={12} />
+                                            <span>Chọn kho / ngày khác</span>
+                                        </button>
+                                    </div>
+                                )}
 
                                 {/* Filter Tabs & Search Bar */}
                                 <div className="bg-transparent p-4 rounded-2xl border border-slate-300 dark:border-slate-800 shadow-sm flex flex-col xl:flex-row items-center justify-between gap-4">

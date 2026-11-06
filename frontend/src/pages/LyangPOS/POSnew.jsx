@@ -31,8 +31,9 @@ import {
   Minus as Go, VolumeX as Uo, Camera as Bo, Calendar as Fo, CircleCheck as Vo, PackageSearch as Qo, 
   ExternalLink as Xo, EyeOff as Jo, Bone as Yo, Settings as SetIcon, MessageSquareQuote as MsgQuote, 
   Music as MuIcon, Radio as RadioIcon, Keyboard as KeybIcon, Sliders as SlidersIcon, Palette,
-  ChevronDown, Upload as UploadIcon, Shield, Lock, Unlock, Edit3, FilePlus
+  ChevronDown, Upload as UploadIcon, Shield, Lock, Unlock, Edit3, FilePlus, Cloud
 } from "lucide-react";
+import { executeMisaAccountingSync } from "../../lib/misaSync";
 import CartColorCustomizerModal, { 
   DEFAULT_CART_COLOR_CONFIG, 
   getCartBoxShadow, 
@@ -881,6 +882,29 @@ function POSPage({
     };
     return ar && document.addEventListener("mousedown", t), () => document.removeEventListener("mousedown", t);
   }, [ar]);
+
+  const [isSyncingMisa, setIsSyncingMisa] = i.useState(false);
+  const handleSyncMisaStock = async () => {
+    Ct(!1);
+    setIsSyncingMisa(true);
+    const toastId = toast.loading("Đang kết nối và đồng bộ tồn kho từ MISA AMIS...");
+    try {
+      const res = await executeMisaAccountingSync(T);
+      if (res.success) {
+        E.invalidateQueries({ queryKey: ["products"] });
+        toast.success(res.message, { id: toastId, duration: 5000 });
+      } else {
+        toast.error(res.message, { id: toastId, duration: 5000 });
+      }
+    } catch (err) {
+      console.error("MISA Quick Sync Error:", err);
+      const msg = err.message || err.response?.data?.error || "Lỗi khi đồng bộ tồn kho từ MISA";
+      toast.error(msg, { id: toastId, duration: 5000 });
+    } finally {
+      setIsSyncingMisa(false);
+    }
+  };
+
   const [dc, cc] = i.useState("general"),
     Qs = i.useRef(null);
   i.useRef(null);
@@ -4332,6 +4356,24 @@ function POSPage({
                       <button onClick={() => {
                         Ct(!1), ba(!0);
                       }} className="flex items-center gap-3 px-3 py-2 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-emerald-500/10 hover:text-primary dark:hover:text-emerald-400 rounded-2xl transition-all group/menu-item cursor-pointer"><div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-primary dark:text-emerald-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform"><Comp_la size={16} strokeWidth={2.5} /></div><span className="uppercase tracking-tight">Cài đặt giọng đọc (Loa)</span></button>
+
+                      {/* Đồng bộ tồn kho MISA */}
+                      <button 
+                        onClick={handleSyncMisaStock} 
+                        disabled={isSyncingMisa} 
+                        className="flex items-center gap-3 px-3 py-2 text-xs font-black text-slate-700 dark:text-slate-200 hover:bg-blue-500/10 hover:text-blue-600 dark:hover:text-blue-400 rounded-2xl transition-all group/menu-item w-full text-left cursor-pointer disabled:opacity-50"
+                        title="Đồng bộ tồn kho MISA AMIS tự động vào Sổ Kế Toán"
+                      >
+                        <div className="w-8 h-8 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center group-hover/menu-item:scale-110 transition-transform shrink-0">
+                          {isSyncingMisa ? <ai size={16} className="animate-spin" strokeWidth={2.5} /> : <Cloud size={16} strokeWidth={2.5} />}
+                        </div>
+                        <div className="flex flex-col text-left overflow-hidden">
+                          <span className="uppercase tracking-tight text-left">Đồng bộ tồn kho MISA</span>
+                          <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 lowercase tracking-normal">
+                            {isSyncingMisa ? "đang đồng bộ..." : "tự động vào kho kế toán"}
+                          </span>
+                        </div>
+                      </button>
 
                       {/* Phân cách Cài đặt hoạt động */}
                       <div className="pt-2 border-t border-black/5 dark:border-white/10 mt-1">

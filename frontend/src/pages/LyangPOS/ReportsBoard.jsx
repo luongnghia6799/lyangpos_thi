@@ -12,7 +12,7 @@ import Portal from '../../components/widgets/Portal';
 import OrderEditPopup from '../../components/modals/OrderEditPopup';
 import CustomDatePicker from '../../components/forms/CustomDatePicker';
 import CustomSelect from '../../components/forms/CustomSelect';
-import { formatCurrency, formatNumber, cn } from '../../lib/utils';
+import { formatCurrency, formatNumber, cn, removeAccents } from '../../lib/utils';
 import * as XLSX from 'xlsx';
 import {
     Chart as ChartJS,

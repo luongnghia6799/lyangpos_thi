@@ -19,12 +19,12 @@ import ReconcileFundModal from '../../components/modals/ReconcileFundModal';
 export default function CashVoucher() {
     const { data: partnersData } = usePartnerData();
     const queryClient = useQueryClient();
-    const partners = Array.isArray(partnersData) 
-        ? partnersData 
-        : (Array.isArray(partnersData?.items) 
-            ? partnersData.items 
-            : (Array.isArray(partnersData?.partners) 
-                ? partnersData.partners 
+    const partners = Array.isArray(partnersData)
+        ? partnersData
+        : (Array.isArray(partnersData?.items)
+            ? partnersData.items
+            : (Array.isArray(partnersData?.partners)
+                ? partnersData.partners
                 : []));
     const [vouchers, setVouchers] = useState([]);
     const [bankTransactions, setBankTransactions] = useState([]);
@@ -45,7 +45,7 @@ export default function CashVoucher() {
         amount: 0,
         note: '',
         date: new Date().toISOString().slice(0, 10),
-            time: getCurrentTimeStr(),
+        time: getCurrentTimeStr(),
         type: 'Receipt', // Default to 'Receipt' (Phiếu Thu)
         payment_method: 'Cash', // 'Cash' or 'Bank'
         account_id: '' // For bank transaction
@@ -281,11 +281,11 @@ export default function CashVoucher() {
             }
             await queryClient.invalidateQueries({ queryKey: ['partners'] });
             broadcastUpdate();
-            
+
             // Set completed voucher to display and stay on screen for user to review!
             const chosenAccount = bankAccounts.find(a => String(a.id) === String(formData.account_id));
             const voucherId = createdData?.id || Date.now();
-            const voucherCode = isRec 
+            const voucherCode = isRec
                 ? (formData.payment_method === 'Bank' ? `NT-${voucherId}` : `PT-${voucherId}`)
                 : (formData.payment_method === 'Bank' ? `CT-${voucherId}` : `PC-${voucherId}`);
 
@@ -556,7 +556,7 @@ export default function CashVoucher() {
                     <div className="w-full max-w-7xl space-y-6">
                         {completedVoucher ? (
                             /* SUCCESS VIEW - GIỮ LẠI PHIẾU VỪA TẠO ĐỂ XEM & IN */
-                            <m.div 
+                            <m.div
                                 initial={{ opacity: 0, scale: 0.98 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 className="grid grid-cols-1 lg:grid-cols-12 gap-6"
@@ -627,9 +627,9 @@ export default function CashVoucher() {
                                             </div>
                                             <div className={cn(
                                                 "p-3 rounded-xl border font-mono",
-                                                completedVoucher.new_debt === 0 
+                                                completedVoucher.new_debt === 0
                                                     ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-800 dark:text-emerald-200"
-                                                    : completedVoucher.new_debt > 0 
+                                                    : completedVoucher.new_debt > 0
                                                         ? "bg-blue-500/20 border-blue-500/40 text-blue-800 dark:text-blue-200"
                                                         : "bg-purple-500/20 border-purple-500/40 text-purple-800 dark:text-purple-200"
                                             )}>
@@ -900,7 +900,7 @@ export default function CashVoucher() {
 
                                                     {/* AUTOCOMPLETE DROPDOWN */}
                                                     {isPartnerDropdownOpen && (
-                                                        <div 
+                                                        <div
                                                             className="absolute top-full left-0 right-0 mt-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-2xl z-50 max-h-[380px] overflow-hidden flex flex-col divide-y divide-slate-100 dark:divide-slate-800/60 transition-all animate-in fade-in zoom-in-95 duration-150"
                                                             onMouseDown={(e) => e.preventDefault()}
                                                         >
@@ -1093,7 +1093,7 @@ export default function CashVoucher() {
                                                             {/* Remaining Debt */}
                                                             <div className={cn(
                                                                 "p-2.5 rounded-2xl border font-mono shadow-xs flex flex-col justify-center items-center",
-                                                                expectedNewDebt === 0 
+                                                                expectedNewDebt === 0
                                                                     ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-800 dark:text-emerald-300"
                                                                     : expectedNewDebt > 0
                                                                         ? "bg-[#2d5016]/10 border-[#2d5016]/25 dark:border-emerald-500/30 text-[#2d5016] dark:text-[#4ade80]"
@@ -1180,7 +1180,7 @@ export default function CashVoucher() {
                                                     <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">Dự kiến sau thu/chi:</span>
                                                     <span className="font-mono font-black text-sm">
                                                         {formatDebt(
-                                                            isReceipt 
+                                                            isReceipt
                                                                 ? (selectedPartner.debt_balance || 0) - (parseFloat(formData.amount) || 0)
                                                                 : (selectedPartner.debt_balance || 0) + (parseFloat(formData.amount) || 0)
                                                         )}
@@ -1252,8 +1252,8 @@ export default function CashVoucher() {
                                                 {isReceipt ? 'PHIẾU THU TIỀN' : 'PHIẾU CHI TIỀN'}
                                             </h3>
                                             <p className="text-[11px] text-muted-foreground italic">
-                                                {formData.payment_method === 'Cash' 
-                                                    ? '(Phương thức: Tiền mặt)' 
+                                                {formData.payment_method === 'Cash'
+                                                    ? '(Phương thức: Tiền mặt)'
                                                     : `(Phương thức: Chuyển khoản ${bankAccounts.find(b => b.id.toString() === formData.account_id?.toString())?.bank_name || 'Ngân hàng'})`}
                                             </p>
                                             <p className="text-[10px] font-mono text-muted-foreground">
@@ -1302,7 +1302,7 @@ export default function CashVoucher() {
                                                     <span>➜</span>
                                                     <span>Nợ sau: <b className={isReceipt ? "text-emerald-600 dark:text-emerald-400 font-bold" : "text-amber-600 dark:text-amber-400 font-bold"}>
                                                         {formatDebt(
-                                                            isReceipt 
+                                                            isReceipt
                                                                 ? (selectedPartner.debt_balance || 0) - (parseFloat(formData.amount) || 0)
                                                                 : (selectedPartner.debt_balance || 0) + (parseFloat(formData.amount) || 0)
                                                         )}
@@ -1360,7 +1360,7 @@ export default function CashVoucher() {
                                     Tổng cộng: {filteredVouchers.length} bản ghi
                                 </div>
                             </div>
-                            
+
                             <div className="overflow-x-auto w-full">
                                 <table className="w-full text-left border-collapse table-fixed min-w-[900px]">
                                     <thead className="bg-transparent border-b border-border text-[10px] font-black tracking-widest text-muted uppercase">
@@ -1393,8 +1393,8 @@ export default function CashVoucher() {
                                                         <td className="py-3 px-4">
                                                             <span className={cn(
                                                                 "px-2.5 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest border",
-                                                                v.type === 'Receipt' 
-                                                                    ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800" 
+                                                                v.type === 'Receipt'
+                                                                    ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800"
                                                                     : "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-900/20 dark:text-rose-300 dark:border-rose-800"
                                                             )}>
                                                                 {v.type === 'Receipt' ? 'PHIẾU THU' : 'PHIẾU CHI'}
@@ -1489,7 +1489,7 @@ export default function CashVoucher() {
                                     )}
                                 </table>
                             </div>
-                            
+
                             {/* Pagination */}
                             {filteredVouchers.length > fundItemsPerPage && (
                                 <div className="flex justify-center items-center gap-2 mt-6 pt-4 border-t border-border">
@@ -1539,7 +1539,7 @@ export default function CashVoucher() {
                                     Tổng cộng: {filteredBankTransactions.length} bản ghi
                                 </div>
                             </div>
-                            
+
                             <div className="overflow-x-auto w-full">
                                 <table className="w-full text-left border-collapse table-fixed min-w-[900px]">
                                     <thead className="bg-transparent border-b border-border text-[10px] font-black tracking-widest text-muted uppercase">
@@ -1576,8 +1576,8 @@ export default function CashVoucher() {
                                                         <td className="py-3 px-4">
                                                             <span className={cn(
                                                                 "px-2.5 py-0.5 rounded-lg text-[8px] font-black uppercase tracking-widest border",
-                                                                t.type === 'Deposit' 
-                                                                    ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800" 
+                                                                t.type === 'Deposit'
+                                                                    ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800"
                                                                     : "bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-900/20 dark:text-rose-300 dark:border-rose-800"
                                                             )}>
                                                                 {t.type === 'Deposit' ? 'TIỀN VÀO' : 'TIỀN RA'}

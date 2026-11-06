@@ -11,10 +11,13 @@ import {
   Check,
   Sparkles,
   Package,
-  UserCheck
+  UserCheck,
+  Cloud
 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { cn } from '../../lib/utils';
 import { MASCOT_LIST, DEFAULT_MASCOT_CONFIG } from '../../lib/mascots';
+import { executeMisaAccountingSync } from '../../lib/misaSync';
 
 const containerVariants = {
   hidden: { 
@@ -312,6 +315,34 @@ export default function ActionContextMenu({
                       <span>Xem Lịch sử giá & Nhập xuất</span>
                     </>
                   )}
+                </m.button>
+              )}
+
+              {/* MISA Quick Sync */}
+              {!isPartner && (
+                <m.button
+                  type="button"
+                  variants={itemVariants}
+                  whileHover={{ x: 4, scale: 1.01 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={async () => {
+                    onClose?.();
+                    const toastId = toast.loading("Đang đồng bộ tồn kho từ MISA AMIS...");
+                    try {
+                      const res = await executeMisaAccountingSync();
+                      if (res.success) {
+                        toast.success(res.message, { id: toastId, duration: 5000 });
+                      } else {
+                        toast.error(res.message, { id: toastId, duration: 5000 });
+                      }
+                    } catch (err) {
+                      toast.error(err.message || "Lỗi khi đồng bộ tồn kho từ MISA", { id: toastId });
+                    }
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold hover:bg-blue-500/15 text-blue-700 dark:text-blue-300 transition-colors cursor-pointer group"
+                >
+                  <Cloud size={15} className="text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform" />
+                  <span className="flex-1 text-left">Đồng bộ nhanh MISA</span>
                 </m.button>
               )}
 

@@ -15,14 +15,18 @@ import {
     Minimize,
     PackagePlus,
     TrendingUp,
-    ChevronRight
+    ChevronRight,
+    Cloud,
+    Landmark
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 import { cn } from '../../lib/utils';
 import { checkIsAdmin } from '../../lib/auth';
 import { MASCOT_LIST, DEFAULT_MASCOT_CONFIG } from '../../lib/mascots';
 import ButtonMascotPromptModal from './ButtonMascotPromptModal';
 import { getInteractiveTarget, getButtonSignature, getButtonLabel, getStoredButtonMascots } from '../../lib/buttonMascots';
+import { executeMisaAccountingSync } from '../../lib/misaSync';
 
 const ContextMenu = () => {
     const [isVisible, setIsVisible] = useState(false);
@@ -48,6 +52,31 @@ const ContextMenu = () => {
     const isAnalysis = location.pathname === '/analysis';
     const isDashboard = location.pathname === '/';
     const isHistory = location.pathname === '/history';
+    const isAccounting = location.pathname.startsWith('/accounting');
+
+    const [isSyncingMisa, setIsSyncingMisa] = useState(false);
+
+    const handleQuickSyncMisa = async () => {
+        setIsVisible(false);
+        if (isSyncingMisa) return;
+
+        setIsSyncingMisa(true);
+        const toastId = toast.loading("Đang đồng bộ tồn kho từ MISA AMIS...");
+        try {
+            const res = await executeMisaAccountingSync();
+            if (res.success) {
+                toast.success(res.message, { id: toastId, duration: 5000 });
+            } else {
+                toast.error(res.message, { id: toastId, duration: 5000 });
+            }
+        } catch (err) {
+            console.error("Right-click MISA sync error:", err);
+            const msg = err.message || err.response?.data?.error || "Lỗi khi đồng bộ tồn kho từ MISA";
+            toast.error(msg, { id: toastId, duration: 5000 });
+        } finally {
+            setIsSyncingMisa(false);
+        }
+    };
 
     const currentUser = React.useMemo(() => {
         try {
@@ -138,7 +167,7 @@ const ContextMenu = () => {
         let x = e.clientX;
         let y = e.clientY;
         const menuWidth = 240;
-        const menuHeight = 320;
+        const menuHeight = 420;
 
         if (x + menuWidth > window.innerWidth) x -= menuWidth;
         if (y + menuHeight > window.innerHeight) y -= menuHeight;
@@ -227,6 +256,7 @@ const ContextMenu = () => {
             case 'purchase': navigate('/purchase'); break;
             case 'analysis': navigate('/analysis'); break;
             case 'history': navigate('/history'); break;
+            case 'accounting': navigate('/accounting/inventory'); break;
             case 'logout':
                 localStorage.removeItem('user');
                 sessionStorage.removeItem('user');
@@ -395,6 +425,30 @@ const ContextMenu = () => {
 
                                 <m.div variants={itemVariants} className="h-px bg-slate-300/60 dark:bg-white/10 my-1.5 mx-1" />
 
+                                {/* Đồng bộ tồn kho MISA & Tiện ích kho */}
+                                <div className="space-y-0.5">
+                                    <MenuItem
+                                        variants={itemVariants}
+                                        icon={Cloud}
+                                        label={isSyncingMisa ? "Đang đồng bộ MISA..." : "Đồng bộ nhanh MISA"}
+                                        highlight
+                                        badge="MISA"
+                                        onClick={handleQuickSyncMisa}
+                                        disabled={isSyncingMisa}
+                                    />
+                                    {isAdmin && (
+                                        <MenuItem
+                                            variants={itemVariants}
+                                            icon={Landmark}
+                                            label="Sổ Kho Kế Toán"
+                                            active={isAccounting}
+                                            onClick={() => handleAction('accounting')}
+                                        />
+                                    )}
+                                </div>
+
+                                <m.div variants={itemVariants} className="h-px bg-slate-300/60 dark:bg-white/10 my-1.5 mx-1" />
+
                                 <div className="space-y-0.5">
                                     <MenuItem
                                         variants={itemVariants}
@@ -446,32 +500,45 @@ const ContextMenu = () => {
     );
 };
 
-const MenuItem = ({ icon: Icon, label, onClick, active, danger, variants }) => (
+const MenuItem = ({ icon: Icon, label, onClick, active, danger, highlight, badge, variants, disabled }) => (
     <m.button
         variants={variants}
         whileHover={{ x: 4, scale: 1.01 }}
         whileTap={{ scale: 0.97 }}
         onClick={onClick}
+        disabled={disabled}
         className={cn(
-            "w-full group flex items-center justify-between px-3 py-2 rounded-xl transition-colors font-semibold text-xs cursor-pointer",
+            "w-full group flex items-center justify-between px-3 py-2 rounded-xl transition-colors font-semibold text-xs cursor-pointer disabled:opacity-50 disabled:pointer-events-none",
             active
                 ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 font-bold shadow-xs border border-emerald-500/20"
-                : danger
-                    ? "text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 hover:text-rose-700 dark:hover:text-rose-300"
-                    : "text-slate-700 dark:text-slate-200 hover:bg-black/5 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white"
+                : highlight
+                    ? "bg-blue-500/10 hover:bg-blue-500/20 text-blue-700 dark:text-blue-300 font-bold border border-blue-500/20"
+                    : danger
+                        ? "text-rose-600 dark:text-rose-400 hover:bg-rose-500/10 hover:text-rose-700 dark:hover:text-rose-300"
+                        : "text-slate-700 dark:text-slate-200 hover:bg-black/5 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-white"
         )}
     >
         <div className="flex items-center gap-2.5">
             <Icon size={16} className={cn(
                 "shrink-0 transition-transform duration-200",
-                active ? "text-emerald-600 dark:text-emerald-400 scale-105" : (danger ? "text-rose-500 dark:text-rose-400" : "text-slate-400 dark:text-slate-400 group-hover:text-emerald-500 dark:group-hover:text-emerald-400")
+                active ? "text-emerald-600 dark:text-emerald-400 scale-105" : 
+                highlight ? "text-blue-600 dark:text-blue-400 group-hover:scale-110" :
+                (danger ? "text-rose-500 dark:text-rose-400" : "text-slate-400 dark:text-slate-400 group-hover:text-emerald-500 dark:group-hover:text-emerald-400")
             )} />
             <span className="text-xs font-bold tracking-tight">{label}</span>
         </div>
-        <ChevronRight size={13} className={cn(
-            "opacity-0 -translate-x-1 group-hover:opacity-60 group-hover:translate-x-0 transition-all shrink-0",
-            active ? "opacity-70 translate-x-0 text-emerald-600 dark:text-emerald-400" : (danger ? "text-rose-500" : "text-slate-400 dark:text-slate-400")
-        )} />
+        {badge ? (
+            <span className="text-[9px] font-black uppercase tracking-wider bg-blue-500/20 text-blue-600 dark:text-blue-300 px-1.5 py-0.5 rounded-md">
+                {badge}
+            </span>
+        ) : (
+            <ChevronRight size={13} className={cn(
+                "opacity-0 -translate-x-1 group-hover:opacity-60 group-hover:translate-x-0 transition-all shrink-0",
+                active ? "opacity-70 translate-x-0 text-emerald-600 dark:text-emerald-400" : 
+                highlight ? "opacity-70 translate-x-0 text-blue-600 dark:text-blue-400" :
+                (danger ? "text-rose-500" : "text-slate-400 dark:text-slate-400")
+            )} />
+        )}
     </m.button>
 );
 

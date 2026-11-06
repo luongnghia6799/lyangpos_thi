@@ -31,11 +31,11 @@ import OrderDatePickerModal from '../../components/modals/OrderDatePickerModal';
 import PriceRaiseModal from '../../components/modals/PriceRaiseModal';
 import DropdownMascot from '../../components/widgets/DropdownMascot';
 import PurchaseOrderExportModal from '../../components/modals/PurchaseOrderExportModal';
-import CartColorCustomizerModal, { 
-    DEFAULT_CART_COLOR_CONFIG, 
-    getCartBoxShadow, 
-    getCartOverlayStyle, 
-    getCartTextPillStyle, 
+import CartColorCustomizerModal, {
+    DEFAULT_CART_COLOR_CONFIG,
+    getCartBoxShadow,
+    getCartOverlayStyle,
+    getCartTextPillStyle,
     getCartTextShadowStyle,
     getBubbleComputedStyle,
     getButtonComputedStyle,
@@ -69,25 +69,25 @@ const SearchableProductSelect = ({ value, onChange, products }) => {
     }, []);
 
     const selectedProduct = products.find(p => p.id === Number(value));
-    const displayValue = selectedProduct 
+    const displayValue = selectedProduct
         ? `${selectedProduct.name} (${selectedProduct.unit})`
         : (value === 'NEW' ? '✨ Tạo sản phẩm mới vào kho' : (value === 'CUSTOM' ? '📝 Thêm sản phẩm tự do' : '❌ Bỏ qua sản phẩm này'));
 
-    const filtered = products.filter(p => 
+    const filtered = products.filter(p =>
         removeAccents(p.name.toLowerCase()).includes(removeAccents(search.toLowerCase())) ||
         (p.code && removeAccents(p.code.toLowerCase()).includes(removeAccents(search.toLowerCase())))
     ).slice(0, 8);
 
     return (
         <div ref={containerRef} className="relative w-full">
-            <div 
+            <div
                 onClick={() => setIsOpen(!isOpen)}
                 className="w-full p-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-[11px] font-black text-gray-700 dark:text-gray-200 outline-none cursor-pointer flex justify-between items-center transition-all hover:border-emerald-500/50"
             >
                 <span className="truncate">{displayValue}</span>
                 <span className="text-[8px] opacity-40 ml-2">▼</span>
             </div>
-            
+
             {isOpen && (
                 <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-[9999] p-2 space-y-1.5 max-h-[250px] overflow-y-auto">
                     <input
@@ -120,9 +120,9 @@ const SearchableProductSelect = ({ value, onChange, products }) => {
                         >
                             ❌ Bỏ qua sản phẩm này
                         </button>
-                        
+
                         {filtered.length > 0 && <div className="border-t dark:border-slate-800 my-1"></div>}
-                        
+
                         {filtered.map(p => (
                             <button
                                 key={p.id}
@@ -278,7 +278,7 @@ export default function Purchase() {
                 const syncChan = new BroadcastChannel('pos_data_sync');
                 syncChan.postMessage({ type: 'PRODUCT_UPDATED' });
                 syncChan.close();
-            } catch (e) {}
+            } catch (e) { }
             window.dispatchEvent(new CustomEvent('pos_data_sync', { detail: { type: 'PRODUCT_UPDATED' } }));
             setIsAuditOpen(false);
             setAuditProduct(null);
@@ -299,7 +299,7 @@ export default function Purchase() {
                 if (!item.product_id) return item;
                 const prod = products.find(p => p.id === item.product_id);
                 if (prod && (
-                    item.stock !== prod.stock || 
+                    item.stock !== prod.stock ||
                     item.accounting_stock !== prod.accounting_stock ||
                     item.product_name !== prod.name
                 )) {
@@ -378,9 +378,9 @@ export default function Purchase() {
 
     const extractMatchFeatures = (text) => {
         if (!text) return { clean: '', tokens: new Set(), codes: new Set(), volumes: new Set(), npk: null, coreWords: [] };
-        
+
         let clean = normalizeWord(text);
-        
+
         // 1. Detect NPK formula (e.g. 20-20-15, 20.20.15, 16.16.8, 30-10-10)
         let npk = null;
         const npkMatch = clean.match(/\b(\d{1,2})[\-.](\d{1,2})[\-.](\d{1,2})\b/);
@@ -623,7 +623,7 @@ export default function Purchase() {
                 images: scannedImages,
                 api_key: scanApiKey || settings.gemini_api_key || ''
             });
-            
+
             if (scanApiKey && scanApiKey !== settings.gemini_api_key) {
                 await axios.post('/api/settings', { gemini_api_key: scanApiKey });
                 setSettings(prev => ({ ...prev, gemini_api_key: scanApiKey }));
@@ -703,11 +703,11 @@ export default function Purchase() {
             for (let i = 0; i < scannedItems.length; i++) {
                 const item = scannedItems[i];
                 const mapping = scanMapping[i];
-                
+
                 if (mapping === 'SKIP') {
                     continue;
                 }
-                
+
                 let targetProduct = null;
                 if (mapping === 'NEW') {
                     try {
@@ -743,11 +743,11 @@ export default function Purchase() {
                 } else {
                     targetProduct = products.find(p => p.id === Number(mapping));
                 }
-                
+
                 if (targetProduct) {
                     const qtyToAdd = item.quantity || 1;
                     const appliedPrice = item.price || 0;
-                    
+
                     if (targetProduct.id) {
                         const existingIdx = newCart.findIndex(c => c.product_id === targetProduct.id && c.price === appliedPrice);
                         if (existingIdx > -1) {
@@ -783,7 +783,7 @@ export default function Purchase() {
                     }
                 }
             }
-            
+
             setCart(newCart);
             setIsScanModalOpen(false);
             setScannedImage(null);
@@ -860,7 +860,7 @@ export default function Purchase() {
                         if (res.data?.new_balance !== undefined) {
                             setSelectedPartner(prev => prev && prev.id === selectedPartner.id ? { ...prev, debt_balance: res.data.new_balance } : prev);
                         }
-                    } catch {}
+                    } catch { }
                 }
             } else if (data.type === 'PRODUCT_UPDATED' || data.type === 'INVENTORY_AUDIT_SAVED' || data.type === 'INVENTORY_UPDATED') {
                 queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -882,7 +882,7 @@ export default function Purchase() {
                 try {
                     const cfg = typeof data.value === 'string' ? JSON.parse(data.value) : (data.config || data.value);
                     if (cfg) setCartColorConfig(cfg);
-                } catch {}
+                } catch { }
             }
         };
         const handleAnimChange = (e) => {
@@ -965,7 +965,7 @@ export default function Purchase() {
         if (!products || products.length === 0 || !workingItem.product?.id) return;
         const freshProd = products.find(p => p.id === workingItem.product.id);
         if (freshProd && (
-            freshProd.stock !== workingItem.product.stock || 
+            freshProd.stock !== workingItem.product.stock ||
             freshProd.accounting_stock !== workingItem.product.accounting_stock
         )) {
             setWorkingItem(prev => ({
@@ -1019,7 +1019,7 @@ export default function Purchase() {
     const [itemContextMenu, setItemContextMenu] = useState(null);
 
     const [isLoaded, setIsLoaded] = useState(false);
-  // HeavyClock handles time
+    // HeavyClock handles time
     const [isHistoryPanelOpen, setIsHistoryPanelOpen] = useState(false);
     const [isDailyHistoryOpen, setIsDailyHistoryOpen] = useState(false);
     const [isConsignment, setIsConsignment] = useState(false);
@@ -1166,7 +1166,7 @@ export default function Purchase() {
                 const channel = new BroadcastChannel("pos_data_sync");
                 channel.postMessage({ type: "SETTINGS_UPDATED" });
                 channel.close();
-            } catch (e) {}
+            } catch (e) { }
         } catch (err) {
             console.error("Error setting default template:", err);
             setToast({ message: "Lỗi khi đổi mẫu in mặc định", type: "error" });
@@ -1598,7 +1598,7 @@ export default function Purchase() {
             let res;
             if (editOrderId) res = await axios.put(`/api/orders/${editOrderId}`, orderData);
             else res = await axios.post('/api/orders', orderData);
-            
+
             const savedOrderId = res.data?.id;
             const enrichedOrder = {
                 ...res.data,
@@ -1684,7 +1684,7 @@ export default function Purchase() {
                         if (document.fonts && document.fonts.ready) {
                             await document.fonts.ready;
                         }
-                    } catch (e) {}
+                    } catch (e) { }
                     window.print();
                     setTimeout(() => {
                         if (!keepOrderAfterSave) {
@@ -1971,1469 +1971,1469 @@ export default function Purchase() {
     }, [handleSave, resetForm]);
 
     return (
-        <MotionConfig 
-          reducedMotion={gpuDisabled ? "always" : "no-preference"} 
-          transition={gpuDisabled ? { type: "just" } : undefined}
+        <MotionConfig
+            reducedMotion={gpuDisabled ? "always" : "no-preference"}
+            transition={gpuDisabled ? { type: "just" } : undefined}
         >
             <div id="purchase-root-container" className={cn("flex flex-col h-screen bg-transparent font-sans overflow-hidden transition-colors", gpuDisabled && "gpu-disabled-mode")}>
-            <div className="flex-1 flex flex-col overflow-hidden no-print">
-                {/* Top Bar: Search & Supplier */}
-                <div className="p-3.5 px-5 flex gap-5 items-center print:hidden transition-colors relative z-[2500] bg-transparent">
+                <div className="flex-1 flex flex-col overflow-hidden no-print">
+                    {/* Top Bar: Search & Supplier */}
+                    <div className="p-3.5 px-5 flex gap-5 items-center print:hidden transition-colors relative z-[2500] bg-transparent">
 
-                    {/* Background Decoration Layer */}
-                    {!gpuDisabled && (
-                        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                            <div className="absolute right-[-40px] top-[-40px] opacity-[0.03] dark:opacity-[0.06] -rotate-12 transition-all duration-1000">
-                                <Wheat size={240} className="text-primary" />
+                        {/* Background Decoration Layer */}
+                        {!gpuDisabled && (
+                            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                                <div className="absolute right-[-40px] top-[-40px] opacity-[0.03] dark:opacity-[0.06] -rotate-12 transition-all duration-1000">
+                                    <Wheat size={240} className="text-primary" />
+                                </div>
+                                <div className="absolute left-[-20px] bottom-[-20px] opacity-[0.02] dark:opacity-[0.04] rotate-45 transition-all duration-1000">
+                                    <Sprout size={180} className="text-[#4a7c59]" />
+                                </div>
                             </div>
-                            <div className="absolute left-[-20px] bottom-[-20px] opacity-[0.02] dark:opacity-[0.04] rotate-45 transition-all duration-1000">
-                                <Sprout size={180} className="text-[#4a7c59]" />
-                            </div>
-                        </div>
-                    )}
+                        )}
 
-                    <div className="flex items-center gap-3 shrink-0 mr-2">
-                        <div className="flex items-center gap-3 group cursor-default relative">
-                            <div className="flex flex-col">
-                                <h1 className="text-2xl font-black text-primary dark:text-[#d4a574] uppercase tracking-tighter flex items-center gap-2 leading-none" style={{ color: cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }}>
-                                    NHẬP HÀNG
-                                </h1>
-                                <span className="text-[10px] font-bold text-[#8b6f47]/70 dark:text-[#d4a574]/60 tracking-wider">
-                                    by LyangNghia
-                                </span>
-                            </div>
-                            <m.button
-                                type="button"
-                                onClick={() => setIsOrderDatePickerOpen(prev => !prev)}
-                                title="Bấm để chỉnh sửa / chọn ngày đơn hàng"
-                                whileHover={{ scale: 1.03, y: -0.5 }}
-                                whileTap={{ scale: 0.97 }}
-                                transition={{ type: "spring", stiffness: 450, damping: 25 }}
-                                className="flex items-center gap-2 bg-[#8b6f47]/[0.08] hover:bg-[#8b6f47]/[0.15] dark:bg-white/[0.06] dark:hover:bg-white/[0.1] px-3 py-1 rounded-xl border border-[#8b6f47]/25 dark:border-white/15 hover:border-[#2d5016]/50 dark:hover:border-emerald-400/40 shadow-xs transition-colors duration-200 shrink-0 cursor-pointer text-left select-none"
-                            >
-                                {(() => {
-                                    const originalDateStr = editingOriginalOrder?.date ? editingOriginalOrder.date.slice(0, 10) : '';
-                                    let isDateModified = false;
-                                    if (customOrderDate) {
-                                        if (!editingOriginalOrder) {
-                                            isDateModified = true;
-                                        } else if (customOrderDate !== originalDateStr) {
-                                            isDateModified = true;
+                        <div className="flex items-center gap-3 shrink-0 mr-2">
+                            <div className="flex items-center gap-3 group cursor-default relative">
+                                <div className="flex flex-col">
+                                    <h1 className="text-2xl font-black text-primary dark:text-[#d4a574] uppercase tracking-tighter flex items-center gap-2 leading-none" style={{ color: cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }}>
+                                        NHẬP HÀNG
+                                    </h1>
+                                    <span className="text-[10px] font-bold text-[#8b6f47]/70 dark:text-[#d4a574]/60 tracking-wider">
+                                        by LyangNghia
+                                    </span>
+                                </div>
+                                <m.button
+                                    type="button"
+                                    onClick={() => setIsOrderDatePickerOpen(prev => !prev)}
+                                    title="Bấm để chỉnh sửa / chọn ngày đơn hàng"
+                                    whileHover={{ scale: 1.03, y: -0.5 }}
+                                    whileTap={{ scale: 0.97 }}
+                                    transition={{ type: "spring", stiffness: 450, damping: 25 }}
+                                    className="flex items-center gap-2 bg-[#8b6f47]/[0.08] hover:bg-[#8b6f47]/[0.15] dark:bg-white/[0.06] dark:hover:bg-white/[0.1] px-3 py-1 rounded-xl border border-[#8b6f47]/25 dark:border-white/15 hover:border-[#2d5016]/50 dark:hover:border-emerald-400/40 shadow-xs transition-colors duration-200 shrink-0 cursor-pointer text-left select-none"
+                                >
+                                    {(() => {
+                                        const originalDateStr = editingOriginalOrder?.date ? editingOriginalOrder.date.slice(0, 10) : '';
+                                        let isDateModified = false;
+                                        if (customOrderDate) {
+                                            if (!editingOriginalOrder) {
+                                                isDateModified = true;
+                                            } else if (customOrderDate !== originalDateStr) {
+                                                isDateModified = true;
+                                            }
                                         }
-                                    }
-                                    if (!isDateModified && editingOriginalOrder?.date && editingOriginalOrder?.display_id) {
-                                        const idParts = editingOriginalOrder.display_id.split('.');
-                                        if (idParts.length >= 2) {
-                                            const dateInId = idParts.slice(1).join('.');
-                                            const dateSlash = dateInId.split('/');
-                                            if (dateSlash.length === 3) {
-                                                const d = parseInt(dateSlash[0], 10);
-                                                const m = parseInt(dateSlash[1], 10);
-                                                const y = parseInt(dateSlash[2], 10);
-                                                const oDate = new Date(editingOriginalOrder.date);
-                                                const orderD = oDate.getDate();
-                                                const orderM = oDate.getMonth() + 1;
-                                                const orderY = oDate.getFullYear() % 100;
-                                                if (orderD !== d || orderM !== m || orderY !== y) {
-                                                    isDateModified = true;
+                                        if (!isDateModified && editingOriginalOrder?.date && editingOriginalOrder?.display_id) {
+                                            const idParts = editingOriginalOrder.display_id.split('.');
+                                            if (idParts.length >= 2) {
+                                                const dateInId = idParts.slice(1).join('.');
+                                                const dateSlash = dateInId.split('/');
+                                                if (dateSlash.length === 3) {
+                                                    const d = parseInt(dateSlash[0], 10);
+                                                    const m = parseInt(dateSlash[1], 10);
+                                                    const y = parseInt(dateSlash[2], 10);
+                                                    const oDate = new Date(editingOriginalOrder.date);
+                                                    const orderD = oDate.getDate();
+                                                    const orderM = oDate.getMonth() + 1;
+                                                    const orderY = oDate.getFullYear() % 100;
+                                                    if (orderD !== d || orderM !== m || orderY !== y) {
+                                                        isDateModified = true;
+                                                    }
                                                 }
                                             }
                                         }
-                                    }
-                                    return (
-                                        <>
-                                            <div className="relative flex items-center justify-center shrink-0 w-2 h-2">
-                                                <span className={cn(
-                                                    "w-2 h-2 rounded-full shrink-0",
-                                                    isDateModified 
-                                                    ? "bg-amber-600 dark:bg-amber-400" 
-                                                    : editOrderId 
-                                                        ? "bg-[#8b6f47] dark:bg-[#d4a574]" 
-                                                        : "bg-[#2d5016] dark:bg-emerald-400"
-                                                )} style={{ backgroundColor: !isDateModified && !editOrderId && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }} />
-                                            </div>
-                                            <div className="flex flex-col justify-center leading-none min-w-0">
-                                                <m.span 
-                                                    key={editingOriginalOrder?.display_id || (editOrderId ? `edit-${editOrderId}` : 'new')}
-                                                    initial={{ opacity: 0.6, y: -1 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    transition={{ duration: 0.18 }}
-                                                    className="text-[11px] sm:text-[11.5px] font-black font-mono text-[#2d5016] dark:text-[#e8dfd5] tracking-tight leading-tight tabular-nums flex items-center gap-1" 
-                                                    style={{ color: cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }}
-                                                >
-                                                    #{editingOriginalOrder?.display_id || editOrderId || 'MỚI'}
-                                                </m.span>
-                                                {(() => {
-                                                    if (isDateModified) {
-                                                        const timeStr = editingOriginalOrder?.date ? new Date(editingOriginalOrder.date).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
-                                                        const activeDate = customOrderDate || originalDateStr;
-                                                        let dateStr = activeDate;
-                                                        if (activeDate) {
-                                                            const p = activeDate.split('-');
-                                                            dateStr = p.length === 3 ? `${p[2]}/${p[1]}` : activeDate;
+                                        return (
+                                            <>
+                                                <div className="relative flex items-center justify-center shrink-0 w-2 h-2">
+                                                    <span className={cn(
+                                                        "w-2 h-2 rounded-full shrink-0",
+                                                        isDateModified
+                                                            ? "bg-amber-600 dark:bg-amber-400"
+                                                            : editOrderId
+                                                                ? "bg-[#8b6f47] dark:bg-[#d4a574]"
+                                                                : "bg-[#2d5016] dark:bg-emerald-400"
+                                                    )} style={{ backgroundColor: !isDateModified && !editOrderId && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }} />
+                                                </div>
+                                                <div className="flex flex-col justify-center leading-none min-w-0">
+                                                    <m.span
+                                                        key={editingOriginalOrder?.display_id || (editOrderId ? `edit-${editOrderId}` : 'new')}
+                                                        initial={{ opacity: 0.6, y: -1 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        transition={{ duration: 0.18 }}
+                                                        className="text-[11px] sm:text-[11.5px] font-black font-mono text-[#2d5016] dark:text-[#e8dfd5] tracking-tight leading-tight tabular-nums flex items-center gap-1"
+                                                        style={{ color: cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? cartColorConfig.accentColor : undefined }}
+                                                    >
+                                                        #{editingOriginalOrder?.display_id || editOrderId || 'MỚI'}
+                                                    </m.span>
+                                                    {(() => {
+                                                        if (isDateModified) {
+                                                            const timeStr = editingOriginalOrder?.date ? new Date(editingOriginalOrder.date).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+                                                            const activeDate = customOrderDate || originalDateStr;
+                                                            let dateStr = activeDate;
+                                                            if (activeDate) {
+                                                                const p = activeDate.split('-');
+                                                                dateStr = p.length === 3 ? `${p[2]}/${p[1]}` : activeDate;
+                                                            }
+                                                            return (
+                                                                <span className="text-[7.5px] sm:text-[8px] font-black text-amber-700 dark:text-amber-400 mt-0.5 tabular-nums leading-none uppercase flex items-center gap-1">
+                                                                    {timeStr} - {dateStr} (ĐÃ SỬA)
+                                                                </span>
+                                                            );
+                                                        }
+                                                        if (editingOriginalOrder?.date) {
+                                                            return (
+                                                                <span className="text-[7.5px] sm:text-[8px] font-black text-[#8b6f47] dark:text-[#d4a574] mt-0.5 tabular-nums leading-none uppercase">
+                                                                    {new Date(editingOriginalOrder.date).toLocaleTimeString("vi-VN", {
+                                                                        hour: "2-digit",
+                                                                        minute: "2-digit"
+                                                                    })} - {new Date(editingOriginalOrder.date).toLocaleDateString("vi-VN", {
+                                                                        day: "2-digit",
+                                                                        month: "2-digit"
+                                                                    })}
+                                                                </span>
+                                                            );
                                                         }
                                                         return (
-                                                            <span className="text-[7.5px] sm:text-[8px] font-black text-amber-700 dark:text-amber-400 mt-0.5 tabular-nums leading-none uppercase flex items-center gap-1">
-                                                                {timeStr} - {dateStr} (ĐÃ SỬA)
+                                                            <span className="text-[7.5px] sm:text-[8px] font-bold text-[#8b6f47]/70 dark:text-[#d4a574]/70 mt-0.5 leading-none uppercase">
+                                                                {editOrderId ? 'ĐANG SỬA' : 'TẠO MỚI'}
                                                             </span>
                                                         );
-                                                    }
-                                                    if (editingOriginalOrder?.date) {
-                                                        return (
-                                                            <span className="text-[7.5px] sm:text-[8px] font-black text-[#8b6f47] dark:text-[#d4a574] mt-0.5 tabular-nums leading-none uppercase">
-                                                                {new Date(editingOriginalOrder.date).toLocaleTimeString("vi-VN", {
-                                                                    hour: "2-digit",
-                                                                    minute: "2-digit"
-                                                                })} - {new Date(editingOriginalOrder.date).toLocaleDateString("vi-VN", {
-                                                                    day: "2-digit",
-                                                                    month: "2-digit"
-                                                                })}
-                                                            </span>
-                                                        );
-                                                    }
-                                                    return (
-                                                        <span className="text-[7.5px] sm:text-[8px] font-bold text-[#8b6f47]/70 dark:text-[#d4a574]/70 mt-0.5 leading-none uppercase">
-                                                            {editOrderId ? 'ĐANG SỬA' : 'TẠO MỚI'}
-                                                        </span>
-                                                    );
-                                                })()}
-                                            </div>
-                                        </>
-                                    );
-                                })()}
-                            </m.button>
-                            {summaryLayoutMode === 'sidebar' && (
-                                <div className="flex items-center gap-1 shrink-0 select-none">
-                                    <m.button
-                                        onClick={() => navigateHistory('prev')}
-                                        whileHover={{ scale: 1.08 }}
-                                        whileTap={{ scale: 0.92 }}
-                                        style={cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor, borderColor: `${cartColorConfig.accentColor}60` } : undefined}
-                                        className="w-8 h-8 flex items-center justify-center rounded-xl bg-transparent hover:bg-[#8b6f47]/15 dark:hover:bg-white/15 text-[#8b6f47] dark:text-[#d4a574] border border-[#8b6f47]/30 dark:border-white/20 hover:border-[#8b6f47]/60 dark:hover:border-white/40 transition-all cursor-pointer"
-                                        title="Đơn trước (Ctrl + Mũi tên Trái)"
-                                    >
-                                        <ChevronLeft size={16} strokeWidth={2.8} />
-                                    </m.button>
-                                    <m.button
-                                        onClick={() => navigateHistory('next')}
-                                        disabled={historyStep === 0}
-                                        whileHover={historyStep === 0 ? {} : { scale: 1.08 }}
-                                        whileTap={historyStep === 0 ? {} : { scale: 0.92 }}
-                                        style={historyStep !== 0 && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor, borderColor: `${cartColorConfig.accentColor}60` } : undefined}
-                                        className={cn(
-                                            "w-8 h-8 flex items-center justify-center rounded-xl transition-all",
-                                            historyStep === 0 
-                                                ? "opacity-25 cursor-not-allowed bg-transparent border border-[#8b6f47]/15 dark:border-white/10 text-[#8b6f47] dark:text-[#d4a574]" 
-                                                : "bg-transparent hover:bg-[#8b6f47]/15 dark:hover:bg-white/15 text-[#8b6f47] dark:text-[#d4a574] border border-[#8b6f47]/30 dark:border-white/20 hover:border-[#8b6f47]/60 dark:hover:border-white/40 cursor-pointer"
-                                        )}
-                                        title={historyStep === 0 ? "Đã ở đơn mới nhất" : "Đơn kế tiếp (Ctrl + Mũi tên Phải)"}
-                                    >
-                                        <ChevronRight size={16} strokeWidth={2.8} />
-                                    </m.button>
-                                </div>
-                            )}
-                            {/* Date Picker Modal styled like ReminderModal */}
-                            <OrderDatePickerModal
-                                isOpen={isOrderDatePickerOpen}
-                                initialDate={customOrderDate || (editingOriginalOrder?.date ? editingOriginalOrder.date.slice(0, 10) : new Date().toISOString().slice(0, 10))}
-                                onClose={() => setIsOrderDatePickerOpen(false)}
-                                onConfirm={(val) => setCustomOrderDate(val)}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-2.5 pl-4 border-l border-[#8b6f47]/20 dark:border-white/10 relative z-[2100]">
-                        {/* 1. Compact Partner Search Input */}
-                        <div 
-                            className="relative shrink-0" 
-                            onMouseEnter={() => {
-                                if (!isPartnerDropdownOpen && document.activeElement !== partnerInputRef.current) {
-                                    setIsPartnerHovered(true);
-                                }
-                            }}
-                            onMouseLeave={() => setIsPartnerHovered(false)}
-                            onBlur={(e) => {
-                            if (!e.currentTarget.contains(e.relatedTarget)) {
-                                setTimeout(() => {
-                                    setIsPartnerDropdownOpen(false);
-                                }, 180);
-                            }
-                        }}>
-                            <div
-                                className={cn(
-                                    "relative flex items-center rounded-full overflow-hidden w-44 md:w-52 h-9 border transition-all duration-200 ease-out",
-                                    (selectedPartner && !isPartnerDropdownOpen)
-                                        ? "bg-gradient-to-r from-[#8b6f47] to-[#a08257] dark:from-[#5a4325] dark:to-[#8b6f47] border-[#8b6f47] dark:border-[#d4a574]/50 shadow-md shadow-[#8b6f47]/20 text-white"
-                                        : "border-[#8b6f47]/30 dark:border-[#d4a574]/30 bg-[#8b6f47]/[0.05] dark:bg-white/[0.04] shadow-xs focus-within:border-[#8b6f47] dark:focus-within:border-[#d4a574] focus-within:ring-2 focus-within:ring-[#8b6f47]/10"
+                                                    })()}
+                                                </div>
+                                            </>
+                                        );
+                                    })()}
+                                </m.button>
+                                {summaryLayoutMode === 'sidebar' && (
+                                    <div className="flex items-center gap-1 shrink-0 select-none">
+                                        <m.button
+                                            onClick={() => navigateHistory('prev')}
+                                            whileHover={{ scale: 1.08 }}
+                                            whileTap={{ scale: 0.92 }}
+                                            style={cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor, borderColor: `${cartColorConfig.accentColor}60` } : undefined}
+                                            className="w-8 h-8 flex items-center justify-center rounded-xl bg-transparent hover:bg-[#8b6f47]/15 dark:hover:bg-white/15 text-[#8b6f47] dark:text-[#d4a574] border border-[#8b6f47]/30 dark:border-white/20 hover:border-[#8b6f47]/60 dark:hover:border-white/40 transition-all cursor-pointer"
+                                            title="Đơn trước (Ctrl + Mũi tên Trái)"
+                                        >
+                                            <ChevronLeft size={16} strokeWidth={2.8} />
+                                        </m.button>
+                                        <m.button
+                                            onClick={() => navigateHistory('next')}
+                                            disabled={historyStep === 0}
+                                            whileHover={historyStep === 0 ? {} : { scale: 1.08 }}
+                                            whileTap={historyStep === 0 ? {} : { scale: 0.92 }}
+                                            style={historyStep !== 0 && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor, borderColor: `${cartColorConfig.accentColor}60` } : undefined}
+                                            className={cn(
+                                                "w-8 h-8 flex items-center justify-center rounded-xl transition-all",
+                                                historyStep === 0
+                                                    ? "opacity-25 cursor-not-allowed bg-transparent border border-[#8b6f47]/15 dark:border-white/10 text-[#8b6f47] dark:text-[#d4a574]"
+                                                    : "bg-transparent hover:bg-[#8b6f47]/15 dark:hover:bg-white/15 text-[#8b6f47] dark:text-[#d4a574] border border-[#8b6f47]/30 dark:border-white/20 hover:border-[#8b6f47]/60 dark:hover:border-white/40 cursor-pointer"
+                                            )}
+                                            title={historyStep === 0 ? "Đã ở đơn mới nhất" : "Đơn kế tiếp (Ctrl + Mũi tên Phải)"}
+                                        >
+                                            <ChevronRight size={16} strokeWidth={2.8} />
+                                        </m.button>
+                                    </div>
                                 )}
-                            >
-                                <m.div
-                                    key={(selectedPartner && !isPartnerDropdownOpen) ? "selected-partner-icon" : "search-icon"}
-                                    initial={{ scale: 0.75, rotate: -8 }}
-                                    animate={{ scale: 1, rotate: 0 }}
-                                    transition={{ type: "spring", stiffness: 500, damping: 24 }}
-                                    className="absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none z-10"
-                                >
-                                    <Truck
-                                        size={15}
-                                        strokeWidth={(selectedPartner && !isPartnerDropdownOpen) ? 2.8 : 2.5}
-                                        className={cn(
-                                            "shrink-0",
-                                            (selectedPartner && !isPartnerDropdownOpen)
-                                                ? "text-white drop-shadow-sm"
-                                                : "text-[#8b6f47] dark:text-[#d4a574]"
-                                        )}
-                                    />
-                                </m.div>
-                                <input
-                                    type="text"
+                                {/* Date Picker Modal styled like ReminderModal */}
+                                <OrderDatePickerModal
+                                    isOpen={isOrderDatePickerOpen}
+                                    initialDate={customOrderDate || (editingOriginalOrder?.date ? editingOriginalOrder.date.slice(0, 10) : new Date().toISOString().slice(0, 10))}
+                                    onClose={() => setIsOrderDatePickerOpen(false)}
+                                    onConfirm={(val) => setCustomOrderDate(val)}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-2.5 pl-4 border-l border-[#8b6f47]/20 dark:border-white/10 relative z-[2100]">
+                            {/* 1. Compact Partner Search Input */}
+                            <div
+                                className="relative shrink-0"
+                                onMouseEnter={() => {
+                                    if (!isPartnerDropdownOpen && document.activeElement !== partnerInputRef.current) {
+                                        setIsPartnerHovered(true);
+                                    }
+                                }}
+                                onMouseLeave={() => setIsPartnerHovered(false)}
+                                onBlur={(e) => {
+                                    if (!e.currentTarget.contains(e.relatedTarget)) {
+                                        setTimeout(() => {
+                                            setIsPartnerDropdownOpen(false);
+                                        }, 180);
+                                    }
+                                }}>
+                                <div
                                     className={cn(
-                                        "w-full pl-8 pr-7 py-1.5 h-full bg-transparent outline-none font-black text-xs text-slate-900 dark:text-white placeholder:text-muted/60 leading-normal",
-                                        (selectedPartner && !isPartnerDropdownOpen) && "opacity-0 select-none cursor-pointer"
+                                        "relative flex items-center rounded-full overflow-hidden w-44 md:w-52 h-9 border transition-all duration-200 ease-out",
+                                        (selectedPartner && !isPartnerDropdownOpen)
+                                            ? "bg-gradient-to-r from-[#8b6f47] to-[#a08257] dark:from-[#5a4325] dark:to-[#8b6f47] border-[#8b6f47] dark:border-[#d4a574]/50 shadow-md shadow-[#8b6f47]/20 text-white"
+                                            : "border-[#8b6f47]/30 dark:border-[#d4a574]/30 bg-[#8b6f47]/[0.05] dark:bg-white/[0.04] shadow-xs focus-within:border-[#8b6f47] dark:focus-within:border-[#d4a574] focus-within:ring-2 focus-within:ring-[#8b6f47]/10"
                                     )}
-                                    ref={partnerInputRef}
-                                    placeholder="Tìm NCC (F3)..."
-                                    value={selectedPartner ? selectedPartner.name : partnerSearch}
-                                    onMouseDown={(e) => {
-                                        if (e.button === 2) {
-                                            e.preventDefault();
-                                        }
-                                    }}
-                                    onClick={(e) => {
-                                        if (e.button === 0) {
+                                >
+                                    <m.div
+                                        key={(selectedPartner && !isPartnerDropdownOpen) ? "selected-partner-icon" : "search-icon"}
+                                        initial={{ scale: 0.75, rotate: -8 }}
+                                        animate={{ scale: 1, rotate: 0 }}
+                                        transition={{ type: "spring", stiffness: 500, damping: 24 }}
+                                        className="absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none z-10"
+                                    >
+                                        <Truck
+                                            size={15}
+                                            strokeWidth={(selectedPartner && !isPartnerDropdownOpen) ? 2.8 : 2.5}
+                                            className={cn(
+                                                "shrink-0",
+                                                (selectedPartner && !isPartnerDropdownOpen)
+                                                    ? "text-white drop-shadow-sm"
+                                                    : "text-[#8b6f47] dark:text-[#d4a574]"
+                                            )}
+                                        />
+                                    </m.div>
+                                    <input
+                                        type="text"
+                                        className={cn(
+                                            "w-full pl-8 pr-7 py-1.5 h-full bg-transparent outline-none font-black text-xs text-slate-900 dark:text-white placeholder:text-muted/60 leading-normal",
+                                            (selectedPartner && !isPartnerDropdownOpen) && "opacity-0 select-none cursor-pointer"
+                                        )}
+                                        ref={partnerInputRef}
+                                        placeholder="Tìm NCC (F3)..."
+                                        value={selectedPartner ? selectedPartner.name : partnerSearch}
+                                        onMouseDown={(e) => {
+                                            if (e.button === 2) {
+                                                e.preventDefault();
+                                            }
+                                        }}
+                                        onClick={(e) => {
+                                            if (e.button === 0) {
+                                                setIsPartnerHovered(false);
+                                                setIsPartnerDropdownOpen(true);
+                                                e.target.select?.();
+                                            }
+                                        }}
+                                        onFocus={(e) => {
+                                            if (window._preventPartnerFocusOpen) {
+                                                window._preventPartnerFocusOpen = false;
+                                                return;
+                                            }
                                             setIsPartnerHovered(false);
                                             setIsPartnerDropdownOpen(true);
                                             e.target.select?.();
-                                        }
-                                    }}
-                                    onFocus={(e) => {
-                                        if (window._preventPartnerFocusOpen) {
-                                            window._preventPartnerFocusOpen = false;
-                                            return;
-                                        }
-                                        setIsPartnerHovered(false);
-                                        setIsPartnerDropdownOpen(true);
-                                        e.target.select?.();
-                                    }}
-                                    onContextMenu={(e) => {
-                                        if (selectedPartner) {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            window._preventPartnerFocusOpen = true;
-                                            setTimeout(() => { window._preventPartnerFocusOpen = false; }, 300);
-                                            setIsPartnerDropdownOpen(false);
-                                            setIsPartnerHovered(false);
-                                            setItemContextMenu({
-                                                type: 'partner',
-                                                data: selectedPartner,
-                                                position: { x: e.clientX, y: e.clientY }
-                                            });
-                                        }
-                                    }}
-                                    onChange={(e) => {
-                                        setIsPartnerHovered(false);
-                                        setPartnerSearch(e.target.value);
-                                        if (selectedPartner) setSelectedPartner(null);
-                                        setIsPartnerDropdownOpen(true);
-                                        setActiveIndex(0);
-                                    }}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Escape') {
-                                            setIsPartnerHovered(false);
-                                            setIsPartnerDropdownOpen(false);
-                                        } else if (e.key === 'ArrowDown') {
-                                            e.preventDefault();
-                                            setIsPartnerHovered(false);
-                                            setActiveIndex(prev => {
-                                                const maxIdx = partnerSearch ? Math.max(0, filteredPartners.length - 1) : filteredPartners.length;
-                                                const next = Math.min(prev + 1, maxIdx);
-                                                if (partnerDropdownRef.current) {
-                                                    const targetEl = partnerDropdownRef.current.querySelector(`[data-index="${next}"]`);
-                                                    targetEl?.scrollIntoView({ block: "nearest" });
-                                                }
-                                                return next;
-                                            });
-                                        } else if (e.key === 'ArrowUp') {
-                                            e.preventDefault();
-                                            setIsPartnerHovered(false);
-                                            setActiveIndex(prev => {
-                                                const next = Math.max(prev - 1, 0);
-                                                if (partnerDropdownRef.current) {
-                                                    const targetEl = partnerDropdownRef.current.querySelector(`[data-index="${next}"]`);
-                                                    targetEl?.scrollIntoView({ block: "nearest" });
-                                                }
-                                                return next;
-                                            });
-                                        } else if (e.key === 'Enter') {
-                                            e.preventDefault();
-                                            setIsPartnerHovered(false);
-                                            if (!partnerSearch) {
-                                                if (activeIndex === 0) {
-                                                    setSelectedPartner(null);
-                                                    setPartnerSearch('');
-                                                } else if (filteredPartners[activeIndex - 1]) {
-                                                    setSelectedPartner(filteredPartners[activeIndex - 1]);
-                                                    setPartnerSearch('');
-                                                }
-                                            } else {
-                                                if (filteredPartners[activeIndex]) {
-                                                    setSelectedPartner(filteredPartners[activeIndex]);
-                                                    setPartnerSearch('');
-                                                }
+                                        }}
+                                        onContextMenu={(e) => {
+                                            if (selectedPartner) {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                window._preventPartnerFocusOpen = true;
+                                                setTimeout(() => { window._preventPartnerFocusOpen = false; }, 300);
+                                                setIsPartnerDropdownOpen(false);
+                                                setIsPartnerHovered(false);
+                                                setItemContextMenu({
+                                                    type: 'partner',
+                                                    data: selectedPartner,
+                                                    position: { x: e.clientX, y: e.clientY }
+                                                });
                                             }
-                                            setIsPartnerDropdownOpen(false);
-                                            setTimeout(() => searchInputRef.current?.focus(), 50);
-                                        }
-                                    }}
+                                        }}
+                                        onChange={(e) => {
+                                            setIsPartnerHovered(false);
+                                            setPartnerSearch(e.target.value);
+                                            if (selectedPartner) setSelectedPartner(null);
+                                            setIsPartnerDropdownOpen(true);
+                                            setActiveIndex(0);
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Escape') {
+                                                setIsPartnerHovered(false);
+                                                setIsPartnerDropdownOpen(false);
+                                            } else if (e.key === 'ArrowDown') {
+                                                e.preventDefault();
+                                                setIsPartnerHovered(false);
+                                                setActiveIndex(prev => {
+                                                    const maxIdx = partnerSearch ? Math.max(0, filteredPartners.length - 1) : filteredPartners.length;
+                                                    const next = Math.min(prev + 1, maxIdx);
+                                                    if (partnerDropdownRef.current) {
+                                                        const targetEl = partnerDropdownRef.current.querySelector(`[data-index="${next}"]`);
+                                                        targetEl?.scrollIntoView({ block: "nearest" });
+                                                    }
+                                                    return next;
+                                                });
+                                            } else if (e.key === 'ArrowUp') {
+                                                e.preventDefault();
+                                                setIsPartnerHovered(false);
+                                                setActiveIndex(prev => {
+                                                    const next = Math.max(prev - 1, 0);
+                                                    if (partnerDropdownRef.current) {
+                                                        const targetEl = partnerDropdownRef.current.querySelector(`[data-index="${next}"]`);
+                                                        targetEl?.scrollIntoView({ block: "nearest" });
+                                                    }
+                                                    return next;
+                                                });
+                                            } else if (e.key === 'Enter') {
+                                                e.preventDefault();
+                                                setIsPartnerHovered(false);
+                                                if (!partnerSearch) {
+                                                    if (activeIndex === 0) {
+                                                        setSelectedPartner(null);
+                                                        setPartnerSearch('');
+                                                    } else if (filteredPartners[activeIndex - 1]) {
+                                                        setSelectedPartner(filteredPartners[activeIndex - 1]);
+                                                        setPartnerSearch('');
+                                                    }
+                                                } else {
+                                                    if (filteredPartners[activeIndex]) {
+                                                        setSelectedPartner(filteredPartners[activeIndex]);
+                                                        setPartnerSearch('');
+                                                    }
+                                                }
+                                                setIsPartnerDropdownOpen(false);
+                                                setTimeout(() => searchInputRef.current?.focus(), 50);
+                                            }
+                                        }}
+                                    />
+                                    {/* Marquee Partner Name Overlay with smooth pop-in */}
+                                    <AnimatePresence mode="wait">
+                                        {selectedPartner && !isPartnerDropdownOpen && (
+                                            <m.div
+                                                key={selectedPartner.id || selectedPartner.name}
+                                                initial={{ opacity: 0, x: 6, scale: 0.95 }}
+                                                animate={{ opacity: 1, x: 0, scale: 1 }}
+                                                exit={{ opacity: 0, x: -6, scale: 0.95 }}
+                                                transition={{ type: "spring", stiffness: 450, damping: 28 }}
+                                                className="absolute left-8 right-7 top-0 bottom-0 flex items-center overflow-hidden pointer-events-none"
+                                            >
+                                                <span className="font-black text-xs uppercase tracking-tight whitespace-nowrap inline-block text-white font-black drop-shadow-sm truncate">
+                                                    {selectedPartner.name}
+                                                </span>
+                                            </m.div>
+                                        )}
+                                    </AnimatePresence>
+
+                                    <AnimatePresence>
+                                        {(selectedPartner || partnerSearch) && !isPartnerDropdownOpen && (
+                                            <m.div
+                                                initial={{ opacity: 0, scale: 0.6 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                exit={{ opacity: 0, scale: 0.6 }}
+                                                transition={{ type: "spring", stiffness: 450, damping: 25 }}
+                                                className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center z-10"
+                                            >
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setIsPartnerHovered(false);
+                                                        setSelectedPartner(null);
+                                                        setPartnerSearch('');
+                                                    }}
+                                                    className={cn(
+                                                        "w-5 h-5 flex items-center justify-center rounded-full transition-all cursor-pointer",
+                                                        (selectedPartner && !isPartnerDropdownOpen)
+                                                            ? "bg-white/20 text-white hover:bg-rose-500 hover:text-white shadow-sm"
+                                                            : "bg-black/5 dark:bg-white/10 text-muted hover:bg-rose-500 hover:text-white"
+                                                    )}
+                                                    title="Bỏ chọn NCC"
+                                                >
+                                                    <X size={10} strokeWidth={3} />
+                                                </button>
+                                            </m.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+
+                                {/* Partner Hover Info Card */}
+                                <PartnerInfoHoverCard
+                                    partner={selectedPartner}
+                                    isVisible={isPartnerHovered && !isPartnerDropdownOpen && Boolean(selectedPartner) && document.activeElement !== partnerInputRef.current}
                                 />
-                                {/* Marquee Partner Name Overlay with smooth pop-in */}
-                                <AnimatePresence mode="wait">
-                                    {selectedPartner && !isPartnerDropdownOpen && (
+
+                                {/* Dropdown list */}
+                                <AnimatePresence>
+                                    {isPartnerDropdownOpen && (
                                         <m.div
-                                            key={selectedPartner.id || selectedPartner.name}
-                                            initial={{ opacity: 0, x: 6, scale: 0.95 }}
-                                            animate={{ opacity: 1, x: 0, scale: 1 }}
-                                            exit={{ opacity: 0, x: -6, scale: 0.95 }}
-                                            transition={{ type: "spring", stiffness: 450, damping: 28 }}
-                                            className="absolute left-8 right-7 top-0 bottom-0 flex items-center overflow-hidden pointer-events-none"
+                                            initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                                            transition={{
+                                                duration: 0.15
+                                            }}
+                                            className="dropdown-premium dropdown-app-bg absolute top-full left-0 mt-2 w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl !z-[3000] rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden"
+                                            ref={partnerDropdownRef}
                                         >
-                                            <span className="font-black text-xs uppercase tracking-tight whitespace-nowrap inline-block text-white font-black drop-shadow-sm truncate">
-                                                {selectedPartner.name}
-                                            </span>
+                                            <div className="max-h-[500px] overflow-y-auto custom-scrollbar p-0">
+                                                {!partnerSearch && (
+                                                    <div
+                                                        data-index={0}
+                                                        className={cn("dropdown-item flex items-center gap-3.5 px-4 py-3.5 transition-all relative cursor-pointer", activeIndex === 0 && "active")}
+                                                        onMouseMove={() => { if (activeIndex !== 0) setActiveIndex(0); }}
+                                                        onMouseDown={(e) => {
+                                                            e.preventDefault();
+                                                            setIsPartnerHovered(false);
+                                                            setSelectedPartner(null);
+                                                            setPartnerSearch('');
+                                                            setIsPartnerDropdownOpen(false);
+                                                            setTimeout(() => searchInputRef.current?.focus(), 50);
+                                                        }}
+                                                    >
+                                                        <div className={cn("w-11 h-11 rounded-2xl flex items-center justify-center transition-all shrink-0", activeIndex === 0 ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300")}>
+                                                            <Truck size={22} strokeWidth={2.5} />
+                                                        </div>
+                                                        <div className="py-1">
+                                                            <div className={cn("font-black uppercase tracking-tight text-base md:text-[17px] leading-snug pt-0.5", activeIndex === 0 ? "text-white" : "text-slate-900 dark:text-white")}>NHÀ CUNG CẤP VÃNG LAI</div>
+                                                            <div className={cn("text-[11px] font-bold uppercase tracking-widest leading-relaxed mt-0.5", activeIndex === 0 ? "text-white/80" : "text-slate-500 dark:text-slate-400")}>MẶC ĐỊNH KHÔNG LƯU NỢ</div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {filteredPartners.map((p, idx) => {
+                                                    const isItemActive = partnerSearch ? activeIndex === idx : activeIndex === idx + 1;
+                                                    const targetIndex = partnerSearch ? idx : idx + 1;
+                                                    return (
+                                                        <div
+                                                            key={p.id}
+                                                            data-index={targetIndex}
+                                                            onMouseMove={() => { if (activeIndex !== targetIndex) setActiveIndex(targetIndex); }}
+                                                            onMouseDown={(e) => {
+                                                                e.preventDefault();
+                                                                setIsPartnerHovered(false);
+                                                                setSelectedPartner(p);
+                                                                setPartnerSearch('');
+                                                                setIsPartnerDropdownOpen(false);
+                                                                setTimeout(() => searchInputRef.current?.focus(), 50);
+                                                            }}
+                                                            onContextMenu={(e) => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
+                                                                setItemContextMenu({
+                                                                    type: 'partner',
+                                                                    data: p,
+                                                                    position: { x: e.clientX, y: e.clientY }
+                                                                });
+                                                            }}
+                                                            className={cn("dropdown-item flex justify-between items-center px-4 py-3 transition-all relative cursor-pointer", isItemActive && "active")}
+                                                        >
+                                                            <div className="flex items-center gap-3.5 relative z-10 min-w-0 pr-3">
+                                                                <div className={cn("w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-all border border-slate-100 dark:border-slate-800", isItemActive ? "bg-white/20 text-white border-transparent" : "bg-white dark:bg-slate-800 text-[#8b6f47] dark:text-[#d4a574] shadow-sm")}>
+                                                                    <Truck size={22} strokeWidth={2.5} />
+                                                                </div>
+                                                                <div className="flex flex-col gap-0.5 min-w-0 py-0.5">
+                                                                    <div className="flex items-center gap-2 min-w-0">
+                                                                        <span className={cn("px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border shrink-0 transition-colors", isItemActive ? "bg-white/20 border-white/40 text-white" : "bg-[#8b6f47]/15 border-[#8b6f47]/30 text-[#8b6f47] dark:text-[#d4a574]")}>
+                                                                            NCC
+                                                                        </span>
+                                                                        <p className={cn("font-black tracking-tight text-base md:text-[17px] truncate leading-snug pt-0.5 transition-colors", isItemActive ? "text-white" : "text-slate-900 dark:text-white")}>{p.name}</p>
+                                                                    </div>
+                                                                    <div className={cn("flex items-center gap-3.5 text-xs font-bold tracking-wide transition-colors leading-relaxed", isItemActive ? "text-white/80" : "text-slate-500 dark:text-slate-400")}>
+                                                                        <span className="flex items-center gap-1 shrink-0"><Phone size={12} strokeWidth={2.5} className="opacity-60" />{p.phone || "---"}</span>
+                                                                        {p.address && <span className="flex items-center gap-1 truncate max-w-[220px]"><MapPin size={12} strokeWidth={2.5} className="opacity-60" />{p.address}</span>}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-right relative z-10 flex flex-col items-end gap-1 shrink-0 pl-2">
+                                                                <p className={cn("text-2xl font-black tabular-nums tracking-tight leading-snug pt-0.5 transition-colors", isItemActive ? "text-white" : (p.debt_balance || 0) > 0 ? "text-[#d93025] dark:text-rose-400" : (p.debt_balance || 0) < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-[#0f9d58] dark:text-emerald-400 font-bold")}>
+                                                                    {((p.debt_balance || 0) > 0 ? "+" : "") + formatNumber(Math.abs(p.debt_balance || 0))}
+                                                                </p>
+                                                                <div className={cn("px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border transition-colors",
+                                                                    isItemActive
+                                                                        ? "bg-white/20 border-white/40 text-white"
+                                                                        : "border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 bg-white/50 dark:bg-slate-800/50"
+                                                                )}>
+                                                                    {(p.debt_balance || 0) > 0 ? "KHÁCH NỢ" : (p.debt_balance || 0) < 0 ? "MÌNH NỢ" : "HẾT NỢ"}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
                                         </m.div>
                                     )}
                                 </AnimatePresence>
+                            </div>
 
+                            {/* 2. Note Button */}
+                            <m.button
+                                whileHover={{ y: -2, scale: 1.05 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => setIsNoteModalOpen(true)}
+                                style={{ ...(cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {}), ...getButtonComputedStyle(cartColorConfig, 'buttons') }}
+                                className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:!bg-[#8b6f47] text-[#8b6f47] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#8b6f47] dark:text-[#d4a574] dark:hover:!text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#8b6f47] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#8b6f47]/20 shrink-0 cursor-pointer group"
+                                title={note ? `Ghi chú: ${note}` : "Thêm ghi chú đơn nhập"}
+                            >
+                                <FileText size={16} strokeWidth={2.5} className="group-hover:!text-white group-active:!text-white transition-colors" />
+                                {note && (
+                                    <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-amber-400 border-2 border-white dark:border-slate-900 rounded-full shadow-sm" />
+                                )}
+                            </m.button>
+
+                            {/* 3. Held Orders (Treo đơn) */}
+                            <m.button
+                                whileHover={{ y: -2, scale: 1.05 }}
+                                whileTap={{ scale: 0.98 }}
+                                transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                                onClick={() => setIsHeldSidebarOpen(true)}
+                                style={{ ...(cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {}), ...getButtonComputedStyle(cartColorConfig, 'buttons') }}
+                                className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:!bg-[#8b6f47] text-[#8b6f47] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#8b6f47] dark:text-[#d4a574] dark:hover:!text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#8b6f47] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#8b6f47]/20 group shrink-0 cursor-pointer"
+                                title="Danh sách đơn nhập tạm"
+                            >
+                                <Pause size={16} strokeWidth={2.5} className="group-hover:!text-white group-active:!text-white transition-colors" />
+                                {heldPurchases.length > 0 && (
+                                    <span className="absolute -top-1.5 -right-1.5 bg-rose-600 text-white text-[9px] min-w-[18px] h-4.5 rounded-full flex items-center justify-center font-black border border-white px-1 leading-none z-20">
+                                        {heldPurchases.length}
+                                    </span>
+                                )}
+                            </m.button>
+
+                            {/* 5. Wholesale / Retail Mode */}
+                            <m.button
+                                whileHover={{ y: -2, scale: 1.05 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => handleModeChange(posMode === 'Retail' ? 'Wholesale' : 'Retail')}
+                                style={{ ...(cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {}), ...getButtonComputedStyle(cartColorConfig, 'buttons') }}
+                                className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:!bg-[#8b6f47] text-[#8b6f47] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#8b6f47] dark:text-[#d4a574] dark:hover:!text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#8b6f47] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#8b6f47]/20 group shrink-0 cursor-pointer"
+                                title={posMode === 'Wholesale' ? "Chế độ Nhập Sỉ (Bấm để đổi sang Lẻ)" : "Chế độ Nhập Lẻ (Bấm để đổi sang Sỉ)"}
+                            >
+                                <span className="group-hover:!text-white group-active:!text-white transition-colors flex items-center justify-center">{posMode === 'Wholesale' ? <Users size={16} strokeWidth={2.5} /> : <User size={16} strokeWidth={2.5} />}</span>
+                                <div className={cn(
+                                    "absolute bottom-1.5 right-1.5 w-2 h-2 rounded-full border border-white dark:border-slate-900",
+                                    posMode === 'Wholesale' ? "bg-amber-400" : "bg-slate-300 dark:bg-slate-600"
+                                )} />
+                            </m.button>
+
+                            {/* 6. Daily / Partner History */}
+                            <m.button
+                                whileHover={{ y: -2, scale: 1.05 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => {
+                                    setIsDailyHistoryOpen(true);
+                                }}
+                                style={{ ...(cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {}), ...getButtonComputedStyle(cartColorConfig, 'buttons') }}
+                                className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:!bg-[#8b6f47] text-[#8b6f47] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#8b6f47] dark:text-[#d4a574] dark:hover:!text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#8b6f47] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#8b6f47]/20 group shrink-0 cursor-pointer"
+                                title="Lịch sử đơn nhập hàng trong ngày"
+                            >
+                                <History size={16} strokeWidth={2.5} className="group-hover:!text-white group-active:!text-white transition-colors" />
+                            </m.button>
+
+                            {/* 6.5 Nút ĐẶT HÀNG trên Header */}
+                            <m.button
+                                whileHover={{ y: -2, scale: 1.03 }}
+                                whileTap={{ scale: 0.97 }}
+                                disabled={cart.length === 0}
+                                onClick={() => setIsPOExportModalOpen(true)}
+                                className={cn(
+                                    "relative h-9 px-3 flex items-center gap-1.5 rounded-full transition-all duration-200 border shadow-xs shrink-0 cursor-pointer select-none text-xs font-black uppercase tracking-wider",
+                                    cart.length === 0
+                                        ? "opacity-40 cursor-not-allowed bg-[#8b6f47]/[0.08] text-[#8b6f47] dark:bg-white/[0.05] dark:text-[#d4a574] border-[#8b6f47]/25 dark:border-white/10"
+                                        : "bg-gradient-to-r from-amber-600 to-amber-700 hover:brightness-110 text-white border-amber-400/50 shadow-md shadow-amber-600/25"
+                                )}
+                                title="Xuất phiếu đặt hàng gửi NCC (Ảnh / PDF không lưu đơn)"
+                            >
+                                <FileText size={15} strokeWidth={2.5} />
+                                <span>ĐẶT HÀNG</span>
+                            </m.button>
+
+                            {/* 7. Hamburger Action Menu (Thao tác) */}
+                            <div className="relative" ref={actionMenuRef}>
+                                <m.button
+                                    whileHover={{ y: -2, scale: 1.05 }}
+                                    whileTap={{ scale: 0.98 }}
+                                    onClick={() => setIsActionMenuOpen(prev => !prev)}
+                                    style={{ ...getButtonComputedStyle(cartColorConfig, 'buttons'), ...(isActionMenuOpen ? { backgroundColor: (cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default') ? cartColorConfig.accentColor : '#8b6f47', borderColor: (cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default') ? cartColorConfig.accentColor : '#8b6f47', color: '#ffffff' } : (cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {})) }}
+                                    className={cn(
+                                        "w-9 h-9 shrink-0 rounded-full transition-all duration-200 flex items-center justify-center border shadow-xs cursor-pointer group",
+                                        isActionMenuOpen ? "!bg-[#8b6f47] !text-white !border-[#8b6f47] shadow-md shadow-[#8b6f47]/25" : "bg-[#8b6f47]/[0.08] hover:!bg-[#8b6f47] text-[#8b6f47] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#8b6f47] dark:text-[#d4a574] dark:hover:!text-white border-[#8b6f47]/25 hover:border-[#8b6f47] dark:border-white/10 dark:hover:border-[#d4a574]/40"
+                                    )}
+                                    title="Thao tác khác"
+                                >
+                                    <Menu size={16} strokeWidth={2.5} className={isActionMenuOpen ? "!text-white" : "group-hover:!text-white group-active:!text-white transition-colors"} />
+                                </m.button>
+
+                                {/* Dropdown Menu */}
                                 <AnimatePresence>
-                                    {(selectedPartner || partnerSearch) && !isPartnerDropdownOpen && (
+                                    {isActionMenuOpen && (
                                         <m.div
-                                            initial={{ opacity: 0, scale: 0.6 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            exit={{ opacity: 0, scale: 0.6 }}
-                                            transition={{ type: "spring", stiffness: 450, damping: 25 }}
-                                            className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center z-10"
+                                            initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                                            transition={{
+                                                duration: 0.15
+                                            }}
+                                            className="absolute right-0 top-full mt-2 w-64 max-h-[50vh] overflow-y-auto !overflow-y-auto overscroll-contain custom-scrollbar bg-[#faf8f3]/95 dark:bg-[#0f172a]/95 backdrop-blur-2xl border-0 rounded-2xl shadow-2xl p-1.5 z-[4000] flex flex-col gap-1 text-left select-none"
+                                            style={{ maxHeight: '50vh', overflowY: 'auto' }}
                                         >
+                                            {/* Preview Invoice */}
                                             <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    setIsPartnerHovered(false);
-                                                    setSelectedPartner(null);
-                                                    setPartnerSearch('');
+                                                onClick={() => {
+                                                    setIsActionMenuOpen(false);
+                                                    const tempOrder = {
+                                                        display_id: editOrderId ? `Đơn nhập #${editOrderId}` : 'XEM TRƯỚC',
+                                                        date: new Date().toISOString(),
+                                                        partner_name: selectedPartner ? selectedPartner.name : 'Nhà cung cấp vãng lai',
+                                                        partner_address: selectedPartner ? selectedPartner.address : '',
+                                                        partner_phone: selectedPartner ? selectedPartner.phone : '',
+                                                        total_amount: totalAmount,
+                                                        amount_paid: amountPaid,
+                                                        payment_method: paymentMethod,
+                                                        note: note,
+                                                        old_debt: oldDebt,
+                                                        partner_id: selectedPartner ? selectedPartner.id : null,
+                                                        details: cart.map(item => ({ ...item }))
+                                                    };
+                                                    setPreviewData(tempOrder);
+                                                    setShowPreview(true);
                                                 }}
-                                                className={cn(
-                                                    "w-5 h-5 flex items-center justify-center rounded-full transition-all cursor-pointer",
-                                                    (selectedPartner && !isPartnerDropdownOpen)
-                                                        ? "bg-white/20 text-white hover:bg-rose-500 hover:text-white shadow-sm"
-                                                        : "bg-black/5 dark:bg-white/10 text-muted hover:bg-rose-500 hover:text-white"
-                                                )}
-                                                title="Bỏ chọn NCC"
+                                                className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:text-[#8b6f47] dark:hover:text-[#d4a574] rounded-xl transition-all"
                                             >
-                                                <X size={10} strokeWidth={3} />
+                                                <Eye size={16} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" />
+                                                <span>Xem trước in hóa đơn</span>
+                                            </button>
+
+                                            {/* Export Purchase Order Slip (Image / PDF) without saving */}
+                                            <button
+                                                disabled={cart.length === 0}
+                                                onClick={() => {
+                                                    setIsActionMenuOpen(false);
+                                                    setIsPOExportModalOpen(true);
+                                                }}
+                                                className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-700 dark:hover:text-emerald-400 rounded-xl transition-all disabled:opacity-40 disabled:pointer-events-none"
+                                            >
+                                                <FileText size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                                <div className="flex flex-col text-left">
+                                                    <span className="font-black">Xuất phiếu đặt hàng NCC</span>
+                                                    <span className="text-[9px] font-bold text-slate-400">Xuất Ảnh / PDF (không lưu đơn)</span>
+                                                </div>
+                                            </button>
+
+                                            {/* Chọn Mẫu In Mặc Định (Từ Invoice Designer) */}
+                                            <div className="p-2.5 bg-black/5 dark:bg-white/5 rounded-2xl border border-slate-200/80 dark:border-white/10 flex flex-col gap-1.5 my-0.5">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                                                        <Printer size={13} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" strokeWidth={2.5} /> Mẫu in mặc định:
+                                                    </span>
+                                                    <span className="text-[9px] font-black text-amber-700 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">
+                                                        {availableTemplates.length} mẫu
+                                                    </span>
+                                                </div>
+                                                {availableTemplates.length > 0 ? (
+                                                    <div className="relative">
+                                                        <select
+                                                            value={currentTemplateId || availableTemplates.find(t => t.is_default)?.id || availableTemplates[0]?.id || ''}
+                                                            onChange={(e) => {
+                                                                const tplId = parseInt(e.target.value);
+                                                                if (tplId) handleSelectDefaultTemplate(tplId);
+                                                            }}
+                                                            className="w-full bg-white dark:bg-[#06140e] border border-slate-200 dark:border-white/15 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl px-2.5 py-2 outline-none cursor-pointer focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all shadow-xs"
+                                                        >
+                                                            {availableTemplates.map((tpl) => (
+                                                                <option key={tpl.id} value={tpl.id} className="dark:bg-slate-900">
+                                                                    {tpl.name || `Mẫu #${tpl.id}`} {tpl.is_default ? "★ (Mặc định)" : ""}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-[10px] italic text-slate-400 py-1">Chưa có mẫu in nào trong thiết kế</div>
+                                                )}
+                                            </div>
+
+                                            {/* Cart Header and Border Color Customizer */}
+                                            {/* Cart Color & Table Customizer */}
+                                            <button
+                                                onClick={() => {
+                                                    setIsActionMenuOpen(false);
+                                                    setShowCartColorCustomizer(true);
+                                                }}
+                                                className="flex items-center justify-between px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:text-[#8b6f47] dark:hover:text-[#d4a574] rounded-xl transition-all w-full text-left cursor-pointer"
+                                            >
+                                                <div className="flex items-center gap-2.5">
+                                                    <Palette size={16} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" />
+                                                    <div className="flex flex-col text-left">
+                                                        <span className="font-black uppercase tracking-tight text-[11px]">Tùy chỉnh giao diện giỏ hàng</span>
+                                                        <span className="text-[9px] font-bold text-slate-400 lowercase tracking-normal">màu sắc, viền, mờ kính, mascot</span>
+                                                    </div>
+                                                </div>
+                                                <span className="text-[10px] text-amber-700 dark:text-amber-400 font-black bg-amber-500/10 px-2 py-0.5 rounded-md">Mở</span>
+                                            </button>
+
+                                            {/* AI Invoice Scanner */}
+                                            <button
+                                                onClick={() => {
+                                                    setIsActionMenuOpen(false);
+                                                    setIsScanModalOpen(true);
+                                                }}
+                                                className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:text-[#8b6f47] dark:hover:text-[#d4a574] rounded-xl transition-all w-full text-left"
+                                            >
+                                                <Bot size={16} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" />
+                                                <span className="font-black uppercase tracking-tight text-left">AI SCAN</span>
+                                            </button>
+
+                                            {/* Consignment Warehouse Panel */}
+                                            <button
+                                                onClick={() => {
+                                                    setIsActionMenuOpen(false);
+                                                    setIsConsignmentPanelOpen(true);
+                                                }}
+                                                className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:text-[#8b6f47] dark:hover:text-[#d4a574] rounded-xl transition-all"
+                                            >
+                                                <Warehouse size={16} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" />
+                                                <span>Theo dõi hàng gửi kho</span>
+                                            </button>
+
+                                            {/* Keep Order After Save Toggle */}
+                                            <button
+                                                onClick={() => {
+                                                    const newVal = !keepOrderAfterSave;
+                                                    setKeepOrderAfterSave(newVal);
+                                                    localStorage.setItem("pos_keep_order_after_save", newVal ? "true" : "false");
+                                                    try {
+                                                        const syncChan = new BroadcastChannel('pos_data_sync');
+                                                        syncChan.postMessage({ type: 'UI_SETTING_UPDATED', key: 'pos_keep_order_after_save', value: newVal ? 'true' : 'false' });
+                                                        syncChan.close();
+                                                    } catch (e) { }
+                                                }}
+                                                className="flex items-center justify-between px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:text-[#8b6f47] dark:hover:text-[#d4a574] rounded-xl transition-all /80 pt-2.5 mt-0.5 w-full text-left"
+                                            >
+                                                <div className="flex items-center gap-2.5">
+                                                    <ShoppingCart size={16} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" />
+                                                    <div className="flex flex-col text-left">
+                                                        <span className="font-black uppercase tracking-tight text-[11px]">Ở lại đơn vừa lưu</span>
+                                                        <span className="text-[9px] font-bold text-slate-400 lowercase tracking-normal">{keepOrderAfterSave ? "bật: giữ lại giỏ hàng" : "tắt: tự xóa giỏ hàng"}</span>
+                                                    </div>
+                                                </div>
+                                                <div className={cn(
+                                                    "w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out shrink-0 flex items-center border",
+                                                    keepOrderAfterSave ? "bg-[#8b6f47] border-[#8b6f47] justify-end" : "bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start"
+                                                )}>
+                                                    <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
+                                                </div>
+                                            </button>
+
+                                            {/* Save Notice Style Toggle (Card / Toast) */}
+                                            <button
+                                                onClick={() => {
+                                                    const nextStyle = saveNoticeStyle === 'card' ? 'toast' : 'card';
+                                                    setSaveNoticeStyle(nextStyle);
+                                                    localStorage.setItem("pos_save_notice_style", nextStyle);
+                                                    try {
+                                                        const syncChan = new BroadcastChannel('pos_data_sync');
+                                                        syncChan.postMessage({ type: 'UI_SETTING_UPDATED', key: 'pos_save_notice_style', value: nextStyle });
+                                                        syncChan.close();
+                                                    } catch (e) { }
+                                                }}
+                                                className="flex items-center justify-between px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:text-[#8b6f47] dark:hover:text-[#d4a574] rounded-xl transition-all /80 pt-2.5 mt-0.5 w-full text-left"
+                                            >
+                                                <div className="flex items-center gap-2.5">
+                                                    <Bell size={16} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" />
+                                                    <div className="flex flex-col text-left">
+                                                        <span className="font-black uppercase tracking-tight text-[11px]">Kiểu báo lưu đơn</span>
+                                                        <span className="text-[9px] font-bold text-slate-400 lowercase tracking-normal">{saveNoticeStyle === 'card' ? "thẻ nổi giữa màn hình" : "toast góc cũ"}</span>
+                                                    </div>
+                                                </div>
+                                                <div className={cn(
+                                                    "w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out shrink-0 flex items-center border",
+                                                    saveNoticeStyle === 'card' ? "bg-[#8b6f47] border-[#8b6f47] justify-end" : "bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start"
+                                                )}>
+                                                    <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
+                                                </div>
+                                            </button>
+
+                                            {/* Chọn kiểu hoạt ảnh quay lại đơn trước */}
+                                            <div className="p-2.5 bg-black/5 dark:bg-white/5 rounded-2xl border border-slate-200/80 dark:border-white/10 flex flex-col gap-1.5 my-0.5">
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                                                        <RotateCcw size={13} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" strokeWidth={2.5} /> Hoạt ảnh chuyển đơn:
+                                                    </span>
+                                                </div>
+                                                <select
+                                                    value={orderSwitchAnim}
+                                                    onChange={(e) => {
+                                                        const val = e.target.value;
+                                                        setOrderSwitchAnim(val);
+                                                        localStorage.setItem("pos_order_switch_animation", val);
+                                                        try {
+                                                            const syncChan = new BroadcastChannel("pos_data_sync");
+                                                            syncChan.postMessage({ type: "UI_SETTING_UPDATED", key: "pos_order_switch_animation", value: val });
+                                                            syncChan.close();
+                                                        } catch { }
+                                                        window.dispatchEvent(new CustomEvent("pos_order_switch_anim_changed", { detail: val }));
+                                                        axios.post("/api/settings", { pos_order_switch_animation: val }).catch(() => { });
+                                                    }}
+                                                    className="w-full bg-white dark:bg-[#06140e] border border-slate-200 dark:border-white/15 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl px-2.5 py-1.5 outline-none cursor-pointer focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all shadow-xs"
+                                                >
+                                                    <option value="ring">Vòng xoay Vụ Mùa (Mặc định)</option>
+                                                    <option value="minimal">Thanh nổi Mini (Không che màn hình)</option>
+                                                    <option value="slide">Trượt thẻ đơn (Mượt mà 60 FPS)</option>
+                                                    <option value="pulse">Hào quang nhịp thở (Phát sáng viền)</option>
+                                                    <option value="none">Tắt hoạt ảnh (Tức thì 0 delay)</option>
+                                                </select>
+                                            </div>
+
+                                            {/* Layout Toggle */}
+                                            <button
+                                                onClick={() => {
+                                                    setIsActionMenuOpen(false);
+                                                    toggleSummaryLayout();
+                                                }}
+                                                className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:text-[#8b6f47] dark:hover:text-[#d4a574] rounded-xl transition-all /80 pt-2"
+                                            >
+                                                {summaryLayoutMode === 'bottom' ? (
+                                                    <PanelRight size={16} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" />
+                                                ) : (
+                                                    <PanelBottom size={16} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" />
+                                                )}
+                                                <span>Chuyển bố cục: {summaryLayoutMode === 'bottom' ? 'Cột phải' : 'Ở dưới'}</span>
                                             </button>
                                         </m.div>
                                     )}
                                 </AnimatePresence>
                             </div>
+                        </div>
 
-                            {/* Partner Hover Info Card */}
-                            <PartnerInfoHoverCard
-                                partner={selectedPartner}
-                                isVisible={isPartnerHovered && !isPartnerDropdownOpen && Boolean(selectedPartner) && document.activeElement !== partnerInputRef.current}
-                            />
+                        <div className="flex-1 min-w-[8px]" />
 
-                            {/* Dropdown list */}
-                            <AnimatePresence>
-                                {isPartnerDropdownOpen && (
-                                    <m.div
-                                        initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                                        exit={{ opacity: 0, y: 8, scale: 0.96 }}
-                                        transition={{
-                                            duration: 0.15
-                                        }}
-                                        className="dropdown-premium dropdown-app-bg absolute top-full left-0 mt-2 w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl !z-[3000] rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden"
-                                        ref={partnerDropdownRef}
-                                    >
-                                        <div className="max-h-[500px] overflow-y-auto custom-scrollbar p-0">
-                                            {!partnerSearch && (
-                                                <div
-                                                    data-index={0}
-                                                    className={cn("dropdown-item flex items-center gap-3.5 px-4 py-3.5 transition-all relative cursor-pointer", activeIndex === 0 && "active")}
-                                                    onMouseMove={() => { if (activeIndex !== 0) setActiveIndex(0); }}
-                                                    onMouseDown={(e) => {
-                                                        e.preventDefault();
-                                                        setIsPartnerHovered(false);
-                                                        setSelectedPartner(null);
-                                                        setPartnerSearch('');
-                                                        setIsPartnerDropdownOpen(false);
-                                                        setTimeout(() => searchInputRef.current?.focus(), 50);
+                        {/* Date/Time Display in Empty Space */}
+                        <div className="flex justify-end items-center mr-2 shrink-0">
+                            <HeavyClock variant="purchase" gpuDisabled={gpuDisabled} />
+                        </div>
+                    </div>
+
+
+
+                    <div className="flex-1 flex gap-3 p-4 pt-0 pb-4 print:hidden min-h-0 relative">
+                        {/* Left: Product Cart Section */}
+                        <m.div
+                            initial={false}
+                            animate={{
+                                width: summaryLayoutMode === 'bottom' ? "100%" : isSidebarExpanded ? "calc(100% - 370px)" : "calc(100% - 100px)"
+                            }}
+                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                            className="flex flex-col min-h-0 flex-1 relative"
+                        >
+                            <div
+                                className={cn("flex-1 overflow-hidden relative transition-[background-color,border-color,box-shadow] duration-200 rounded-3xl", cartColorConfig.enableBorder !== false ? "border" : "border-0", transparentCartTable && (!cartColorConfig?.overlayColor || cartColorConfig.overlayColor === 'default') ? "bg-card/30 dark:bg-card/25 shadow-[0_0_25px_rgba(139,111,71,0.15),0_8px_32px_rgba(139,111,71,0.1)] dark:shadow-[0_0_30px_rgba(212,165,116,0.18)]" : (!transparentCartTable ? "bg-transparent shadow-[0_0_25px_rgba(139,111,71,0.12),0_4px_20px_rgba(139,111,71,0.06)] dark:shadow-[0_0_28px_rgba(212,165,116,0.15)]" : "shadow-[0_0_25px_rgba(139,111,71,0.15),0_8px_32px_rgba(139,111,71,0.1)] dark:shadow-[0_0_30px_rgba(212,165,116,0.18)]"))}
+                                style={{
+                                    ...getCartOverlayStyle(cartColorConfig, transparentCartTable),
+                                    border: cartColorConfig.enableBorder === false ? 'none' : undefined,
+                                    borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : undefined),
+                                    borderWidth: cartColorConfig.enableBorder === false ? 0 : (cartColorConfig.borderWidth ? `${cartColorConfig.borderWidth}px` : undefined),
+                                    boxShadow: getCartBoxShadow(cartColorConfig)
+                                }}
+                            >
+                                <OrderSwitchOverlay
+                                    isVisible={historyLoading}
+                                    style={orderSwitchAnim}
+                                    direction={navDirection}
+                                    logo={LyangLogo}
+                                    message="Đang đồng bộ dữ liệu..."
+                                />
+                                <div className="w-full h-full relative bg-transparent">
+                                    <div ref={cartScrollContainerRef} className="absolute top-0 left-0 right-0 overflow-y-scroll no-scrollbar-on-empty z-10 [scrollbar-gutter:stable] transition-[bottom] duration-250 ease-[cubic-bezier(0.16,1,0.3,1)]" style={{ bottom: (summaryLayoutMode === 'sidebar' && !isSidebarExpanded) ? (cartColorConfig?.bubbleLayoutStyle === 'classic' ? "128px" : "98px") : 0 }}>
+                                        <div className={cn("w-full transition-colors relative group/decoration", (summaryLayoutMode === 'sidebar' && !isSidebarExpanded) ? "pb-4" : "pb-6")}>
+                                            {/* Background Decoration Layer */}
+                                            <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
+                                                <div className="absolute right-[-100px] bottom-[-100px] opacity-[0.02] dark:opacity-[0.04] group-hover/decoration:scale-110 transition-transform duration-[2000ms] text-[#4a7c59]">
+                                                    <Sprout size={600} />
+                                                </div>
+                                                <div className="absolute left-[-50px] top-[-50px] opacity-[0.015] dark:opacity-[0.03] group-hover/decoration:rotate-12 transition-transform duration-[3000ms] text-muted">
+                                                    <Wheat size={400} />
+                                                </div>
+                                            </div>
+                                            <table className="w-full text-left border-collapse table-fixed">
+                                                <colgroup>
+                                                    <col style={{ width: "4%" }} />
+                                                    <col style={{ width: "42%" }} />
+                                                    <col style={{ width: "7%" }} />
+                                                    <col style={{ width: "9%" }} />
+                                                    <col style={{ width: "8%" }} />
+                                                    <col style={{ width: "12%" }} />
+                                                    <col style={{ width: "14%" }} />
+                                                    <col style={{ width: "4%" }} />
+                                                </colgroup>
+                                                <thead
+                                                    className="sticky top-0 z-[100] print:hidden border-none transition-colors duration-200"
+                                                    style={{
+                                                        backgroundColor: cartColorConfig.headerBg !== 'default' ? cartColorConfig.headerBg : 'transparent'
                                                     }}
                                                 >
-                                                    <div className={cn("w-11 h-11 rounded-2xl flex items-center justify-center transition-all shrink-0", activeIndex === 0 ? "bg-white/20 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300")}>
-                                                        <Truck size={22} strokeWidth={2.5} />
-                                                    </div>
-                                                    <div className="py-1">
-                                                        <div className={cn("font-black uppercase tracking-tight text-base md:text-[17px] leading-snug pt-0.5", activeIndex === 0 ? "text-white" : "text-slate-900 dark:text-white")}>NHÀ CUNG CẤP VÃNG LAI</div>
-                                                        <div className={cn("text-[11px] font-bold uppercase tracking-widest leading-relaxed mt-0.5", activeIndex === 0 ? "text-white/80" : "text-slate-500 dark:text-slate-400")}>MẶC ĐỊNH KHÔNG LƯU NỢ</div>
-                                                    </div>
-                                                </div>
-                                            )}
-                                            {filteredPartners.map((p, idx) => {
-                                                const isItemActive = partnerSearch ? activeIndex === idx : activeIndex === idx + 1;
-                                                const targetIndex = partnerSearch ? idx : idx + 1;
-                                                return (
-                                                    <div
-                                                        key={p.id}
-                                                        data-index={targetIndex}
-                                                        onMouseMove={() => { if (activeIndex !== targetIndex) setActiveIndex(targetIndex); }}
-                                                        onMouseDown={(e) => {
-                                                            e.preventDefault();
-                                                            setIsPartnerHovered(false);
-                                                            setSelectedPartner(p);
-                                                            setPartnerSearch('');
-                                                            setIsPartnerDropdownOpen(false);
-                                                            setTimeout(() => searchInputRef.current?.focus(), 50);
+                                                    <tr className="border-none">
+                                                        <th className="py-2.5 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Stt</span></th>
+                                                        <th className="px-3 py-2.5 align-middle whitespace-nowrap">
+                                                            <div className="flex items-center justify-between w-full gap-2">
+                                                                <span className="font-black uppercase tracking-wider text-[11px]" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}>
+                                                                    <span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Danh mục sản phẩm nhập hàng</span>
+                                                                </span>
+                                                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary dark:text-emerald-400 text-[9px] font-black tracking-tight border border-primary/20">
+                                                                    <span className="w-1.5 h-1.5 rounded-full bg-primary dark:bg-emerald-400" />
+                                                                    {totalItems} món
+                                                                </span>
+                                                            </div>
+                                                        </th>
+                                                        <th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Đơn vị</span></th>
+                                                        <th className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}>
+                                                            <div className="flex flex-col items-center justify-center leading-tight">
+                                                                <span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Quy đổi</span>
+                                                                <span className={cn("text-[10px] font-mono tabular-nums transition-colors mt-0.5", totalSecondaryQty > 0 ? (cartColorConfig.headerText !== 'default' ? "" : "text-[#8b6f47] dark:text-[#d4a574]") + " font-black" : "opacity-40 font-normal")}>
+                                                                    {totalSecondaryQty > 0 ? formatNumber(totalSecondaryQty) : "—"}
+                                                                </span>
+                                                            </div>
+                                                        </th>
+                                                        <th className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}>
+                                                            <div className="flex flex-col items-center justify-center leading-tight">
+                                                                <span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Số lượng</span>
+                                                                <span className={cn("text-[10px] font-mono tabular-nums transition-colors mt-0.5", totalQty > 0 ? "text-primary dark:text-emerald-400 font-black" : "opacity-40 font-normal")}>
+                                                                    {totalQty > 0 ? formatNumber(totalQty) : "—"}
+                                                                </span>
+                                                            </div>
+                                                        </th>
+                                                        <th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Giá nhập</span></th>
+                                                        <th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Thành tiền</span></th>
+                                                        <th className="py-2.5 px-2 text-center align-middle" />
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-none">
+                                                    {/* Dòng Tìm Kiếm Sản Phẩm - Relocated for Better Workflow */}
+                                                    <tr
+                                                        className={cn("sticky top-[42px] z-[150] hover:z-[1000] focus-within:z-[2001] transition-all duration-200 group/working-row cursor-pointer bg-transparent border-b-0")}
+                                                        style={{
+                                                            backgroundColor: cartColorConfig.rowBg && cartColorConfig.rowBg !== 'default' ? cartColorConfig.rowBg : 'transparent',
+                                                            borderBottom: 'none'
                                                         }}
                                                         onContextMenu={(e) => {
-                                                            e.preventDefault();
-                                                            e.stopPropagation();
-                                                            setItemContextMenu({
-                                                                type: 'partner',
-                                                                data: p,
-                                                                position: { x: e.clientX, y: e.clientY }
-                                                            });
+                                                            if (workingItem.product) {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
+                                                                setItemContextMenu({
+                                                                    type: 'product',
+                                                                    data: workingItem.product,
+                                                                    position: { x: e.clientX, y: e.clientY }
+                                                                });
+                                                            }
                                                         }}
-                                                        className={cn("dropdown-item flex justify-between items-center px-4 py-3 transition-all relative cursor-pointer", isItemActive && "active")}
                                                     >
-                                                        <div className="flex items-center gap-3.5 relative z-10 min-w-0 pr-3">
-                                                            <div className={cn("w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 transition-all border border-slate-100 dark:border-slate-800", isItemActive ? "bg-white/20 text-white border-transparent" : "bg-white dark:bg-slate-800 text-[#8b6f47] dark:text-[#d4a574] shadow-sm")}>
-                                                                <Truck size={22} strokeWidth={2.5} />
+                                                        <td className="py-2.5 px-2 text-center">
+                                                            <div className="w-8 h-8 rounded-xl bg-transparent text-primary dark:text-[#d4a574] border border-[#8b6f47]/25 dark:border-white/15 flex items-center justify-center mx-auto transition-all duration-200 group-hover/working-row:scale-110 hover:bg-primary hover:text-white dark:hover:bg-[#d4a574] dark:hover:text-black active:scale-95">
+                                                                <Plus size={16} strokeWidth={2.5} />
                                                             </div>
-                                                            <div className="flex flex-col gap-0.5 min-w-0 py-0.5">
-                                                                <div className="flex items-center gap-2 min-w-0">
-                                                                    <span className={cn("px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border shrink-0 transition-colors", isItemActive ? "bg-white/20 border-white/40 text-white" : "bg-[#8b6f47]/15 border-[#8b6f47]/30 text-[#8b6f47] dark:text-[#d4a574]")}>
-                                                                        NCC
-                                                                    </span>
-                                                                    <p className={cn("font-black tracking-tight text-base md:text-[17px] truncate leading-snug pt-0.5 transition-colors", isItemActive ? "text-white" : "text-slate-900 dark:text-white")}>{p.name}</p>
-                                                                </div>
-                                                                <div className={cn("flex items-center gap-3.5 text-xs font-bold tracking-wide transition-colors leading-relaxed", isItemActive ? "text-white/80" : "text-slate-500 dark:text-slate-400")}>
-                                                                    <span className="flex items-center gap-1 shrink-0"><Phone size={12} strokeWidth={2.5} className="opacity-60" />{p.phone || "---"}</span>
-                                                                    {p.address && <span className="flex items-center gap-1 truncate max-w-[220px]"><MapPin size={12} strokeWidth={2.5} className="opacity-60" />{p.address}</span>}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <div className="text-right relative z-10 flex flex-col items-end gap-1 shrink-0 pl-2">
-                                                            <p className={cn("text-2xl font-black tabular-nums tracking-tight leading-snug pt-0.5 transition-colors", isItemActive ? "text-white" : (p.debt_balance || 0) > 0 ? "text-[#d93025] dark:text-rose-400" : (p.debt_balance || 0) < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-[#0f9d58] dark:text-emerald-400 font-bold")}>
-                                                                {((p.debt_balance || 0) > 0 ? "+" : "") + formatNumber(Math.abs(p.debt_balance || 0))}
-                                                            </p>
-                                                            <div className={cn("px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border transition-colors", 
-                                                                isItemActive 
-                                                                    ? "bg-white/20 border-white/40 text-white" 
-                                                                    : "border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 bg-white/50 dark:bg-slate-800/50"
-                                                            )}>
-                                                                {(p.debt_balance || 0) > 0 ? "KHÁCH NỢ" : (p.debt_balance || 0) < 0 ? "MÌNH NỢ" : "HẾT NỢ"}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </m.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
-
-                        {/* 2. Note Button */}
-                        <m.button
-                            whileHover={{ y: -2, scale: 1.05 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() => setIsNoteModalOpen(true)}
-                            style={{ ...(cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {}), ...getButtonComputedStyle(cartColorConfig, 'buttons') }}
-                            className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:!bg-[#8b6f47] text-[#8b6f47] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#8b6f47] dark:text-[#d4a574] dark:hover:!text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#8b6f47] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#8b6f47]/20 shrink-0 cursor-pointer group"
-                            title={note ? `Ghi chú: ${note}` : "Thêm ghi chú đơn nhập"}
-                        >
-                            <FileText size={16} strokeWidth={2.5} className="group-hover:!text-white group-active:!text-white transition-colors" />
-                            {note && (
-                                <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-amber-400 border-2 border-white dark:border-slate-900 rounded-full shadow-sm" />
-                            )}
-                        </m.button>
-
-                        {/* 3. Held Orders (Treo đơn) */}
-                        <m.button
-                            whileHover={{ y: -2, scale: 1.05 }}
-                            whileTap={{ scale: 0.98 }}
-                            transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                            onClick={() => setIsHeldSidebarOpen(true)}
-                            style={{ ...(cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {}), ...getButtonComputedStyle(cartColorConfig, 'buttons') }}
-                            className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:!bg-[#8b6f47] text-[#8b6f47] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#8b6f47] dark:text-[#d4a574] dark:hover:!text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#8b6f47] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#8b6f47]/20 group shrink-0 cursor-pointer"
-                            title="Danh sách đơn nhập tạm"
-                        >
-                            <Pause size={16} strokeWidth={2.5} className="group-hover:!text-white group-active:!text-white transition-colors" />
-                            {heldPurchases.length > 0 && (
-                                <span className="absolute -top-1.5 -right-1.5 bg-rose-600 text-white text-[9px] min-w-[18px] h-4.5 rounded-full flex items-center justify-center font-black border border-white px-1 leading-none z-20">
-                                    {heldPurchases.length}
-                                </span>
-                            )}
-                        </m.button>
-
-                        {/* 5. Wholesale / Retail Mode */}
-                        <m.button
-                            whileHover={{ y: -2, scale: 1.05 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() => handleModeChange(posMode === 'Retail' ? 'Wholesale' : 'Retail')}
-                            style={{ ...(cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {}), ...getButtonComputedStyle(cartColorConfig, 'buttons') }}
-                            className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:!bg-[#8b6f47] text-[#8b6f47] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#8b6f47] dark:text-[#d4a574] dark:hover:!text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#8b6f47] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#8b6f47]/20 group shrink-0 cursor-pointer"
-                            title={posMode === 'Wholesale' ? "Chế độ Nhập Sỉ (Bấm để đổi sang Lẻ)" : "Chế độ Nhập Lẻ (Bấm để đổi sang Sỉ)"}
-                        >
-                            <span className="group-hover:!text-white group-active:!text-white transition-colors flex items-center justify-center">{posMode === 'Wholesale' ? <Users size={16} strokeWidth={2.5} /> : <User size={16} strokeWidth={2.5} />}</span>
-                            <div className={cn(
-                                "absolute bottom-1.5 right-1.5 w-2 h-2 rounded-full border border-white dark:border-slate-900",
-                                posMode === 'Wholesale' ? "bg-amber-400" : "bg-slate-300 dark:bg-slate-600"
-                            )} />
-                        </m.button>
-
-                        {/* 6. Daily / Partner History */}
-                        <m.button
-                            whileHover={{ y: -2, scale: 1.05 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() => {
-                                setIsDailyHistoryOpen(true);
-                            }}
-                            style={{ ...(cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {}), ...getButtonComputedStyle(cartColorConfig, 'buttons') }}
-                            className="relative w-9 h-9 flex items-center justify-center bg-[#8b6f47]/[0.08] hover:!bg-[#8b6f47] text-[#8b6f47] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#8b6f47] dark:text-[#d4a574] dark:hover:!text-white rounded-full transition-all duration-200 border border-[#8b6f47]/25 hover:border-[#8b6f47] dark:border-white/10 dark:hover:border-[#d4a574]/40 shadow-xs hover:shadow-md hover:shadow-[#8b6f47]/20 group shrink-0 cursor-pointer"
-                            title="Lịch sử đơn nhập hàng trong ngày"
-                        >
-                            <History size={16} strokeWidth={2.5} className="group-hover:!text-white group-active:!text-white transition-colors" />
-                        </m.button>
-
-                        {/* 6.5 Nút ĐẶT HÀNG trên Header */}
-                        <m.button
-                            whileHover={{ y: -2, scale: 1.03 }}
-                            whileTap={{ scale: 0.97 }}
-                            disabled={cart.length === 0}
-                            onClick={() => setIsPOExportModalOpen(true)}
-                            className={cn(
-                                "relative h-9 px-3 flex items-center gap-1.5 rounded-full transition-all duration-200 border shadow-xs shrink-0 cursor-pointer select-none text-xs font-black uppercase tracking-wider",
-                                cart.length === 0
-                                    ? "opacity-40 cursor-not-allowed bg-[#8b6f47]/[0.08] text-[#8b6f47] dark:bg-white/[0.05] dark:text-[#d4a574] border-[#8b6f47]/25 dark:border-white/10"
-                                    : "bg-gradient-to-r from-amber-600 to-amber-700 hover:brightness-110 text-white border-amber-400/50 shadow-md shadow-amber-600/25"
-                            )}
-                            title="Xuất phiếu đặt hàng gửi NCC (Ảnh / PDF không lưu đơn)"
-                        >
-                            <FileText size={15} strokeWidth={2.5} />
-                            <span>ĐẶT HÀNG</span>
-                        </m.button>
-
-                        {/* 7. Hamburger Action Menu (Thao tác) */}
-                        <div className="relative" ref={actionMenuRef}>
-                            <m.button
-                                whileHover={{ y: -2, scale: 1.05 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={() => setIsActionMenuOpen(prev => !prev)}
-                                style={{ ...getButtonComputedStyle(cartColorConfig, 'buttons'), ...(isActionMenuOpen ? { backgroundColor: (cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default') ? cartColorConfig.accentColor : '#8b6f47', borderColor: (cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default') ? cartColorConfig.accentColor : '#8b6f47', color: '#ffffff' } : (cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : {})) }}
-                                className={cn(
-                                    "w-9 h-9 shrink-0 rounded-full transition-all duration-200 flex items-center justify-center border shadow-xs cursor-pointer group",
-                                    isActionMenuOpen ? "!bg-[#8b6f47] !text-white !border-[#8b6f47] shadow-md shadow-[#8b6f47]/25" : "bg-[#8b6f47]/[0.08] hover:!bg-[#8b6f47] text-[#8b6f47] hover:!text-white active:!text-white dark:bg-white/[0.05] dark:hover:!bg-[#8b6f47] dark:text-[#d4a574] dark:hover:!text-white border-[#8b6f47]/25 hover:border-[#8b6f47] dark:border-white/10 dark:hover:border-[#d4a574]/40"
-                                )}
-                                title="Thao tác khác"
-                            >
-                                <Menu size={16} strokeWidth={2.5} className={isActionMenuOpen ? "!text-white" : "group-hover:!text-white group-active:!text-white transition-colors"} />
-                            </m.button>
-
-                            {/* Dropdown Menu */}
-                            <AnimatePresence>
-                                {isActionMenuOpen && (
-                                    <m.div
-                                        initial={{ opacity: 0, y: 8, scale: 0.95 }}
-                                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                                        exit={{ opacity: 0, y: 8, scale: 0.95 }}
-                                        transition={{
-                                            duration: 0.15
-                                        }}
-                                        className="absolute right-0 top-full mt-2 w-64 max-h-[50vh] overflow-y-auto !overflow-y-auto overscroll-contain custom-scrollbar bg-[#faf8f3]/95 dark:bg-[#0f172a]/95 backdrop-blur-2xl border-0 rounded-2xl shadow-2xl p-1.5 z-[4000] flex flex-col gap-1 text-left select-none"
-                                        style={{ maxHeight: '50vh', overflowY: 'auto' }}
-                                    >
-                                        {/* Preview Invoice */}
-                                        <button
-                                            onClick={() => {
-                                                setIsActionMenuOpen(false);
-                                                const tempOrder = {
-                                                    display_id: editOrderId ? `Đơn nhập #${editOrderId}` : 'XEM TRƯỚC',
-                                                    date: new Date().toISOString(),
-                                                    partner_name: selectedPartner ? selectedPartner.name : 'Nhà cung cấp vãng lai',
-                                                    partner_address: selectedPartner ? selectedPartner.address : '',
-                                                    partner_phone: selectedPartner ? selectedPartner.phone : '',
-                                                    total_amount: totalAmount,
-                                                    amount_paid: amountPaid,
-                                                    payment_method: paymentMethod,
-                                                    note: note,
-                                                    old_debt: oldDebt,
-                                                    partner_id: selectedPartner ? selectedPartner.id : null,
-                                                    details: cart.map(item => ({ ...item }))
-                                                };
-                                                setPreviewData(tempOrder);
-                                                setShowPreview(true);
-                                            }}
-                                            className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:text-[#8b6f47] dark:hover:text-[#d4a574] rounded-xl transition-all"
-                                        >
-                                            <Eye size={16} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" />
-                                            <span>Xem trước in hóa đơn</span>
-                                        </button>
-
-                                        {/* Export Purchase Order Slip (Image / PDF) without saving */}
-                                        <button
-                                            disabled={cart.length === 0}
-                                            onClick={() => {
-                                                setIsActionMenuOpen(false);
-                                                setIsPOExportModalOpen(true);
-                                            }}
-                                            className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-700 dark:hover:text-emerald-400 rounded-xl transition-all disabled:opacity-40 disabled:pointer-events-none"
-                                        >
-                                            <FileText size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                                            <div className="flex flex-col text-left">
-                                                <span className="font-black">Xuất phiếu đặt hàng NCC</span>
-                                                <span className="text-[9px] font-bold text-slate-400">Xuất Ảnh / PDF (không lưu đơn)</span>
-                                            </div>
-                                        </button>
-
-                                        {/* Chọn Mẫu In Mặc Định (Từ Invoice Designer) */}
-                                        <div className="p-2.5 bg-black/5 dark:bg-white/5 rounded-2xl border border-slate-200/80 dark:border-white/10 flex flex-col gap-1.5 my-0.5">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                                                    <Printer size={13} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" strokeWidth={2.5} /> Mẫu in mặc định:
-                                                </span>
-                                                <span className="text-[9px] font-black text-amber-700 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">
-                                                    {availableTemplates.length} mẫu
-                                                </span>
-                                            </div>
-                                            {availableTemplates.length > 0 ? (
-                                                <div className="relative">
-                                                    <select
-                                                        value={currentTemplateId || availableTemplates.find(t => t.is_default)?.id || availableTemplates[0]?.id || ''}
-                                                        onChange={(e) => {
-                                                            const tplId = parseInt(e.target.value);
-                                                            if (tplId) handleSelectDefaultTemplate(tplId);
-                                                        }}
-                                                        className="w-full bg-white dark:bg-[#06140e] border border-slate-200 dark:border-white/15 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl px-2.5 py-2 outline-none cursor-pointer focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all shadow-xs"
-                                                    >
-                                                        {availableTemplates.map((tpl) => (
-                                                            <option key={tpl.id} value={tpl.id} className="dark:bg-slate-900">
-                                                                {tpl.name || `Mẫu #${tpl.id}`} {tpl.is_default ? "★ (Mặc định)" : ""}
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                </div>
-                                            ) : (
-                                                <div className="text-[10px] italic text-slate-400 py-1">Chưa có mẫu in nào trong thiết kế</div>
-                                            )}
-                                        </div>
-
-                                        {/* Cart Header and Border Color Customizer */}
-                                        {/* Cart Color & Table Customizer */}
-                                        <button
-                                            onClick={() => {
-                                                setIsActionMenuOpen(false);
-                                                setShowCartColorCustomizer(true);
-                                            }}
-                                            className="flex items-center justify-between px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:text-[#8b6f47] dark:hover:text-[#d4a574] rounded-xl transition-all w-full text-left cursor-pointer"
-                                        >
-                                            <div className="flex items-center gap-2.5">
-                                                <Palette size={16} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" />
-                                                <div className="flex flex-col text-left">
-                                                    <span className="font-black uppercase tracking-tight text-[11px]">Tùy chỉnh giao diện giỏ hàng</span>
-                                                    <span className="text-[9px] font-bold text-slate-400 lowercase tracking-normal">màu sắc, viền, mờ kính, mascot</span>
-                                                </div>
-                                            </div>
-                                            <span className="text-[10px] text-amber-700 dark:text-amber-400 font-black bg-amber-500/10 px-2 py-0.5 rounded-md">Mở</span>
-                                        </button>
-
-                                        {/* AI Invoice Scanner */}
-                                        <button
-                                            onClick={() => {
-                                                setIsActionMenuOpen(false);
-                                                setIsScanModalOpen(true);
-                                            }}
-                                            className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:text-[#8b6f47] dark:hover:text-[#d4a574] rounded-xl transition-all w-full text-left"
-                                        >
-                                            <Bot size={16} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" />
-                                            <span className="font-black uppercase tracking-tight text-left">AI SCAN</span>
-                                        </button>
-
-                                        {/* Consignment Warehouse Panel */}
-                                        <button
-                                            onClick={() => {
-                                                setIsActionMenuOpen(false);
-                                                setIsConsignmentPanelOpen(true);
-                                            }}
-                                            className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:text-[#8b6f47] dark:hover:text-[#d4a574] rounded-xl transition-all"
-                                        >
-                                            <Warehouse size={16} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" />
-                                            <span>Theo dõi hàng gửi kho</span>
-                                        </button>
-
-                                        {/* Keep Order After Save Toggle */}
-                                        <button
-                                            onClick={() => {
-                                                const newVal = !keepOrderAfterSave;
-                                                setKeepOrderAfterSave(newVal);
-                                                localStorage.setItem("pos_keep_order_after_save", newVal ? "true" : "false");
-                                                try {
-                                                    const syncChan = new BroadcastChannel('pos_data_sync');
-                                                    syncChan.postMessage({ type: 'UI_SETTING_UPDATED', key: 'pos_keep_order_after_save', value: newVal ? 'true' : 'false' });
-                                                    syncChan.close();
-                                                } catch (e) {}
-                                            }}
-                                            className="flex items-center justify-between px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:text-[#8b6f47] dark:hover:text-[#d4a574] rounded-xl transition-all /80 pt-2.5 mt-0.5 w-full text-left"
-                                        >
-                                            <div className="flex items-center gap-2.5">
-                                                <ShoppingCart size={16} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" />
-                                                <div className="flex flex-col text-left">
-                                                    <span className="font-black uppercase tracking-tight text-[11px]">Ở lại đơn vừa lưu</span>
-                                                    <span className="text-[9px] font-bold text-slate-400 lowercase tracking-normal">{keepOrderAfterSave ? "bật: giữ lại giỏ hàng" : "tắt: tự xóa giỏ hàng"}</span>
-                                                </div>
-                                            </div>
-                                            <div className={cn(
-                                                "w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out shrink-0 flex items-center border",
-                                                keepOrderAfterSave ? "bg-[#8b6f47] border-[#8b6f47] justify-end" : "bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start"
-                                            )}>
-                                                <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
-                                            </div>
-                                        </button>
-
-                                        {/* Save Notice Style Toggle (Card / Toast) */}
-                                        <button
-                                            onClick={() => {
-                                                const nextStyle = saveNoticeStyle === 'card' ? 'toast' : 'card';
-                                                setSaveNoticeStyle(nextStyle);
-                                                localStorage.setItem("pos_save_notice_style", nextStyle);
-                                                try {
-                                                    const syncChan = new BroadcastChannel('pos_data_sync');
-                                                    syncChan.postMessage({ type: 'UI_SETTING_UPDATED', key: 'pos_save_notice_style', value: nextStyle });
-                                                    syncChan.close();
-                                                } catch (e) {}
-                                            }}
-                                            className="flex items-center justify-between px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:text-[#8b6f47] dark:hover:text-[#d4a574] rounded-xl transition-all /80 pt-2.5 mt-0.5 w-full text-left"
-                                        >
-                                            <div className="flex items-center gap-2.5">
-                                                <Bell size={16} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" />
-                                                <div className="flex flex-col text-left">
-                                                    <span className="font-black uppercase tracking-tight text-[11px]">Kiểu báo lưu đơn</span>
-                                                    <span className="text-[9px] font-bold text-slate-400 lowercase tracking-normal">{saveNoticeStyle === 'card' ? "thẻ nổi giữa màn hình" : "toast góc cũ"}</span>
-                                                </div>
-                                            </div>
-                                            <div className={cn(
-                                                "w-9 h-5 rounded-full p-0.5 transition-colors duration-200 ease-in-out shrink-0 flex items-center border",
-                                                saveNoticeStyle === 'card' ? "bg-[#8b6f47] border-[#8b6f47] justify-end" : "bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600 justify-start"
-                                            )}>
-                                                <div className="w-4 h-4 rounded-full bg-white shadow-sm" />
-                                            </div>
-                                        </button>
-
-                                        {/* Chọn kiểu hoạt ảnh quay lại đơn trước */}
-                                        <div className="p-2.5 bg-black/5 dark:bg-white/5 rounded-2xl border border-slate-200/80 dark:border-white/10 flex flex-col gap-1.5 my-0.5">
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-[10px] font-black uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
-                                                    <RotateCcw size={13} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" strokeWidth={2.5} /> Hoạt ảnh chuyển đơn:
-                                                </span>
-                                            </div>
-                                            <select
-                                                value={orderSwitchAnim}
-                                                onChange={(e) => {
-                                                    const val = e.target.value;
-                                                    setOrderSwitchAnim(val);
-                                                    localStorage.setItem("pos_order_switch_animation", val);
-                                                    try {
-                                                        const syncChan = new BroadcastChannel("pos_data_sync");
-                                                        syncChan.postMessage({ type: "UI_SETTING_UPDATED", key: "pos_order_switch_animation", value: val });
-                                                        syncChan.close();
-                                                    } catch {}
-                                                    window.dispatchEvent(new CustomEvent("pos_order_switch_anim_changed", { detail: val }));
-                                                    axios.post("/api/settings", { pos_order_switch_animation: val }).catch(() => {});
-                                                }}
-                                                className="w-full bg-white dark:bg-[#06140e] border border-slate-200 dark:border-white/15 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl px-2.5 py-1.5 outline-none cursor-pointer focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all shadow-xs"
-                                            >
-                                                <option value="ring">Vòng xoay Vụ Mùa (Mặc định)</option>
-                                                <option value="minimal">Thanh nổi Mini (Không che màn hình)</option>
-                                                <option value="slide">Trượt thẻ đơn (Mượt mà 60 FPS)</option>
-                                                <option value="pulse">Hào quang nhịp thở (Phát sáng viền)</option>
-                                                <option value="none">Tắt hoạt ảnh (Tức thì 0 delay)</option>
-                                            </select>
-                                        </div>
-
-                                        {/* Layout Toggle */}
-                                        <button
-                                            onClick={() => {
-                                                setIsActionMenuOpen(false);
-                                                toggleSummaryLayout();
-                                            }}
-                                            className="flex items-center gap-2.5 px-3 py-2.5 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-amber-50 dark:hover:bg-amber-950/30 hover:text-[#8b6f47] dark:hover:text-[#d4a574] rounded-xl transition-all /80 pt-2"
-                                        >
-                                            {summaryLayoutMode === 'bottom' ? (
-                                                <PanelRight size={16} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" />
-                                            ) : (
-                                                <PanelBottom size={16} className="text-[#8b6f47] dark:text-[#d4a574] shrink-0" />
-                                            )}
-                                            <span>Chuyển bố cục: {summaryLayoutMode === 'bottom' ? 'Cột phải' : 'Ở dưới'}</span>
-                                        </button>
-                                    </m.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
-                    </div>
-
-                    <div className="flex-1 min-w-[8px]" />
-
-                    {/* Date/Time Display in Empty Space */}
-                    <div className="flex justify-end items-center mr-2 shrink-0">
-                        <HeavyClock variant="purchase" gpuDisabled={gpuDisabled} />
-                    </div>
-                </div>
-
-
-
-                <div className="flex-1 flex gap-3 p-4 pt-0 pb-4 print:hidden min-h-0 relative">
-                    {/* Left: Product Cart Section */}
-                    <m.div
-                        initial={false}
-                        animate={{
-                            width: summaryLayoutMode === 'bottom' ? "100%" : isSidebarExpanded ? "calc(100% - 370px)" : "calc(100% - 100px)"
-                        }}
-                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                        className="flex flex-col min-h-0 flex-1 relative"
-                    >
-                        <div 
-                            className={cn("flex-1 overflow-hidden relative transition-[background-color,border-color,box-shadow] duration-200 rounded-3xl", cartColorConfig.enableBorder !== false ? "border" : "border-0", transparentCartTable && (!cartColorConfig?.overlayColor || cartColorConfig.overlayColor === 'default') ? "bg-card/30 dark:bg-card/25 shadow-[0_0_25px_rgba(139,111,71,0.15),0_8px_32px_rgba(139,111,71,0.1)] dark:shadow-[0_0_30px_rgba(212,165,116,0.18)]" : (!transparentCartTable ? "bg-transparent shadow-[0_0_25px_rgba(139,111,71,0.12),0_4px_20px_rgba(139,111,71,0.06)] dark:shadow-[0_0_28px_rgba(212,165,116,0.15)]" : "shadow-[0_0_25px_rgba(139,111,71,0.15),0_8px_32px_rgba(139,111,71,0.1)] dark:shadow-[0_0_30px_rgba(212,165,116,0.18)]"))}
-                            style={{
-                                ...getCartOverlayStyle(cartColorConfig, transparentCartTable),
-                                border: cartColorConfig.enableBorder === false ? 'none' : undefined,
-                                borderColor: cartColorConfig.enableBorder === false ? 'transparent' : (cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : undefined),
-                                borderWidth: cartColorConfig.enableBorder === false ? 0 : (cartColorConfig.borderWidth ? `${cartColorConfig.borderWidth}px` : undefined),
-                                boxShadow: getCartBoxShadow(cartColorConfig)
-                            }}
-                        >
-                            <OrderSwitchOverlay
-                                isVisible={historyLoading}
-                                style={orderSwitchAnim}
-                                direction={navDirection}
-                                logo={LyangLogo}
-                                message="Đang đồng bộ dữ liệu..."
-                            />
-                            <div className="w-full h-full relative bg-transparent">
-                                <div ref={cartScrollContainerRef} className="absolute top-0 left-0 right-0 overflow-y-scroll no-scrollbar-on-empty z-10 [scrollbar-gutter:stable] transition-[bottom] duration-250 ease-[cubic-bezier(0.16,1,0.3,1)]" style={{ bottom: (summaryLayoutMode === 'sidebar' && !isSidebarExpanded) ? (cartColorConfig?.bubbleLayoutStyle === 'classic' ? "128px" : "98px") : 0 }}>
-                                    <div className={cn("w-full transition-colors relative group/decoration", (summaryLayoutMode === 'sidebar' && !isSidebarExpanded) ? "pb-4" : "pb-6")}>
-                                        {/* Background Decoration Layer */}
-                                        <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
-                                            <div className="absolute right-[-100px] bottom-[-100px] opacity-[0.02] dark:opacity-[0.04] group-hover/decoration:scale-110 transition-transform duration-[2000ms] text-[#4a7c59]">
-                                                <Sprout size={600} />
-                                            </div>
-                                            <div className="absolute left-[-50px] top-[-50px] opacity-[0.015] dark:opacity-[0.03] group-hover/decoration:rotate-12 transition-transform duration-[3000ms] text-muted">
-                                                <Wheat size={400} />
-                                            </div>
-                                        </div>
-                                        <table className="w-full text-left border-collapse table-fixed">
-                                            <colgroup>
-                                                <col style={{ width: "4%" }} />
-                                                <col style={{ width: "42%" }} />
-                                                <col style={{ width: "7%" }} />
-                                                <col style={{ width: "9%" }} />
-                                                <col style={{ width: "8%" }} />
-                                                <col style={{ width: "12%" }} />
-                                                <col style={{ width: "14%" }} />
-                                                <col style={{ width: "4%" }} />
-                                            </colgroup>
-                                            <thead 
-                                                className="sticky top-0 z-[100] print:hidden border-none transition-colors duration-200"
-                                                style={{
-                                                    backgroundColor: cartColorConfig.headerBg !== 'default' ? cartColorConfig.headerBg : 'transparent'
-                                                }}
-                                            >
-                                                <tr className="border-none">
-                                                    <th className="py-2.5 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Stt</span></th>
-                                                    <th className="px-3 py-2.5 align-middle whitespace-nowrap">
-                                                        <div className="flex items-center justify-between w-full gap-2">
-                                                            <span className="font-black uppercase tracking-wider text-[11px]" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}>
-                                                                <span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Danh mục sản phẩm nhập hàng</span>
-                                                            </span>
-                                                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary dark:text-emerald-400 text-[9px] font-black tracking-tight border border-primary/20">
-                                                                <span className="w-1.5 h-1.5 rounded-full bg-primary dark:bg-emerald-400" />
-                                                                {totalItems} món
-                                                            </span>
-                                                        </div>
-                                                    </th>
-                                                    <th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Đơn vị</span></th>
-                                                    <th className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}>
-                                                        <div className="flex flex-col items-center justify-center leading-tight">
-                                                            <span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Quy đổi</span>
-                                                            <span className={cn("text-[10px] font-mono tabular-nums transition-colors mt-0.5", totalSecondaryQty > 0 ? (cartColorConfig.headerText !== 'default' ? "" : "text-[#8b6f47] dark:text-[#d4a574]") + " font-black" : "opacity-40 font-normal")}>
-                                                                {totalSecondaryQty > 0 ? formatNumber(totalSecondaryQty) : "—"}
-                                                            </span>
-                                                        </div>
-                                                    </th>
-                                                    <th className="py-2 px-2 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}>
-                                                        <div className="flex flex-col items-center justify-center leading-tight">
-                                                            <span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Số lượng</span>
-                                                            <span className={cn("text-[10px] font-mono tabular-nums transition-colors mt-0.5", totalQty > 0 ? "text-primary dark:text-emerald-400 font-black" : "opacity-40 font-normal")}>
-                                                                {totalQty > 0 ? formatNumber(totalQty) : "—"}
-                                                            </span>
-                                                        </div>
-                                                    </th>
-                                                    <th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Giá nhập</span></th>
-                                                    <th className="py-2.5 px-3 text-center align-middle font-black uppercase text-[10px] tracking-wider whitespace-nowrap" style={{ color: cartColorConfig.headerText !== 'default' ? cartColorConfig.headerText : undefined }}><span className={cartColorConfig.headerText === 'default' ? "text-[#8b6f47] dark:text-[#d4a574]" : ""}>Thành tiền</span></th>
-                                                    <th className="py-2.5 px-2 text-center align-middle" />
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-none">
-                                                {/* Dòng Tìm Kiếm Sản Phẩm - Relocated for Better Workflow */}
-                                                <tr
-                                                    className={cn("sticky top-[42px] z-[150] hover:z-[1000] focus-within:z-[2001] transition-all duration-200 group/working-row cursor-pointer bg-transparent border-b-0")}
-                                                    style={{ 
-                                                        backgroundColor: cartColorConfig.rowBg && cartColorConfig.rowBg !== 'default' ? cartColorConfig.rowBg : 'transparent',
-                                                        borderBottom: 'none'
-                                                    }}
-                                                    onContextMenu={(e) => {
-                                                        if (workingItem.product) {
-                                                            e.preventDefault();
-                                                            e.stopPropagation();
-                                                            setItemContextMenu({
-                                                                type: 'product',
-                                                                data: workingItem.product,
-                                                                position: { x: e.clientX, y: e.clientY }
-                                                            });
-                                                        }
-                                                    }}
-                                                >
-                                                    <td className="py-2.5 px-2 text-center">
-                                                        <div className="w-8 h-8 rounded-xl bg-transparent text-primary dark:text-[#d4a574] border border-[#8b6f47]/25 dark:border-white/15 flex items-center justify-center mx-auto transition-all duration-200 group-hover/working-row:scale-110 hover:bg-primary hover:text-white dark:hover:bg-[#d4a574] dark:hover:text-black active:scale-95">
-                                                            <Plus size={16} strokeWidth={2.5} />
-                                                        </div>
-                                                    </td>
-                                                    <td className="py-2.5 px-2 relative">
-                                                        <div className="relative group/search">
-                                                            <div className="relative">
-                                                                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10 text-primary/60 dark:text-[#d4a574]/60 group-focus-within/search:text-primary dark:group-focus-within/search:text-[#d4a574] transition-colors">
-                                                                    <Search size={18} strokeWidth={2.5} />
-                                                                </div>
-                                                                <SearchTypingOverlay
-                                                                    text={searchTerm}
-                                                                    enabled={cartColorConfig?.enableSearchTypingAnimation !== false}
-                                                                    inputRef={searchInputRef}
-                                                                    className="left-0 right-14 pl-11 pr-2 font-extrabold font-sans text-[13.5px] tracking-normal"
-                                                                    style={{ color: cartColorConfig?.productTextColor && cartColorConfig.productTextColor !== 'default' ? cartColorConfig.productTextColor : undefined }}
-                                                                />
-                                                                <input
-                                                                    id="pos-quick-product-search"
-                                                                    type="text"
-                                                                    placeholder="Tên sản phẩm (F2)..."
-                                                                    style={{ color: cartColorConfig?.productTextColor && cartColorConfig.productTextColor !== 'default' ? cartColorConfig.productTextColor : undefined }}
-                                                                    className={cn(
-                                                                        "w-full h-10 py-0 pl-11 pr-14 bg-transparent border border-[#8b6f47]/25 dark:border-white/15 rounded-xl font-extrabold font-sans text-[13.5px] tracking-normal leading-[40px] outline-none transition-all duration-150 focus:border-primary/60 dark:focus:border-[#d4a574]/60 focus:ring-2 focus:ring-primary/20 dark:focus:ring-[#d4a574]/20 focus:bg-transparent placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:text-[12.5px] placeholder:font-bold placeholder:font-sans placeholder:tracking-tight placeholder:leading-[40px] caret-primary dark:caret-[#d4a574]",
-                                                                        (cartColorConfig?.enableSearchTypingAnimation !== false && searchTerm)
-                                                                            ? "text-transparent"
-                                                                            : (!cartColorConfig?.productTextColor || cartColorConfig.productTextColor === 'default') && "text-slate-900 dark:text-white"
-                                                                    )}
-                                                                    autoComplete="off"
-                                                                    value={searchTerm}
-                                                                    onChange={(e) => {
-                                                                        const val = e.target.value;
-                                                                        playTypingSound();
-                                                                        setSearchTerm(val);
-                                                                        setActiveIndex(0);
-                                                                        if (searchInputRef.current) {
-                                                                            const rect = searchInputRef.current.getBoundingClientRect();
-                                                                            if (rect.width > 0 && rect.bottom > 0) {
-                                                                                setWorkingSearchCoords({
-                                                                                    top: rect.bottom + 6,
-                                                                                    left: rect.left,
-                                                                                    width: Math.max(rect.width, 600)
-                                                                                });
-                                                                            }
-                                                                        }
-                                                                        // if user edits, clear current product to show dropdown
-                                                                        if (workingItem.product && val !== workingItem.name) {
-                                                                            setWorkingItem({ ...workingItem, product: null, name: val });
-                                                                        }
-                                                                    }}
-                                                                    onKeyDown={(e) => {
-                                                                        if (e.key === 'ArrowUp') {
-                                                                            e.preventDefault();
-                                                                            setActiveIndex(prev => {
-                                                                                const next = Math.max(prev - 1, 0);
-                                                                                const container = productDropdownRef.current;
-                                                                                if (container) {
-                                                                                    const item = container.children[next];
-                                                                                    if (item) item.scrollIntoView({ block: 'nearest' });
+                                                        </td>
+                                                        <td className="py-2.5 px-2 relative">
+                                                            <div className="relative group/search">
+                                                                <div className="relative">
+                                                                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 z-10 text-primary/60 dark:text-[#d4a574]/60 group-focus-within/search:text-primary dark:group-focus-within/search:text-[#d4a574] transition-colors">
+                                                                        <Search size={18} strokeWidth={2.5} />
+                                                                    </div>
+                                                                    <SearchTypingOverlay
+                                                                        text={searchTerm}
+                                                                        enabled={cartColorConfig?.enableSearchTypingAnimation !== false}
+                                                                        inputRef={searchInputRef}
+                                                                        className="left-0 right-14 pl-11 pr-2 font-extrabold font-sans text-[13.5px] tracking-normal"
+                                                                        style={{ color: cartColorConfig?.productTextColor && cartColorConfig.productTextColor !== 'default' ? cartColorConfig.productTextColor : undefined }}
+                                                                    />
+                                                                    <input
+                                                                        id="pos-quick-product-search"
+                                                                        type="text"
+                                                                        placeholder="Tên sản phẩm (F2)..."
+                                                                        style={{ color: cartColorConfig?.productTextColor && cartColorConfig.productTextColor !== 'default' ? cartColorConfig.productTextColor : undefined }}
+                                                                        className={cn(
+                                                                            "w-full h-10 py-0 pl-11 pr-14 bg-transparent border border-[#8b6f47]/25 dark:border-white/15 rounded-xl font-extrabold font-sans text-[13.5px] tracking-normal leading-[40px] outline-none transition-all duration-150 focus:border-primary/60 dark:focus:border-[#d4a574]/60 focus:ring-2 focus:ring-primary/20 dark:focus:ring-[#d4a574]/20 focus:bg-transparent placeholder:text-slate-400 dark:placeholder:text-slate-500 placeholder:text-[12.5px] placeholder:font-bold placeholder:font-sans placeholder:tracking-tight placeholder:leading-[40px] caret-primary dark:caret-[#d4a574]",
+                                                                            (cartColorConfig?.enableSearchTypingAnimation !== false && searchTerm)
+                                                                                ? "text-transparent"
+                                                                                : (!cartColorConfig?.productTextColor || cartColorConfig.productTextColor === 'default') && "text-slate-900 dark:text-white"
+                                                                        )}
+                                                                        autoComplete="off"
+                                                                        value={searchTerm}
+                                                                        onChange={(e) => {
+                                                                            const val = e.target.value;
+                                                                            playTypingSound();
+                                                                            setSearchTerm(val);
+                                                                            setActiveIndex(0);
+                                                                            if (searchInputRef.current) {
+                                                                                const rect = searchInputRef.current.getBoundingClientRect();
+                                                                                if (rect.width > 0 && rect.bottom > 0) {
+                                                                                    setWorkingSearchCoords({
+                                                                                        top: rect.bottom + 6,
+                                                                                        left: rect.left,
+                                                                                        width: Math.max(rect.width, 600)
+                                                                                    });
                                                                                 }
-                                                                                return next;
-                                                                            });
-                                                                        } else if (e.key === 'ArrowDown') {
-                                                                            e.preventDefault();
-                                                                            setActiveIndex(prev => {
-                                                                                const next = Math.min(prev + 1, filteredProducts.length - 1);
-                                                                                const container = productDropdownRef.current;
-                                                                                if (container) {
-                                                                                    const item = container.children[next];
-                                                                                    if (item) item.scrollIntoView({ block: 'nearest' });
-                                                                                }
-                                                                                return next;
-                                                                            });
-                                                                        } else if (e.key === 'Enter') {
-                                                                            e.preventDefault();
-                                                                            if (searchTerm && filteredProducts[activeIndex]) {
-                                                                                const p = filteredProducts[activeIndex];
-                                                                                const pPrice = p.latest_cost_price || p.cost_price || 0;
-                                                                                addToCart(p, 1, pPrice);
-                                                                                setSearchTerm("");
-                                                                                setWorkingItem({ product: null, quantity: 0, price: 0, secondary_qty: 0, name: "" });
-                                                                                setTimeout(() => {
-                                                                                    searchInputRef.current?.focus();
-                                                                                    searchInputRef.current?.select?.();
-                                                                                }, 50);
                                                                             }
-                                                                        } else if (e.key === 'Tab') {
-                                                                            if (workingItem.product) {
+                                                                            // if user edits, clear current product to show dropdown
+                                                                            if (workingItem.product && val !== workingItem.name) {
+                                                                                setWorkingItem({ ...workingItem, product: null, name: val });
+                                                                            }
+                                                                        }}
+                                                                        onKeyDown={(e) => {
+                                                                            if (e.key === 'ArrowUp') {
                                                                                 e.preventDefault();
-                                                                                // useEffect will handle focus
-                                                                            } else if (searchTerm && filteredProducts[activeIndex]) {
-                                                                                e.preventDefault();
-                                                                                const p = filteredProducts[activeIndex];
-                                                                                const currentQty = workingItem.quantity > 0 ? workingItem.quantity : 1;
-                                                                                setWorkingItem({
-                                                                                    product: p,
-                                                                                    quantity: currentQty,
-                                                                                    price: p.latest_cost_price || p.cost_price,
-                                                                                    secondary_qty: currentQty / (p.multiplier || 1),
-                                                                                    name: p.name
+                                                                                setActiveIndex(prev => {
+                                                                                    const next = Math.max(prev - 1, 0);
+                                                                                    const container = productDropdownRef.current;
+                                                                                    if (container) {
+                                                                                        const item = container.children[next];
+                                                                                        if (item) item.scrollIntoView({ block: 'nearest' });
+                                                                                    }
+                                                                                    return next;
                                                                                 });
-                                                                                setSearchTerm(p.name);
+                                                                            } else if (e.key === 'ArrowDown') {
+                                                                                e.preventDefault();
+                                                                                setActiveIndex(prev => {
+                                                                                    const next = Math.min(prev + 1, filteredProducts.length - 1);
+                                                                                    const container = productDropdownRef.current;
+                                                                                    if (container) {
+                                                                                        const item = container.children[next];
+                                                                                        if (item) item.scrollIntoView({ block: 'nearest' });
+                                                                                    }
+                                                                                    return next;
+                                                                                });
+                                                                            } else if (e.key === 'Enter') {
+                                                                                e.preventDefault();
+                                                                                if (searchTerm && filteredProducts[activeIndex]) {
+                                                                                    const p = filteredProducts[activeIndex];
+                                                                                    const pPrice = p.latest_cost_price || p.cost_price || 0;
+                                                                                    addToCart(p, 1, pPrice);
+                                                                                    setSearchTerm("");
+                                                                                    setWorkingItem({ product: null, quantity: 0, price: 0, secondary_qty: 0, name: "" });
+                                                                                    setTimeout(() => {
+                                                                                        searchInputRef.current?.focus();
+                                                                                        searchInputRef.current?.select?.();
+                                                                                    }, 50);
+                                                                                }
+                                                                            } else if (e.key === 'Tab') {
+                                                                                if (workingItem.product) {
+                                                                                    e.preventDefault();
+                                                                                    // useEffect will handle focus
+                                                                                } else if (searchTerm && filteredProducts[activeIndex]) {
+                                                                                    e.preventDefault();
+                                                                                    const p = filteredProducts[activeIndex];
+                                                                                    const currentQty = workingItem.quantity > 0 ? workingItem.quantity : 1;
+                                                                                    setWorkingItem({
+                                                                                        product: p,
+                                                                                        quantity: currentQty,
+                                                                                        price: p.latest_cost_price || p.cost_price,
+                                                                                        secondary_qty: currentQty / (p.multiplier || 1),
+                                                                                        name: p.name
+                                                                                    });
+                                                                                    setSearchTerm(p.name);
+                                                                                }
                                                                             }
-                                                                        }
-                                                                    }}
-                                                                    onFocus={(e) => e.target.select()}
-                                                                    ref={searchInputRef}
-                                                                />
+                                                                        }}
+                                                                        onFocus={(e) => e.target.select()}
+                                                                        ref={searchInputRef}
+                                                                    />
+                                                                </div>
+                                                                {workingItem.product && (
+                                                                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none">
+                                                                        <span className={cn(
+                                                                            "px-2.5 py-0.5 rounded-full text-[11px] font-black border transition-all shadow-xs backdrop-blur-md",
+                                                                            workingItem.product.stock <= 0
+                                                                                ? "bg-gradient-to-r from-rose-500/15 via-red-500/20 to-rose-600/15 dark:from-rose-500/25 dark:to-rose-600/30 text-rose-700 dark:text-rose-300 border-rose-500/35 dark:border-rose-400/45 shadow-rose-500/10"
+                                                                                : workingItem.product.stock < 10
+                                                                                    ? "bg-gradient-to-r from-amber-500/15 via-orange-500/20 to-amber-600/15 dark:from-amber-500/25 dark:to-amber-600/30 text-amber-800 dark:text-amber-300 border-amber-500/35 dark:border-amber-400/45 shadow-amber-500/10"
+                                                                                    : "bg-gradient-to-r from-emerald-500/15 via-teal-500/20 to-emerald-600/15 dark:from-emerald-500/25 dark:to-emerald-600/30 text-emerald-800 dark:text-emerald-300 border-emerald-500/35 dark:border-emerald-400/45 shadow-emerald-500/10"
+                                                                        )}>
+                                                                            {workingItem.product.stock}
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+                                                                <Portal>
+                                                                    <AnimatePresence>
+                                                                        {searchTerm && !workingItem.product && workingSearchCoords.top > 0 && (
+                                                                            <m.div
+                                                                                initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                                                                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                                                exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                                                                                transition={{
+                                                                                    duration: 0.15
+                                                                                }}
+                                                                                className="frosted-glass backdrop-blur-2xl fixed !z-[999999] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 !overflow-visible"
+                                                                                style={{
+                                                                                    top: workingSearchCoords.top,
+                                                                                    left: workingSearchCoords.left,
+                                                                                    width: Math.min(workingSearchCoords.width || 600, typeof window !== 'undefined' ? window.innerWidth - (workingSearchCoords.left || 0) - 16 : 600),
+                                                                                    maxHeight: Math.min(480, typeof window !== 'undefined' ? window.innerHeight - (workingSearchCoords.top || 0) - 16 : 480),
+                                                                                    zIndex: 999999,
+                                                                                    overflow: 'visible'
+                                                                                }}
+                                                                            >
+                                                                                {/* Bé Lyang Mascot - Có hỗ trợ kéo chuột (Drag) & cuộn chuột đổi size (Wheel Resize) */}
+                                                                                <DropdownMascot title="Lí An - Trợ lý nhập hàng thông minh" />
+
+                                                                                <div className="rounded-2xl overflow-hidden w-full divide-y divide-[#8b6f47]/10 dark:divide-white/5">
+                                                                                    {filteredProducts.length > 0 && (
+                                                                                        <div className="max-h-[440px] overflow-y-auto overscroll-contain custom-scrollbar p-0" ref={productDropdownRef}>
+                                                                                            {filteredProducts.map((p, idx) => (
+                                                                                                <div
+                                                                                                    key={p.id}
+                                                                                                    onMouseMove={() => { if (activeIndex !== idx) setActiveIndex(idx); }}
+                                                                                                    onClick={() => {
+                                                                                                        const currentQty = workingItem.quantity > 0 ? workingItem.quantity : 1;
+                                                                                                        setWorkingItem({
+                                                                                                            product: p,
+                                                                                                            quantity: currentQty,
+                                                                                                            price: p.latest_cost_price || p.cost_price,
+                                                                                                            secondary_qty: currentQty / (p.multiplier || 1),
+                                                                                                            name: p.name
+                                                                                                        });
+                                                                                                        setSearchTerm(p.name);
+                                                                                                    }}
+                                                                                                    onContextMenu={(e) => {
+                                                                                                        e.preventDefault();
+                                                                                                        e.stopPropagation();
+                                                                                                        setItemContextMenu({
+                                                                                                            type: 'product',
+                                                                                                            data: p,
+                                                                                                            position: { x: e.clientX, y: e.clientY }
+                                                                                                        });
+                                                                                                    }}
+                                                                                                    className={cn(
+                                                                                                        "dropdown-item flex justify-between items-center",
+                                                                                                        idx === activeIndex && "active"
+                                                                                                    )}
+                                                                                                >
+                                                                                                    <div className="flex-1 flex flex-col gap-1.5 relative z-10 min-w-0 overflow-hidden mr-3">
+                                                                                                        <div className="flex items-center gap-3 min-w-0">
+                                                                                                            <div className="min-w-0 flex-1 overflow-hidden">
+                                                                                                                <MarqueeText
+                                                                                                                    text={p.name}
+                                                                                                                    isActive={idx === activeIndex}
+                                                                                                                    className="font-black tracking-tight transition-all duration-300 leading-relaxed"
+                                                                                                                    style={{
+                                                                                                                        fontSize: idx === activeIndex ? "18px" : "16px",
+                                                                                                                        paddingLeft: idx === activeIndex ? '12px' : '0px'
+                                                                                                                    }}
+                                                                                                                />
+                                                                                                            </div>
+                                                                                                            {p.is_combo && (
+                                                                                                                <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-widest">COMBO</span>
+                                                                                                            )}
+                                                                                                        </div>
+                                                                                                        <div className="flex items-center gap-5">
+                                                                                                            <span className={cn("text-[11px] font-black italic tracking-wide transition-colors", idx === activeIndex ? "text-white/80" : "text-primary dark:text-emerald-400")}>
+                                                                                                                {p.active_ingredient || ""}
+                                                                                                            </span>
+                                                                                                            <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                                                                                                                {p.code && (
+                                                                                                                    <span className={cn(
+                                                                                                                        "shrink-0 px-2 py-0.5 rounded-md font-mono text-[9.5px] font-black tabular-nums transition-colors",
+                                                                                                                        idx === activeIndex ? "bg-white/20 text-white" : "bg-slate-900/10 dark:bg-white/10 text-slate-600 dark:text-slate-300"
+                                                                                                                    )}>
+                                                                                                                        {p.code}
+                                                                                                                    </span>
+                                                                                                                )}
+                                                                                                                <span className={cn(
+                                                                                                                    "px-2.5 py-0.5 rounded-md transition-colors font-bold",
+                                                                                                                    idx === activeIndex ? "bg-white/20 text-white" : "bg-black/[0.05] dark:bg-white/[0.08] text-slate-700 dark:text-slate-300"
+                                                                                                                )}>
+                                                                                                                    {normalizeUOM(p.unit)}
+                                                                                                                </span>
+                                                                                                                {p.multiplier > 1 && (
+                                                                                                                    <span className={idx === activeIndex ? "text-white/60" : "text-slate-500 opacity-60"}>
+                                                                                                                        / {normalizeUOM(p.secondary_unit)} (x{p.multiplier})
+                                                                                                                    </span>
+                                                                                                                )}
+                                                                                                            </div>
+                                                                                                        </div>
+                                                                                                    </div>
+
+                                                                                                    <div className="flex items-center gap-8 relative z-10">
+                                                                                                        <div
+                                                                                                            className={cn(
+                                                                                                                "px-3 py-1.5 rounded-full text-xs font-black transition-all flex items-center gap-2 select-none shadow-xs shrink-0",
+                                                                                                                p.stock <= 0
+                                                                                                                    ? "bg-rose-600 text-white"
+                                                                                                                    : p.stock < 10
+                                                                                                                        ? "bg-amber-500 text-slate-950"
+                                                                                                                        : idx === activeIndex
+                                                                                                                            ? "bg-white/25 text-white"
+                                                                                                                            : "bg-[#8b6f47]/15 text-[#8b6f47] dark:text-[#d4a574]"
+                                                                                                            )}
+                                                                                                            title="Tồn kho thực tế"
+                                                                                                        >
+                                                                                                            <div className="flex items-center gap-1.5 tabular-nums">
+                                                                                                                <Package size={14} strokeWidth={2.5} />
+                                                                                                                <span className="tabular-nums font-black">{p.stock}</span>
+                                                                                                            </div>
+                                                                                                        </div>
+
+                                                                                                        <div className="flex flex-col items-end gap-1 shrink-0">
+                                                                                                            <div className={cn(
+                                                                                                                "text-[22px] font-black tracking-tighter tabular-nums",
+                                                                                                                idx === activeIndex ? "text-white" : "text-[#2d5016] dark:text-[#d4a574]"
+                                                                                                            )}>
+                                                                                                                {formatNumber(p.cost_price)}
+                                                                                                            </div>
+                                                                                                            <div className={cn(
+                                                                                                                "text-[10px] font-black uppercase tracking-widest opacity-80 flex items-center gap-1",
+                                                                                                                idx === activeIndex ? "text-white/80" : "text-slate-500 dark:text-slate-400"
+                                                                                                            )}>
+                                                                                                                <History size={10} strokeWidth={2.5} />
+                                                                                                                NHẬP CUỐI: {formatNumber(p.latest_cost_price || 0)}
+                                                                                                            </div>
+                                                                                                        </div>
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            ))}
+                                                                                        </div>
+                                                                                    )}
+                                                                                    {searchTerm && (
+                                                                                        <div
+                                                                                            className={cn(
+                                                                                                "dropdown-item flex items-center justify-between gap-3 cursor-pointer group/quick-add transition-all duration-150 select-none",
+                                                                                                filteredProducts.length === 0 ? "p-4" : "p-3 bg-black/[0.02] dark:bg-white/[0.02]"
+                                                                                            )}
+                                                                                            onClick={() => {
+                                                                                                const cleanName = searchTerm.trim();
+                                                                                                setQuickAddName(cleanName);
+                                                                                                setSearchTerm('');
+                                                                                                setShowQuickAddProduct(true);
+                                                                                            }}
+                                                                                        >
+                                                                                            <div className="flex items-center gap-3 min-w-0">
+                                                                                                <div className="w-8 h-8 rounded-xl bg-primary/10 dark:bg-white/10 text-primary dark:text-[#d4a574] flex items-center justify-center shrink-0 group-hover/quick-add:scale-110 group-hover/quick-add:bg-white/20 group-hover/quick-add:text-white transition-all shadow-xs">
+                                                                                                    <Plus size={18} strokeWidth={2.5} />
+                                                                                                </div>
+                                                                                                <div className="flex flex-col min-w-0">
+                                                                                                    {filteredProducts.length === 0 && (
+                                                                                                        <span className="text-[10px] font-black uppercase tracking-wider text-primary/70 dark:text-[#d4a574]/80 group-hover/quick-add:text-white/80">
+                                                                                                            Chưa có trong danh mục
+                                                                                                        </span>
+                                                                                                    )}
+                                                                                                    <div className="text-xs font-black uppercase tracking-tight truncate group-hover/quick-add:text-white text-primary dark:text-[#d4a574]">
+                                                                                                        Thêm sản phẩm mới: <span className="underline underline-offset-2">"{searchTerm.trim()}"</span>
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                            <div className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-primary/10 dark:bg-white/10 text-primary dark:text-[#d4a574] group-hover/quick-add:bg-white/20 group-hover/quick-add:text-white border border-primary/20 dark:border-white/10 font-mono shadow-2xs">
+                                                                                                <span>Thêm nhanh</span>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                            </m.div>
+                                                                        )}
+                                                                    </AnimatePresence>
+                                                                </Portal>
                                                             </div>
-                                                            {workingItem.product && (
-                                                                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none">
-                                                                    <span className={cn(
-                                                                        "px-2.5 py-0.5 rounded-full text-[11px] font-black border transition-all shadow-xs backdrop-blur-md",
-                                                                        workingItem.product.stock <= 0
-                                                                            ? "bg-gradient-to-r from-rose-500/15 via-red-500/20 to-rose-600/15 dark:from-rose-500/25 dark:to-rose-600/30 text-rose-700 dark:text-rose-300 border-rose-500/35 dark:border-rose-400/45 shadow-rose-500/10"
-                                                                            : workingItem.product.stock < 10
-                                                                                ? "bg-gradient-to-r from-amber-500/15 via-orange-500/20 to-amber-600/15 dark:from-amber-500/25 dark:to-amber-600/30 text-amber-800 dark:text-amber-300 border-amber-500/35 dark:border-amber-400/45 shadow-amber-500/10"
-                                                                                : "bg-gradient-to-r from-emerald-500/15 via-teal-500/20 to-emerald-600/15 dark:from-emerald-500/25 dark:to-emerald-600/30 text-emerald-800 dark:text-emerald-300 border-emerald-500/35 dark:border-emerald-400/45 shadow-emerald-500/10"
-                                                                    )}>
-                                                                        {workingItem.product.stock}
-                                                                    </span>
+                                                        </td>
+                                                        <td className="py-2.5 px-2 text-center">
+                                                            <div className="font-bold font-sans text-slate-700 dark:text-slate-200 text-xs leading-normal">
+                                                                {workingItem.product ? normalizeUOM(workingItem.product.unit) : "-"}
+                                                            </div>
+                                                            {workingItem.product && workingItem.product.secondary_unit && (
+                                                                <div className="text-[9.5px] text-primary dark:text-[#d4a574] font-black uppercase tracking-tighter leading-tight font-sans">
+                                                                    1 {normalizeUOM(workingItem.product.secondary_unit)} = {workingItem.product.multiplier} {normalizeUOM(workingItem.product.unit)}
                                                                 </div>
                                                             )}
-                                                            <Portal>
-                                                                <AnimatePresence>
-                                                                    {searchTerm && !workingItem.product && workingSearchCoords.top > 0 && (
-                                                                        <m.div
-                                                                            initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                                                                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                                            exit={{ opacity: 0, y: 8, scale: 0.96 }}
-                                                                            transition={{
-                                                                                duration: 0.15
-                                                                            }}
-                                                                            className="frosted-glass backdrop-blur-2xl fixed !z-[999999] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 !overflow-visible"
-                                                                            style={{
-                                                                                top: workingSearchCoords.top,
-                                                                                left: workingSearchCoords.left,
-                                                                                width: Math.min(workingSearchCoords.width || 600, typeof window !== 'undefined' ? window.innerWidth - (workingSearchCoords.left || 0) - 16 : 600),
-                                                                                maxHeight: Math.min(480, typeof window !== 'undefined' ? window.innerHeight - (workingSearchCoords.top || 0) - 16 : 480),
-                                                                                zIndex: 999999,
-                                                                                overflow: 'visible'
-                                                                            }}
-                                                                        >
-                                                                            {/* Bé Lyang Mascot - Có hỗ trợ kéo chuột (Drag) & cuộn chuột đổi size (Wheel Resize) */}
-                                                                            <DropdownMascot title="Lí An - Trợ lý nhập hàng thông minh" />
-
-                                                                            <div className="rounded-2xl overflow-hidden w-full divide-y divide-[#8b6f47]/10 dark:divide-white/5">
-                                                                                {filteredProducts.length > 0 && (
-                                                                                    <div className="max-h-[440px] overflow-y-auto overscroll-contain custom-scrollbar p-0" ref={productDropdownRef}>
-                                                                                        {filteredProducts.map((p, idx) => (
-                                                                                            <div
-                                                                                                key={p.id}
-                                                                                                onMouseMove={() => { if (activeIndex !== idx) setActiveIndex(idx); }}
-                                                                                                onClick={() => {
-                                                                                                    const currentQty = workingItem.quantity > 0 ? workingItem.quantity : 1;
-                                                                                                    setWorkingItem({
-                                                                                                        product: p,
-                                                                                                        quantity: currentQty,
-                                                                                                        price: p.latest_cost_price || p.cost_price,
-                                                                                                        secondary_qty: currentQty / (p.multiplier || 1),
-                                                                                                        name: p.name
-                                                                                                    });
-                                                                                                    setSearchTerm(p.name);
-                                                                                                }}
-                                                                                                onContextMenu={(e) => {
-                                                                                                    e.preventDefault();
-                                                                                                    e.stopPropagation();
-                                                                                                    setItemContextMenu({
-                                                                                                        type: 'product',
-                                                                                                        data: p,
-                                                                                                        position: { x: e.clientX, y: e.clientY }
-                                                                                                    });
-                                                                                                }}
-                                                                                                className={cn(
-                                                                                                    "dropdown-item flex justify-between items-center",
-                                                                                                    idx === activeIndex && "active"
-                                                                                                )}
-                                                                                            >
-                                                                                                <div className="flex-1 flex flex-col gap-1.5 relative z-10 min-w-0 overflow-hidden mr-3">
-                                                                                                    <div className="flex items-center gap-3 min-w-0">
-                                                                                                        <div className="min-w-0 flex-1 overflow-hidden">
-                                                                                                            <MarqueeText
-                                                                                                                text={p.name}
-                                                                                                                isActive={idx === activeIndex}
-                                                                                                                className="font-black tracking-tight transition-all duration-300 leading-relaxed"
-                                                                                                                style={{
-                                                                                                                    fontSize: idx === activeIndex ? "18px" : "16px",
-                                                                                                                    paddingLeft: idx === activeIndex ? '12px' : '0px'
-                                                                                                                }}
-                                                                                                            />
-                                                                                                        </div>
-                                                                                                        {p.is_combo && (
-                                                                                                            <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-widest">COMBO</span>
-                                                                                                        )}
-                                                                                                    </div>
-                                                                                                    <div className="flex items-center gap-5">
-                                                                                                        <span className={cn("text-[11px] font-black italic tracking-wide transition-colors", idx === activeIndex ? "text-white/80" : "text-primary dark:text-emerald-400")}>
-                                                                                                            {p.active_ingredient || ""}
-                                                                                                        </span>
-                                                                                                        <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                                                                                                            {p.code && (
-                                                                                                                <span className={cn(
-                                                                                                                    "shrink-0 px-2 py-0.5 rounded-md font-mono text-[9.5px] font-black tabular-nums transition-colors",
-                                                                                                                    idx === activeIndex ? "bg-white/20 text-white" : "bg-slate-900/10 dark:bg-white/10 text-slate-600 dark:text-slate-300"
-                                                                                                                )}>
-                                                                                                                    {p.code}
-                                                                                                                </span>
-                                                                                                            )}
-                                                                                                            <span className={cn(
-                                                                                                                "px-2.5 py-0.5 rounded-md transition-colors font-bold",
-                                                                                                                idx === activeIndex ? "bg-white/20 text-white" : "bg-black/[0.05] dark:bg-white/[0.08] text-slate-700 dark:text-slate-300"
-                                                                                                            )}>
-                                                                                                                {normalizeUOM(p.unit)}
-                                                                                                            </span>
-                                                                                                            {p.multiplier > 1 && (
-                                                                                                                <span className={idx === activeIndex ? "text-white/60" : "text-slate-500 opacity-60"}>
-                                                                                                                    / {normalizeUOM(p.secondary_unit)} (x{p.multiplier})
-                                                                                                                </span>
-                                                                                                            )}
-                                                                                                        </div>
-                                                                                                    </div>
-                                                                                                </div>
-
-                                                                                                <div className="flex items-center gap-8 relative z-10">
-                                                                                                    <div
-                                                                                                        className={cn(
-                                                                                                            "px-3 py-1.5 rounded-full text-xs font-black transition-all flex items-center gap-2 select-none shadow-xs shrink-0",
-                                                                                                            p.stock <= 0
-                                                                                                                ? "bg-rose-600 text-white"
-                                                                                                                : p.stock < 10
-                                                                                                                    ? "bg-amber-500 text-slate-950"
-                                                                                                                    : idx === activeIndex
-                                                                                                                        ? "bg-white/25 text-white"
-                                                                                                                        : "bg-[#8b6f47]/15 text-[#8b6f47] dark:text-[#d4a574]"
-                                                                                                        )}
-                                                                                                        title="Tồn kho thực tế"
-                                                                                                    >
-                                                                                                        <div className="flex items-center gap-1.5 tabular-nums">
-                                                                                                            <Package size={14} strokeWidth={2.5} />
-                                                                                                            <span className="tabular-nums font-black">{p.stock}</span>
-                                                                                                        </div>
-                                                                                                    </div>
-
-                                                                                                    <div className="flex flex-col items-end gap-1 shrink-0">
-                                                                                                        <div className={cn(
-                                                                                                            "text-[22px] font-black tracking-tighter tabular-nums",
-                                                                                                            idx === activeIndex ? "text-white" : "text-[#2d5016] dark:text-[#d4a574]"
-                                                                                                        )}>
-                                                                                                            {formatNumber(p.cost_price)}
-                                                                                                        </div>
-                                                                                                        <div className={cn(
-                                                                                                            "text-[10px] font-black uppercase tracking-widest opacity-80 flex items-center gap-1",
-                                                                                                            idx === activeIndex ? "text-white/80" : "text-slate-500 dark:text-slate-400"
-                                                                                                        )}>
-                                                                                                            <History size={10} strokeWidth={2.5} />
-                                                                                                            NHẬP CUỐI: {formatNumber(p.latest_cost_price || 0)}
-                                                                                                        </div>
-                                                                                                    </div>
-                                                                                                </div>
-                                                                                            </div>
-                                                                                        ))}
-                                                                                    </div>
-                                                                                )}
-                                                                                {searchTerm && (
-                                                                                    <div
-                                                                                        className={cn(
-                                                                                            "dropdown-item flex items-center justify-between gap-3 cursor-pointer group/quick-add transition-all duration-150 select-none",
-                                                                                            filteredProducts.length === 0 ? "p-4" : "p-3 bg-black/[0.02] dark:bg-white/[0.02]"
-                                                                                        )}
-                                                                                        onClick={() => {
-                                                                                            const cleanName = searchTerm.trim();
-                                                                                            setQuickAddName(cleanName);
-                                                                                            setSearchTerm('');
-                                                                                            setShowQuickAddProduct(true);
-                                                                                        }}
-                                                                                    >
-                                                                                        <div className="flex items-center gap-3 min-w-0">
-                                                                                            <div className="w-8 h-8 rounded-xl bg-primary/10 dark:bg-white/10 text-primary dark:text-[#d4a574] flex items-center justify-center shrink-0 group-hover/quick-add:scale-110 group-hover/quick-add:bg-white/20 group-hover/quick-add:text-white transition-all shadow-xs">
-                                                                                                <Plus size={18} strokeWidth={2.5} />
-                                                                                            </div>
-                                                                                            <div className="flex flex-col min-w-0">
-                                                                                                {filteredProducts.length === 0 && (
-                                                                                                    <span className="text-[10px] font-black uppercase tracking-wider text-primary/70 dark:text-[#d4a574]/80 group-hover/quick-add:text-white/80">
-                                                                                                        Chưa có trong danh mục
-                                                                                                    </span>
-                                                                                                )}
-                                                                                                <div className="text-xs font-black uppercase tracking-tight truncate group-hover/quick-add:text-white text-primary dark:text-[#d4a574]">
-                                                                                                    Thêm sản phẩm mới: <span className="underline underline-offset-2">"{searchTerm.trim()}"</span>
-                                                                                                </div>
-                                                                                            </div>
-                                                                                        </div>
-                                                                                        <div className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-primary/10 dark:bg-white/10 text-primary dark:text-[#d4a574] group-hover/quick-add:bg-white/20 group-hover/quick-add:text-white border border-primary/20 dark:border-white/10 font-mono shadow-2xs">
-                                                                                            <span>Thêm nhanh</span>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                )}
-                                                                            </div>
-                                                                        </m.div>
-                                                                    )}
-                                                                </AnimatePresence>
-                                                            </Portal>
-                                                        </div>
-                                                    </td>
-                                                    <td className="py-2.5 px-2 text-center">
-                                                        <div className="font-bold font-sans text-slate-700 dark:text-slate-200 text-xs leading-normal">
-                                                            {workingItem.product ? normalizeUOM(workingItem.product.unit) : "-"}
-                                                        </div>
-                                                        {workingItem.product && workingItem.product.secondary_unit && (
-                                                            <div className="text-[9.5px] text-primary dark:text-[#d4a574] font-black uppercase tracking-tighter leading-tight font-sans">
-                                                                1 {normalizeUOM(workingItem.product.secondary_unit)} = {workingItem.product.multiplier} {normalizeUOM(workingItem.product.unit)}
-                                                            </div>
-                                                        )}
-                                                    </td>
-                                                    <td className="py-2.5 px-2">
-                                                        {workingItem.product && workingItem.product.secondary_unit ? (
-                                                            <div className="flex items-center gap-1 h-10 px-2 bg-transparent border border-[#8b6f47]/25 dark:border-white/15 rounded-xl focus-within:border-primary/50 dark:focus-within:border-[#d4a574]/50 focus-within:ring-2 focus-within:ring-primary/15 transition-all text-primary dark:text-foreground">
-                                                                <input
-                                                                    type="number"
-                                                                    step="any"
-                                                                    className="w-full min-w-0 bg-transparent text-center font-black font-sans text-sm outline-none placeholder:text-muted-foreground/30 leading-normal"
-                                                                    value={workingItem.secondary_qty !== undefined && workingItem.secondary_qty !== null && workingItem.secondary_qty !== "" ? (typeof workingItem.secondary_qty === 'number' ? Math.round((workingItem.secondary_qty + Number.EPSILON) * 1000) / 1000 : workingItem.secondary_qty) : ""}
-                                                                    id="working-sec-qty"
-                                                                    ref={workingSecQtyRef}
-                                                                    autoComplete="off"
-                                                                    onFocus={(e) => e.target.select()}
-                                                                    onChange={(e) => {
-                                                                        const v = parseFloat(e.target.value) || 0;
-                                                                        setWorkingItem(prev => {
-                                                                            const mult = parseFloat(prev.product?.multiplier) || 1;
-                                                                            return {
-                                                                                ...prev,
-                                                                                secondary_qty: v,
-                                                                                quantity: v * mult
-                                                                            };
-                                                                        });
-                                                                    }}
-                                                                    onKeyDown={(e) => {
-                                                                        if (e.key === 'Tab') {
-                                                                            e.preventDefault();
-                                                                            e.stopPropagation();
-                                                                            if (e.shiftKey) {
+                                                        </td>
+                                                        <td className="py-2.5 px-2">
+                                                            {workingItem.product && workingItem.product.secondary_unit ? (
+                                                                <div className="flex items-center gap-1 h-10 px-2 bg-transparent border border-[#8b6f47]/25 dark:border-white/15 rounded-xl focus-within:border-primary/50 dark:focus-within:border-[#d4a574]/50 focus-within:ring-2 focus-within:ring-primary/15 transition-all text-primary dark:text-foreground">
+                                                                    <input
+                                                                        type="number"
+                                                                        step="any"
+                                                                        className="w-full min-w-0 bg-transparent text-center font-black font-sans text-sm outline-none placeholder:text-muted-foreground/30 leading-normal"
+                                                                        value={workingItem.secondary_qty !== undefined && workingItem.secondary_qty !== null && workingItem.secondary_qty !== "" ? (typeof workingItem.secondary_qty === 'number' ? Math.round((workingItem.secondary_qty + Number.EPSILON) * 1000) / 1000 : workingItem.secondary_qty) : ""}
+                                                                        id="working-sec-qty"
+                                                                        ref={workingSecQtyRef}
+                                                                        autoComplete="off"
+                                                                        onFocus={(e) => e.target.select()}
+                                                                        onChange={(e) => {
+                                                                            const v = parseFloat(e.target.value) || 0;
+                                                                            setWorkingItem(prev => {
+                                                                                const mult = parseFloat(prev.product?.multiplier) || 1;
+                                                                                return {
+                                                                                    ...prev,
+                                                                                    secondary_qty: v,
+                                                                                    quantity: v * mult
+                                                                                };
+                                                                            });
+                                                                        }}
+                                                                        onKeyDown={(e) => {
+                                                                            if (e.key === 'Tab') {
+                                                                                e.preventDefault();
+                                                                                e.stopPropagation();
+                                                                                if (e.shiftKey) {
+                                                                                    searchInputRef.current?.focus();
+                                                                                    searchInputRef.current?.select?.();
+                                                                                } else {
+                                                                                    workingQtyRef.current?.focus();
+                                                                                    workingQtyRef.current?.select?.();
+                                                                                }
+                                                                            } else if (e.key === 'Enter') {
+                                                                                e.preventDefault();
+                                                                                if (workingItem.product && workingItem.quantity !== 0) {
+                                                                                    addToCart(workingItem.product, workingItem.quantity, workingItem.price);
+                                                                                }
+                                                                            }
+                                                                        }}
+                                                                    />
+                                                                    <span className="text-[10px] font-black font-sans text-gray-400 uppercase pr-1 whitespace-nowrap leading-normal">{normalizeUOM(workingItem.product?.secondary_unit)}</span>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="text-center text-muted-foreground italic text-[10px] font-bold h-[40px] flex items-center justify-center font-sans">N/A</div>
+                                                            )}
+                                                        </td>
+                                                        <td className="py-2.5 px-2">
+                                                            <input
+                                                                type="number"
+                                                                style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }}
+                                                                className="w-full h-10 text-center bg-transparent border border-[#8b6f47]/25 dark:border-white/15 rounded-xl focus:border-primary/50 dark:focus:border-[#d4a574]/50 focus:ring-2 focus:ring-primary/15 outline-none font-black font-sans text-base text-primary dark:text-foreground leading-normal transition-all placeholder:text-gray-300"
+                                                                value={workingItem.product ? workingItem.quantity : ""}
+                                                                id="working-main-qty"
+                                                                ref={workingQtyRef}
+                                                                autoComplete="off"
+                                                                onFocus={(e) => e.target.select()}
+                                                                onChange={(e) => {
+                                                                    const v = parseFloat(e.target.value) || 0;
+                                                                    setWorkingItem(prev => {
+                                                                        const mult = parseFloat(prev.product?.multiplier) || 1;
+                                                                        return {
+                                                                            ...prev,
+                                                                            quantity: v,
+                                                                            secondary_qty: Math.round(((v / mult) + Number.EPSILON) * 1000) / 1000
+                                                                        };
+                                                                    });
+                                                                }}
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === 'Tab') {
+                                                                        e.preventDefault();
+                                                                        e.stopPropagation();
+                                                                        if (e.shiftKey) {
+                                                                            if (workingItem.product?.secondary_unit) {
+                                                                                workingSecQtyRef.current?.focus();
+                                                                                workingSecQtyRef.current?.select?.();
+                                                                            } else {
                                                                                 searchInputRef.current?.focus();
                                                                                 searchInputRef.current?.select?.();
-                                                                            } else {
-                                                                                workingQtyRef.current?.focus();
-                                                                                workingQtyRef.current?.select?.();
                                                                             }
-                                                                        } else if (e.key === 'Enter') {
-                                                                            e.preventDefault();
-                                                                            if (workingItem.product && workingItem.quantity !== 0) {
-                                                                                addToCart(workingItem.product, workingItem.quantity, workingItem.price);
-                                                                            }
-                                                                        }
-                                                                    }}
-                                                                />
-                                                                <span className="text-[10px] font-black font-sans text-gray-400 uppercase pr-1 whitespace-nowrap leading-normal">{normalizeUOM(workingItem.product?.secondary_unit)}</span>
-                                                            </div>
-                                                        ) : (
-                                                            <div className="text-center text-muted-foreground italic text-[10px] font-bold h-[40px] flex items-center justify-center font-sans">N/A</div>
-                                                        )}
-                                                    </td>
-                                                    <td className="py-2.5 px-2">
-                                                        <input
-                                                            type="number"
-                                                            style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }}
-                                                            className="w-full h-10 text-center bg-transparent border border-[#8b6f47]/25 dark:border-white/15 rounded-xl focus:border-primary/50 dark:focus:border-[#d4a574]/50 focus:ring-2 focus:ring-primary/15 outline-none font-black font-sans text-base text-primary dark:text-foreground leading-normal transition-all placeholder:text-gray-300"
-                                                            value={workingItem.product ? workingItem.quantity : ""}
-                                                            id="working-main-qty"
-                                                            ref={workingQtyRef}
-                                                            autoComplete="off"
-                                                            onFocus={(e) => e.target.select()}
-                                                            onChange={(e) => {
-                                                                const v = parseFloat(e.target.value) || 0;
-                                                                setWorkingItem(prev => {
-                                                                    const mult = parseFloat(prev.product?.multiplier) || 1;
-                                                                    return {
-                                                                        ...prev,
-                                                                        quantity: v,
-                                                                        secondary_qty: Math.round(((v / mult) + Number.EPSILON) * 1000) / 1000
-                                                                    };
-                                                                });
-                                                            }}
-                                                            onKeyDown={(e) => {
-                                                                if (e.key === 'Tab') {
-                                                                    e.preventDefault();
-                                                                    e.stopPropagation();
-                                                                    if (e.shiftKey) {
-                                                                        if (workingItem.product?.secondary_unit) {
-                                                                            workingSecQtyRef.current?.focus();
-                                                                            workingSecQtyRef.current?.select?.();
                                                                         } else {
-                                                                            searchInputRef.current?.focus();
-                                                                            searchInputRef.current?.select?.();
+                                                                            workingPriceRef.current?.focus();
+                                                                            workingPriceRef.current?.select?.();
                                                                         }
-                                                                    } else {
-                                                                        workingPriceRef.current?.focus();
-                                                                        workingPriceRef.current?.select?.();
+                                                                    } else if (e.key === 'Enter') {
+                                                                        e.preventDefault();
+                                                                        if (workingItem.product && workingItem.quantity !== 0) {
+                                                                            addToCart(workingItem.product, workingItem.quantity, workingItem.price);
+                                                                        }
                                                                     }
-                                                                } else if (e.key === 'Enter') {
-                                                                    e.preventDefault();
-                                                                    if (workingItem.product && workingItem.quantity !== 0) {
-                                                                        addToCart(workingItem.product, workingItem.quantity, workingItem.price);
-                                                                    }
-                                                                }
-                                                            }}
-                                                        />
-                                                    </td>
-                                                    <td className="py-2.5 px-2 text-center">
-                                                        <div className="flex flex-col items-center gap-1 group/price relative group-hover/price:z-[500]">
-                                                            {workingItem.product && (
-                                                                <div
-                                                                    className="absolute top-full left-1/2 -translate-x-1/2 mt-2 p-1
+                                                                }}
+                                                            />
+                                                        </td>
+                                                        <td className="py-2.5 px-2 text-center">
+                                                            <div className="flex flex-col items-center gap-1 group/price relative group-hover/price:z-[500]">
+                                                                {workingItem.product && (
+                                                                    <div
+                                                                        className="absolute top-full left-1/2 -translate-x-1/2 mt-2 p-1
                                                                                 bg-[#ede8dc]/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/15 shadow-2xl shadow-[#8b6f47]/10 dark:shadow-black/50
                                                                                 flex items-stretch whitespace-nowrap z-[9999] 
                                                                                 opacity-0 group-hover/price:opacity-100 group-focus-within/price:opacity-100
                                                                                 transition-all duration-300 pointer-events-none -translate-y-2 group-hover/price:translate-y-0 group-focus-within/price:translate-y-0 ring-1 ring-black/5 dark:ring-white/5"
-                                                                >
-                                                                    <div className="flex flex-col items-center px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors">
-                                                                        <span className="text-[8.5px] uppercase font-black font-sans text-slate-500/80 dark:text-slate-400 leading-none mb-1 tracking-[0.1em]">
-                                                                            Vốn TB
-                                                                        </span>
-                                                                        <span className="text-xs font-black font-sans text-amber-700 dark:amber-300 tabular-nums leading-normal">
-                                                                            {formatNumber(workingItem.product.cost_price)}
-                                                                            <span className="text-[9px] ml-0.5 opacity-60">đ</span>
-                                                                        </span>
+                                                                    >
+                                                                        <div className="flex flex-col items-center px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors">
+                                                                            <span className="text-[8.5px] uppercase font-black font-sans text-slate-500/80 dark:text-slate-400 leading-none mb-1 tracking-[0.1em]">
+                                                                                Vốn TB
+                                                                            </span>
+                                                                            <span className="text-xs font-black font-sans text-amber-700 dark:amber-300 tabular-nums leading-normal">
+                                                                                {formatNumber(workingItem.product.cost_price)}
+                                                                                <span className="text-[9px] ml-0.5 opacity-60">đ</span>
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="w-px my-1.5 bg-gradient-to-b from-transparent via-[#8b6f47]/20 dark:via-white/15 to-transparent" />
+                                                                        <div className="flex flex-col items-center px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors">
+                                                                            <span className="text-[8.5px] uppercase font-black font-sans text-[#8b6f47] dark:text-[#d4a574] leading-none mb-1 tracking-[0.1em]">
+                                                                                Nhập cuối
+                                                                            </span>
+                                                                            <span className="text-xs font-black font-sans text-emerald-600 dark:text-emerald-400 tabular-nums leading-normal">
+                                                                                {formatNumber(workingItem.product.latest_cost_price || 0)}
+                                                                                <span className="text-[9px] ml-0.5 opacity-60">đ</span>
+                                                                            </span>
+                                                                        </div>
+                                                                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-[5px] border-transparent border-b-[#ede8dc]/95 dark:border-b-slate-900/95 drop-shadow-xs" />
                                                                     </div>
-                                                                    <div className="w-px my-1.5 bg-gradient-to-b from-transparent via-[#8b6f47]/20 dark:via-white/15 to-transparent" />
-                                                                    <div className="flex flex-col items-center px-3 py-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors">
-                                                                        <span className="text-[8.5px] uppercase font-black font-sans text-[#8b6f47] dark:text-[#d4a574] leading-none mb-1 tracking-[0.1em]">
-                                                                            Nhập cuối
-                                                                        </span>
-                                                                        <span className="text-xs font-black font-sans text-emerald-600 dark:text-emerald-400 tabular-nums leading-normal">
-                                                                            {formatNumber(workingItem.product.latest_cost_price || 0)}
-                                                                            <span className="text-[9px] ml-0.5 opacity-60">đ</span>
-                                                                        </span>
-                                                                    </div>
-                                                                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-[5px] border-transparent border-b-[#ede8dc]/95 dark:border-b-slate-900/95 drop-shadow-xs" />
+                                                                )}
+                                                                <div className="relative w-full">
+                                                                    <input
+                                                                        type="text"
+                                                                        style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }}
+                                                                        className="w-full h-10 text-center bg-transparent border border-[#8b6f47]/25 dark:border-white/15 rounded-xl focus:border-primary/50 dark:focus:border-[#d4a574]/50 focus:ring-2 focus:ring-primary/15 outline-none font-black font-sans text-base text-primary dark:text-foreground leading-normal transition-all"
+                                                                        value={workingItem.product ? formatNumber(workingItem.price) : ""}
+                                                                        id="working-price"
+                                                                        ref={workingPriceRef}
+                                                                        autoComplete="off"
+                                                                        onFocus={(e) => e.target.select()}
+                                                                        onChange={(e) => {
+                                                                            const v = parseFloat(e.target.value.replace(/,/g, '')) || 0;
+                                                                            setWorkingItem({ ...workingItem, price: v });
+                                                                        }}
+                                                                        onKeyDown={(e) => {
+                                                                            if (e.key === 'Enter') {
+                                                                                e.preventDefault();
+                                                                                if (workingItem.product && workingItem.quantity !== 0) {
+                                                                                    addToCart(workingItem.product, workingItem.quantity, workingItem.price);
+                                                                                }
+                                                                            } else if (e.key === 'Tab') {
+                                                                                e.preventDefault();
+                                                                                e.stopPropagation();
+                                                                                if (e.shiftKey) {
+                                                                                    workingQtyRef.current?.focus();
+                                                                                    workingQtyRef.current?.select?.();
+                                                                                } else {
+                                                                                    searchInputRef.current?.focus();
+                                                                                    searchInputRef.current?.select?.();
+                                                                                }
+                                                                            }
+                                                                        }}
+                                                                    />
                                                                 </div>
-                                                            )}
-                                                            <div className="relative w-full">
-                                                                <input
-                                                                    type="text"
-                                                                    style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }}
-                                                                    className="w-full h-10 text-center bg-transparent border border-[#8b6f47]/25 dark:border-white/15 rounded-xl focus:border-primary/50 dark:focus:border-[#d4a574]/50 focus:ring-2 focus:ring-primary/15 outline-none font-black font-sans text-base text-primary dark:text-foreground leading-normal transition-all"
-                                                                    value={workingItem.product ? formatNumber(workingItem.price) : ""}
-                                                                    id="working-price"
-                                                                    ref={workingPriceRef}
-                                                                    autoComplete="off"
-                                                                    onFocus={(e) => e.target.select()}
-                                                                    onChange={(e) => {
-                                                                        const v = parseFloat(e.target.value.replace(/,/g, '')) || 0;
-                                                                        setWorkingItem({ ...workingItem, price: v });
-                                                                    }}
-                                                                    onKeyDown={(e) => {
-                                                                        if (e.key === 'Enter') {
-                                                                            e.preventDefault();
-                                                                            if (workingItem.product && workingItem.quantity !== 0) {
-                                                                                addToCart(workingItem.product, workingItem.quantity, workingItem.price);
-                                                                            }
-                                                                        } else if (e.key === 'Tab') {
-                                                                            e.preventDefault();
-                                                                            e.stopPropagation();
-                                                                            if (e.shiftKey) {
-                                                                                workingQtyRef.current?.focus();
-                                                                                workingQtyRef.current?.select?.();
-                                                                            } else {
-                                                                                searchInputRef.current?.focus();
-                                                                                searchInputRef.current?.select?.();
-                                                                            }
-                                                                        }
-                                                                    }}
-                                                                />
                                                             </div>
-                                                        </div>
-                                                    </td>
-                                                    <td style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }} className="py-2 px-2 text-right font-black font-sans text-slate-900 dark:text-white text-base leading-normal">
-                                                        {workingItem.product ? formatNumber(workingItem.price * workingItem.quantity) : ""}
-                                                    </td>
-                                                    <td className="py-2 px-1.5 text-center">
-                                                        {workingItem.product && (
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => setWorkingItem({ product: null, quantity: 1, price: 0, secondary_qty: 0, name: '' })}
-                                                                className="group/clear-btn w-7 h-7 mx-auto rounded-lg flex items-center justify-center text-slate-400/80 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 bg-transparent hover:bg-rose-500/15 dark:hover:bg-rose-500/20 border border-transparent hover:border-rose-500/30 dark:hover:border-rose-500/40 hover:shadow-[0_0_10px_rgba(244,63,94,0.25)] hover:scale-110 active:scale-95 transition-all duration-200 cursor-pointer"
-                                                                title="Xóa dòng tạm"
-                                                            >
-                                                                <X size={15} strokeWidth={2.5} className="transition-transform duration-200 group-hover/clear-btn:rotate-90" />
-                                                            </button>
-                                                        )}
-                                                    </td>
-                                                </tr>
+                                                        </td>
+                                                        <td style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined }} className="py-2 px-2 text-right font-black font-sans text-slate-900 dark:text-white text-base leading-normal">
+                                                            {workingItem.product ? formatNumber(workingItem.price * workingItem.quantity) : ""}
+                                                        </td>
+                                                        <td className="py-2 px-1.5 text-center">
+                                                            {workingItem.product && (
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setWorkingItem({ product: null, quantity: 1, price: 0, secondary_qty: 0, name: '' })}
+                                                                    className="group/clear-btn w-7 h-7 mx-auto rounded-lg flex items-center justify-center text-slate-400/80 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 bg-transparent hover:bg-rose-500/15 dark:hover:bg-rose-500/20 border border-transparent hover:border-rose-500/30 dark:hover:border-rose-500/40 hover:shadow-[0_0_10px_rgba(244,63,94,0.25)] hover:scale-110 active:scale-95 transition-all duration-200 cursor-pointer"
+                                                                    title="Xóa dòng tạm"
+                                                                >
+                                                                    <X size={15} strokeWidth={2.5} className="transition-transform duration-200 group-hover/clear-btn:rotate-90" />
+                                                                </button>
+                                                            )}
+                                                        </td>
+                                                    </tr>
 
-                                                <AnimatePresence initial={false}>
-                                                    {cart.length > 0 && cart.map((item, idx) => (
-                                                        <m.tr
-                                                            key={item.cartId || `purchase-item-${item.product_id || 'prod'}-${idx}`}
-                                                            layout={historyLoading ? false : "position"}
-                                                            initial={(cartColorConfig?.cartRowAnimation || localStorage.getItem('pos_cart_row_animation') || 'waterfall') === 'waterfall' ? {
-                                                                opacity: 0,
-                                                                y: -14,
-                                                                x: -6
-                                                            } : {
-                                                                opacity: 0,
-                                                                x: -20
-                                                            }}
-                                                            animate={(cartColorConfig?.cartRowAnimation || localStorage.getItem('pos_cart_row_animation') || 'waterfall') === 'waterfall' ? {
-                                                                opacity: 1,
-                                                                y: 0,
-                                                                x: 0
-                                                            } : {
-                                                                opacity: 1,
-                                                                x: 0
-                                                            }}
-                                                            exit={{
-                                                                opacity: 0,
-                                                                x: 50,
-                                                                scale: 0.95,
-                                                                backgroundColor: "rgba(0,0,0,0)",
-                                                                transition: {
-                                                                    duration: 0.2,
-                                                                    ease: "easeIn"
-                                                                }
-                                                            }}
-                                                            transition={(cartColorConfig?.cartRowAnimation || localStorage.getItem('pos_cart_row_animation') || 'waterfall') === 'waterfall' ? {
-                                                                duration: 0.28,
-                                                                delay: Math.min(idx * 0.035, 0.45),
-                                                                ease: [0.25, 1, 0.5, 1]
-                                                            } : {
-                                                                duration: 0.22,
-                                                                ease: "easeOut"
-                                                            }}
+                                                    <AnimatePresence initial={false}>
+                                                        {cart.length > 0 && cart.map((item, idx) => (
+                                                            <m.tr
+                                                                key={item.cartId || `purchase-item-${item.product_id || 'prod'}-${idx}`}
+                                                                layout={historyLoading ? false : "position"}
+                                                                initial={(cartColorConfig?.cartRowAnimation || localStorage.getItem('pos_cart_row_animation') || 'waterfall') === 'waterfall' ? {
+                                                                    opacity: 0,
+                                                                    y: -14,
+                                                                    x: -6
+                                                                } : {
+                                                                    opacity: 0,
+                                                                    x: -20
+                                                                }}
+                                                                animate={(cartColorConfig?.cartRowAnimation || localStorage.getItem('pos_cart_row_animation') || 'waterfall') === 'waterfall' ? {
+                                                                    opacity: 1,
+                                                                    y: 0,
+                                                                    x: 0
+                                                                } : {
+                                                                    opacity: 1,
+                                                                    x: 0
+                                                                }}
+                                                                exit={{
+                                                                    opacity: 0,
+                                                                    x: 50,
+                                                                    scale: 0.95,
+                                                                    backgroundColor: "rgba(0,0,0,0)",
+                                                                    transition: {
+                                                                        duration: 0.2,
+                                                                        ease: "easeIn"
+                                                                    }
+                                                                }}
+                                                                transition={(cartColorConfig?.cartRowAnimation || localStorage.getItem('pos_cart_row_animation') || 'waterfall') === 'waterfall' ? {
+                                                                    duration: 0.28,
+                                                                    delay: Math.min(idx * 0.035, 0.45),
+                                                                    ease: [0.25, 1, 0.5, 1]
+                                                                } : {
+                                                                    duration: 0.22,
+                                                                    ease: "easeOut"
+                                                                }}
                                                                 className={cn(
                                                                     "relative transition-colors duration-150 group cursor-pointer last:border-b-0",
                                                                     cartColorConfig.enableBorder !== false ? "border-b border-[var(--border-color)] dark:border-white/[0.06]" : "border-b-0",
@@ -3522,359 +3522,61 @@ export default function Purchase() {
                                                                                                 (p.code || "").toLowerCase().includes(s) ||
                                                                                                 (p.active_ingredient || "").toLowerCase().includes(s);
                                                                                         })
-                                                                                        .sort((a, b) => {
-                                                                                            const s = rowSearchTerm.toLowerCase();
-                                                                                            const aName = (a.name || "").toLowerCase();
-                                                                                            const bName = (b.name || "").toLowerCase();
-                                                                                            const aStarts = aName.startsWith(s);
-                                                                                            const bStarts = bName.startsWith(s);
-                                                                                            if (aStarts && !bStarts) return -1;
-                                                                                            if (!aStarts && bStarts) return 1;
-                                                                                            if (a.code?.toLowerCase() === s && b.code?.toLowerCase() !== s) return -1;
-                                                                                            if (a.code?.toLowerCase() !== s && b.code?.toLowerCase() === s) return 1;
-                                                                                            return aName.localeCompare(bName, 'vi', { sensitivity: 'base' });
-                                                                                        })
-                                                                                        .slice(0, 50);
-                                                                                    if (e.key === 'ArrowDown') {
-                                                                                        if (rowSearchIdx === idx && filtered.length > 0) {
-                                                                                            e.preventDefault();
-                                                                                            setRowActiveIndex(prev => {
-                                                                                                const next = Math.min(prev + 1, filtered.length - 1);
-                                                                                                if (rowSearchDropdownRef.current) {
-                                                                                                    const itemEl = rowSearchDropdownRef.current.children[next];
-                                                                                                    if (itemEl) itemEl.scrollIntoView({ block: 'nearest' });
-                                                                                                }
-                                                                                                return next;
-                                                                                            });
-                                                                                        } else {
-                                                                                            e.preventDefault();
-                                                                                            const nextIdx = idx + 1;
-                                                                                            if (nextIdx < cart.length) {
-                                                                                                document.getElementById(`row-name-${nextIdx}`)?.focus();
-                                                                                            }
-                                                                                        }
-                                                                                    } else if (e.key === 'ArrowUp') {
-                                                                                        if (rowSearchIdx === idx && filtered.length > 0) {
-                                                                                            e.preventDefault();
-                                                                                            setRowActiveIndex(prev => {
-                                                                                                const next = Math.max(prev - 1, 0);
-                                                                                                if (rowSearchDropdownRef.current) {
-                                                                                                    const itemEl = rowSearchDropdownRef.current.children[next];
-                                                                                                    if (itemEl) itemEl.scrollIntoView({ block: 'nearest' });
-                                                                                                }
-                                                                                                return next;
-                                                                                            });
-                                                                                        } else {
-                                                                                            e.preventDefault();
-                                                                                            const prevIdx = idx - 1;
-                                                                                            if (prevIdx >= 0) {
-                                                                                                document.getElementById(`row-name-${prevIdx}`)?.focus();
-                                                                                            } else {
-                                                                                                searchInputRef.current?.focus();
-                                                                                            }
-                                                                                        }
-                                                                                    } else if (e.key === 'Enter') {
-                                                                                        e.preventDefault();
-                                                                                        if (filtered[rowActiveIndex]) {
-                                                                                            const p = filtered[rowActiveIndex];
-                                                                                            let newCart = [...cart];
-                                                                                            const currentQty = newCart[idx].quantity;
-                                                                                            const existingIdx = newCart.findIndex((item, i) => i !== idx && item.product_id === p.id);
-                                                                                            if (existingIdx > -1) {
-                                                                                                newCart[existingIdx].quantity += currentQty;
-                                                                                                newCart[existingIdx].secondary_qty = newCart[existingIdx].quantity / (newCart[existingIdx].multiplier || 1);
-                                                                                                newCart.splice(idx, 1);
-                                                                                            } else {
-                                                                                                newCart[idx] = {
-                                                                                                    ...newCart[idx],
-                                                                                                    product_id: p.id,
-                                                                                                    product_name: p.name,
-                                                                                                    unit: p.unit,
-                                                                                                    secondary_unit: p.secondary_unit,
-                                                                                                    multiplier: p.multiplier || 1,
-                                                                                                    price: p.cost_price,
-                                                                                                    stock: p.stock,
-                                                                                                    secondary_qty: currentQty / (p.multiplier || 1),
-                                                                                                    active_ingredient: p.active_ingredient
-                                                                                                };
-                                                                                            }
-                                                                                            setCart(newCart);
-                                                                                            setRowSearchIdx(null);
-                                                                                        }
-                                                                                        searchInputRef.current?.focus();
-                                                                                    } else if (e.key === 'Tab') {
-                                                                                        e.preventDefault();
-                                                                                        const filtered_matches = filtered.length > 0 ? filtered : [];
-                                                                                        if (filtered_matches[rowActiveIndex]) {
-                                                                                            const p = filtered_matches[rowActiveIndex];
-                                                                                            let newCart = [...cart];
-                                                                                            const currentQty = newCart[idx].quantity;
-                                                                                            const existingIdx = newCart.findIndex((item, i) => i !== idx && item.product_id === p.id);
-                                                                                            if (existingIdx > -1) {
-                                                                                                newCart[existingIdx].quantity += currentQty;
-                                                                                                newCart[existingIdx].secondary_qty = newCart[existingIdx].quantity / (newCart[existingIdx].multiplier || 1);
-                                                                                                newCart.splice(idx, 1);
-                                                                                                setCart(newCart);
-                                                                                                setRowSearchIdx(null);
-
-                                                                                                // Focus the merged row's quantity
-                                                                                                setTimeout(() => {
-                                                                                                    const targetIdx = existingIdx > idx ? existingIdx - 1 : existingIdx;
-                                                                                                    const sec = document.getElementById(`qty-sec-${targetIdx}`);
-                                                                                                    if (posMode === 'Wholesale' && sec && !sec.disabled) {
-                                                                                                        sec.focus();
-                                                                                                        sec.select?.();
-                                                                                                    } else {
-                                                                                                        const main = document.getElementById(`qty-main-${targetIdx}`);
-                                                                                                        main?.focus();
-                                                                                                        main?.select?.();
-                                                                                                    }
-                                                                                                }, 200);
-                                                                                            } else {
-                                                                                                newCart[idx] = {
-                                                                                                    ...newCart[idx],
-                                                                                                    product_id: p.id,
-                                                                                                    product_name: p.name,
-                                                                                                    unit: p.unit,
-                                                                                                    secondary_unit: p.secondary_unit,
-                                                                                                    multiplier: p.multiplier || 1,
-                                                                                                    price: p.cost_price,
-                                                                                                    stock: p.stock,
-                                                                                                    secondary_qty: currentQty / (p.multiplier || 1),
-                                                                                                    active_ingredient: p.active_ingredient
-                                                                                                };
-                                                                                                setCart(newCart);
-                                                                                                setRowSearchIdx(null);
-                                                                                                setTimeout(() => {
-                                                                                                    const sec = document.getElementById(`qty-sec-${idx}`);
-                                                                                                    if (posMode === 'Wholesale' && sec && !sec.disabled) {
-                                                                                                        sec.focus();
-                                                                                                        sec.select?.();
-                                                                                                    } else {
-                                                                                                        const main = document.getElementById(`qty-main-${idx}`);
-                                                                                                        main?.focus();
-                                                                                                        main?.select?.();
-                                                                                                    }
-                                                                                                }, 200);
-                                                                                            }
-                                                                                        } else {
-                                                                                            // No match, just move to quantity column
-                                                                                            setRowSearchIdx(null);
-                                                                                            setTimeout(() => {
-                                                                                                const sec = document.getElementById(`qty-sec-${idx}`);
-                                                                                                if (posMode === 'Wholesale' && sec && !sec.disabled) {
-                                                                                                    sec.focus();
-                                                                                                    sec.select?.();
-                                                                                                } else {
-                                                                                                    const main = document.getElementById(`qty-main-${idx}`);
-                                                                                                    main?.focus();
-                                                                                                    main?.select?.();
-                                                                                                }
-                                                                                            }, 200);
-                                                                                        }
-                                                                                    }
-                                                                                }}
-                                                                                id={`row-name-${idx}`}
-                                                                            />
-                                                                        </div>
-                                                                    ) : (
-                                                                        <div
-                                                                            onClick={() => {
-                                                                                setRowSearchIdx(idx);
-                                                                                setRowSearchTerm(item.product_name);
-                                                                                setRowActiveIndex(0);
-                                                                                setTimeout(() => {
-                                                                                    const el = document.getElementById(`row-name-${idx}`);
-                                                                                    el?.focus();
-                                                                                    el?.select?.();
-                                                                                }, 50);
-                                                                            }}
-                                                                            className="w-full h-auto py-2 px-3 flex items-center justify-between gap-2.5 cursor-pointer group/marquee-wrap min-h-[44px]"
-                                                                        >
-                                                                            <div className="flex-1 min-w-0 flex flex-col justify-center">
-                                                                                <div className="flex items-center gap-2 flex-wrap">
-                                                                                    <div className={cn("min-w-0 flex items-center gap-2", cartColorConfig?.enableTextPills && "px-2.5 py-1 rounded-2xl border transition-all")} style={cartColorConfig?.enableTextPills ? getCartTextPillStyle(cartColorConfig, 'name') : undefined}>
-                                                                                        <MarqueeText
-                                                                                            text={item.product_name}
-                                                                                            className={cn(
-                                                                                                "text-[17px] font-black tracking-tight leading-snug",
-                                                                                                (!cartColorConfig?.productTextColor || cartColorConfig.productTextColor === 'default') && "text-emerald-900 dark:text-emerald-300"
-                                                                                            )}
-                                                                                            style={{
-                                                                                                color: cartColorConfig?.productTextColor && cartColorConfig.productTextColor !== 'default' ? cartColorConfig.productTextColor : undefined,
-                                                                                                ...getCartTextShadowStyle(cartColorConfig, cartColorConfig?.productTextColor)
-                                                                                            }}
-                                                                                            title={item.product_name}
-                                                                                            onContextMenu={(e) => {
+                                                                                            .sort((a, b) => {
+                                                                                                const s = rowSearchTerm.toLowerCase();
+                                                                                                const aName = (a.name || "").toLowerCase();
+                                                                                                const bName = (b.name || "").toLowerCase();
+                                                                                                const aStarts = aName.startsWith(s);
+                                                                                                const bStarts = bName.startsWith(s);
+                                                                                                if (aStarts && !bStarts) return -1;
+                                                                                                if (!aStarts && bStarts) return 1;
+                                                                                                if (a.code?.toLowerCase() === s && b.code?.toLowerCase() !== s) return -1;
+                                                                                                if (a.code?.toLowerCase() !== s && b.code?.toLowerCase() === s) return 1;
+                                                                                                return aName.localeCompare(bName, 'vi', { sensitivity: 'base' });
+                                                                                            })
+                                                                                            .slice(0, 50);
+                                                                                        if (e.key === 'ArrowDown') {
+                                                                                            if (rowSearchIdx === idx && filtered.length > 0) {
                                                                                                 e.preventDefault();
-                                                                                                e.stopPropagation();
-                                                                                                const p = products.find(prod => prod.id === item.product_id) || item;
-                                                                                                if (p) {
-                                                                                                    setItemContextMenu({
-                                                                                                        type: 'product',
-                                                                                                        data: p,
-                                                                                                        position: { x: e.clientX, y: e.clientY },
-                                                                                                        onDelete: () => removeFromCart(item.cartId || idx)
-                                                                                                    });
+                                                                                                setRowActiveIndex(prev => {
+                                                                                                    const next = Math.min(prev + 1, filtered.length - 1);
+                                                                                                    if (rowSearchDropdownRef.current) {
+                                                                                                        const itemEl = rowSearchDropdownRef.current.children[next];
+                                                                                                        if (itemEl) itemEl.scrollIntoView({ block: 'nearest' });
+                                                                                                    }
+                                                                                                    return next;
+                                                                                                });
+                                                                                            } else {
+                                                                                                e.preventDefault();
+                                                                                                const nextIdx = idx + 1;
+                                                                                                if (nextIdx < cart.length) {
+                                                                                                    document.getElementById(`row-name-${nextIdx}`)?.focus();
                                                                                                 }
-                                                                                            }}
-                                                                                        />
-                                                                                        <button
-                                                                                            type="button"
-                                                                                            onClick={(e) => {
-                                                                                                e.stopPropagation();
-                                                                                                const prod = products.find(s => s.id === item.product_id) || item;
-                                                                                                const ingInfo = (prod.active_ingredient || item.active_ingredient) ? ` (Hoạt chất: ${prod.active_ingredient || item.active_ingredient})` : '';
-                                                                                                const query = `Cho tôi biết công dụng, đặc trị bệnh gì, liều lượng pha và phối hợp thuốc của sản phẩm ${prod.name || item.product_name}${ingInfo}`;
-                                                                                                window.dispatchEvent(new CustomEvent('lyang_open_ai_consultant', { detail: { query } }));
-                                                                                                setTimeout(() => {
-                                                                                                    window.dispatchEvent(new CustomEvent('lyang_ai_query', { detail: { query } }));
-                                                                                                }, 150);
-                                                                                            }}
-                                                                                            className="group/ai-btn opacity-0 group-hover:opacity-100 group-hover/marquee-wrap:opacity-100 focus:opacity-100 inline-flex items-center justify-center w-7 h-7 rounded-xl bg-gradient-to-tr from-emerald-500/20 via-teal-400/20 to-cyan-500/20 hover:from-emerald-500 hover:via-teal-500 hover:to-cyan-500 text-emerald-700 hover:text-white dark:from-emerald-400/20 dark:via-teal-300/20 dark:to-cyan-400/20 dark:text-emerald-300 dark:hover:from-emerald-400 dark:hover:via-teal-400 dark:hover:to-cyan-400 dark:hover:text-slate-950 border border-emerald-500/30 hover:border-emerald-400 shadow-sm hover:shadow-[0_0_15px_rgba(16,185,129,0.5)] transition-all duration-300 hover:scale-120 hover:-translate-y-0.5 active:scale-95 shrink-0 cursor-pointer select-none ml-1 relative overflow-hidden backdrop-blur-md"
-                                                                                            title="Hỏi AI: Tra cứu nhanh công dụng, liều dùng & phối hợp thuốc"
-                                                                                        >
-                                                                                            <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover/ai-btn:animate-[shimmer_1.2s_infinite] pointer-events-none" />
-                                                                                            <Bot size={14} strokeWidth={2.6} className="text-emerald-600 dark:text-emerald-300 group-hover/ai-btn:text-white dark:group-hover/ai-btn:text-slate-950 transition-all duration-300 group-hover/ai-btn:rotate-12 group-hover/ai-btn:scale-110 drop-shadow-sm" />
-                                                                                        </button>
-                                                                                        {item.is_combo && (
-                                                                                            <span className="shrink-0 px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[10px] font-black tracking-widest border border-amber-500/30">COMBO</span>
-                                                                                        )}
-                                                                                    </div>
-                                                                                </div>
-                                                                                {item.ai_scanned && (
-                                                                                    <div className="mt-1 flex items-center gap-1.5 z-10 w-fit">
-                                                                                        {item.ai_matched_status === 'matched' ? (
-                                                                                            <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-black flex items-center gap-1 border border-emerald-500/20 shadow-xs">
-                                                                                                <Sparkles size={10} className="text-emerald-500 dark:text-emerald-400 shrink-0" />
-                                                                                                <span className="truncate max-w-[320px]">AI Tự khớp: "{item.ai_original_name}"</span>
-                                                                                                <button 
-                                                                                                    type="button" 
-                                                                                                    onClick={(e) => {
-                                                                                                        e.stopPropagation();
-                                                                                                        const newCart = [...cart];
-                                                                                                        delete newCart[idx].ai_scanned;
-                                                                                                        setCart(newCart);
-                                                                                                    }}
-                                                                                                    className="hover:bg-emerald-500/20 rounded p-0.5 text-emerald-700 dark:text-emerald-300 transition-all inline-flex items-center justify-center ml-1"
-                                                                                                    title="Xác nhận khớp đúng"
-                                                                                                >
-                                                                                                    <Check size={10} strokeWidth={3} />
-                                                                                                </button>
-                                                                                            </span>
-                                                                                        ) : (
-                                                                                            <span className="px-1.5 py-0.5 rounded bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[9px] font-black flex items-center gap-1 border border-amber-500/20 shadow-xs">
-                                                                                                <AlertCircle size={10} className="text-amber-500 dark:text-amber-400 shrink-0" />
-                                                                                                <span className="truncate max-w-[320px]">AI không khớp được: "{item.ai_original_name}"</span>
-                                                                                                <button 
-                                                                                                    type="button" 
-                                                                                                    onClick={(e) => {
-                                                                                                        e.stopPropagation();
-                                                                                                        const newCart = [...cart];
-                                                                                                        delete newCart[idx].ai_scanned;
-                                                                                                        setCart(newCart);
-                                                                                                    }}
-                                                                                                    className="hover:bg-amber-500/20 rounded p-0.5 text-amber-700 dark:text-amber-300 transition-all inline-flex items-center justify-center ml-1"
-                                                                                                    title="Bỏ qua cảnh báo"
-                                                                                                >
-                                                                                                    <X size={10} strokeWidth={3} />
-                                                                                                </button>
-                                                                                            </span>
-                                                                                        )}
-                                                                                    </div>
-                                                                                )}
-                                                                            </div>
-                                                                            {item.product_id && (() => {
-                                                                                const currentProd = products.find(p => p.id === item.product_id) || item;
-                                                                                const currentStock = currentProd.stock !== undefined ? currentProd.stock : (item.stock !== undefined ? item.stock : 0);
-                                                                                const currentAccountingStock = currentProd.accounting_stock !== undefined ? currentProd.accounting_stock : (item.accounting_stock !== undefined ? item.accounting_stock : 0);
-                                                                                return (
-                                                                                <div className="shrink-0 z-10 flex flex-col items-end gap-1">
-                                                                                    <div 
-                                                                                        onClick={(e) => {
-                                                                                            e.stopPropagation();
-                                                                                            const rect = e.currentTarget.getBoundingClientRect();
-                                                                                            setAuditProduct(currentProd);
-                                                                                            setAuditCoords({
-                                                                                                top: rect.top,
-                                                                                                bottom: rect.bottom,
-                                                                                                left: rect.left,
-                                                                                                right: rect.right
-                                                                                            });
-                                                                                            setIsAuditOpen(true);
-                                                                                        }} 
-                                                                                        className={cn(
-                                                                                            "relative cursor-pointer hover:scale-105 active:scale-95 px-2.5 py-0.5 rounded-full text-[11px] font-black border transition-all flex items-center gap-1.5 group/stock whitespace-nowrap shadow-xs select-none backdrop-blur-md", 
-                                                                                            currentStock <= 0 
-                                                                                                ? "bg-gradient-to-r from-rose-500/15 via-red-500/20 to-rose-600/15 dark:from-rose-500/25 dark:to-rose-600/30 text-rose-700 dark:text-rose-300 border-rose-500/35 dark:border-rose-400/45 shadow-rose-500/10 hover:border-rose-500/60" 
-                                                                                                : currentStock < 10 
-                                                                                                    ? "bg-gradient-to-r from-amber-500/15 via-orange-500/20 to-amber-600/15 dark:from-amber-500/25 dark:to-amber-600/30 text-amber-800 dark:text-amber-300 border-amber-500/35 dark:border-amber-400/45 shadow-amber-500/10 hover:border-amber-500/60" 
-                                                                                                    : "bg-gradient-to-r from-emerald-500/15 via-teal-500/20 to-emerald-600/15 dark:from-emerald-500/25 dark:to-emerald-600/30 text-emerald-800 dark:text-emerald-300 border-emerald-500/35 dark:border-emerald-400/45 shadow-emerald-500/10 hover:border-emerald-500/60"
-                                                                                        )} 
-                                                                                        title="Kiểm tồn nhanh"
-                                                                                    >
-                                                                                        <div className="flex items-center gap-1 tabular-nums">
-                                                                                            {currentStock <= 0 ? (
-                                                                                                <Package size={12} strokeWidth={2.6} className="text-rose-600 dark:text-rose-400 shrink-0" />
-                                                                                            ) : currentStock < 10 ? (
-                                                                                                <AlertTriangle size={12} strokeWidth={2.6} className="text-amber-600 dark:text-amber-400 shrink-0" />
-                                                                                            ) : (
-                                                                                                <Package size={12} strokeWidth={2.6} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
-                                                                                            )}
-                                                                                            <span className="tabular-nums font-black">
-                                                                                                {currentStock}
-                                                                                            </span>
-                                                                                        </div>
-                                                                                        {localStorage.getItem('feature_accounting_enabled') !== 'false' && (
-                                                                                            <>
-                                                                                                <span className="w-px h-3 bg-white/40 shrink-0" />
-                                                                                                <div className="inline-flex items-center gap-1 text-white/90 shrink-0 whitespace-nowrap" title="Tồn sổ sách kế toán">
-                                                                                                    <ReceiptText size={11} strokeWidth={2.4} className="shrink-0 text-white" />
-                                                                                                    <span className="tabular-nums font-black">
-                                                                                                        {currentAccountingStock}
-                                                                                                    </span>
-                                                                                                </div>
-                                                                                            </>
-                                                                                        )}
-                                                                                    </div>
-                                                                                </div>
-                                                                                );
-                                                                            })()}
-                                                                        </div>
-                                                                    )}
-                                                                    <AnimatePresence>
-                                                                        {rowSearchIdx === idx && rowSearchTerm && (
-                                                                            <m.div
-                                                                                initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                                                                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                                                exit={{ opacity: 0, y: 8, scale: 0.96 }}
-                                                                                transition={{
-                                                                                    duration: 0.15
-                                                                                }}
-                                                                                className="dropdown-premium backdrop-blur-2xl absolute top-full left-0 mt-2 !z-[3000] w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden"
-                                                                            >
-                                                                            <div ref={rowSearchDropdownRef} className="max-h-[380px] overflow-y-auto custom-scrollbar p-0 ">
-                                                                                {products.filter(p => {
-                                                                                    const s = rowSearchTerm.toLowerCase();
-                                                                                    return (p.name || "").toLowerCase().includes(s) ||
-                                                                                        (p.code || "").toLowerCase().includes(s) ||
-                                                                                        (p.active_ingredient || "").toLowerCase().includes(s);
-                                                                                        })
-                                                                                    .sort((a, b) => {
-                                                                                        const s = rowSearchTerm.toLowerCase();
-                                                                                        const aName = (a.name || "").toLowerCase();
-                                                                                        const bName = (b.name || "").toLowerCase();
-                                                                                        if (aName.startsWith(s) && !bName.startsWith(s)) return -1;
-                                                                                        if (!aName.startsWith(s) && bName.startsWith(s)) return 1;
-                                                                                        if (a.code?.toLowerCase() === s && b.code?.toLowerCase() !== s) return -1;
-                                                                                        if (a.code?.toLowerCase() !== s && b.code?.toLowerCase() === s) return 1;
-                                                                                        return aName.localeCompare(bName, 'vi', { sensitivity: 'base' });
-                                                                                    })
-                                                                                    .slice(0, 50).map((p, pIdx) => (
-                                                                                        <div
-                                                                                            key={p.id}
-                                                                                            onMouseMove={() => { if (rowActiveIndex !== pIdx) setRowActiveIndex(pIdx); }}
-                                                                                            onClick={() => {
+                                                                                            }
+                                                                                        } else if (e.key === 'ArrowUp') {
+                                                                                            if (rowSearchIdx === idx && filtered.length > 0) {
+                                                                                                e.preventDefault();
+                                                                                                setRowActiveIndex(prev => {
+                                                                                                    const next = Math.max(prev - 1, 0);
+                                                                                                    if (rowSearchDropdownRef.current) {
+                                                                                                        const itemEl = rowSearchDropdownRef.current.children[next];
+                                                                                                        if (itemEl) itemEl.scrollIntoView({ block: 'nearest' });
+                                                                                                    }
+                                                                                                    return next;
+                                                                                                });
+                                                                                            } else {
+                                                                                                e.preventDefault();
+                                                                                                const prevIdx = idx - 1;
+                                                                                                if (prevIdx >= 0) {
+                                                                                                    document.getElementById(`row-name-${prevIdx}`)?.focus();
+                                                                                                } else {
+                                                                                                    searchInputRef.current?.focus();
+                                                                                                }
+                                                                                            }
+                                                                                        } else if (e.key === 'Enter') {
+                                                                                            e.preventDefault();
+                                                                                            if (filtered[rowActiveIndex]) {
+                                                                                                const p = filtered[rowActiveIndex];
                                                                                                 let newCart = [...cart];
                                                                                                 const currentQty = newCart[idx].quantity;
                                                                                                 const existingIdx = newCart.findIndex((item, i) => i !== idx && item.product_id === p.id);
@@ -3898,101 +3600,399 @@ export default function Purchase() {
                                                                                                 }
                                                                                                 setCart(newCart);
                                                                                                 setRowSearchIdx(null);
-                                                                                            }}
-                                                                                            className={cn(
-                                                                                                "dropdown-item flex justify-between items-center",
-                                                                                                pIdx === rowActiveIndex && "active"
+                                                                                            }
+                                                                                            searchInputRef.current?.focus();
+                                                                                        } else if (e.key === 'Tab') {
+                                                                                            e.preventDefault();
+                                                                                            const filtered_matches = filtered.length > 0 ? filtered : [];
+                                                                                            if (filtered_matches[rowActiveIndex]) {
+                                                                                                const p = filtered_matches[rowActiveIndex];
+                                                                                                let newCart = [...cart];
+                                                                                                const currentQty = newCart[idx].quantity;
+                                                                                                const existingIdx = newCart.findIndex((item, i) => i !== idx && item.product_id === p.id);
+                                                                                                if (existingIdx > -1) {
+                                                                                                    newCart[existingIdx].quantity += currentQty;
+                                                                                                    newCart[existingIdx].secondary_qty = newCart[existingIdx].quantity / (newCart[existingIdx].multiplier || 1);
+                                                                                                    newCart.splice(idx, 1);
+                                                                                                    setCart(newCart);
+                                                                                                    setRowSearchIdx(null);
+
+                                                                                                    // Focus the merged row's quantity
+                                                                                                    setTimeout(() => {
+                                                                                                        const targetIdx = existingIdx > idx ? existingIdx - 1 : existingIdx;
+                                                                                                        const sec = document.getElementById(`qty-sec-${targetIdx}`);
+                                                                                                        if (posMode === 'Wholesale' && sec && !sec.disabled) {
+                                                                                                            sec.focus();
+                                                                                                            sec.select?.();
+                                                                                                        } else {
+                                                                                                            const main = document.getElementById(`qty-main-${targetIdx}`);
+                                                                                                            main?.focus();
+                                                                                                            main?.select?.();
+                                                                                                        }
+                                                                                                    }, 200);
+                                                                                                } else {
+                                                                                                    newCart[idx] = {
+                                                                                                        ...newCart[idx],
+                                                                                                        product_id: p.id,
+                                                                                                        product_name: p.name,
+                                                                                                        unit: p.unit,
+                                                                                                        secondary_unit: p.secondary_unit,
+                                                                                                        multiplier: p.multiplier || 1,
+                                                                                                        price: p.cost_price,
+                                                                                                        stock: p.stock,
+                                                                                                        secondary_qty: currentQty / (p.multiplier || 1),
+                                                                                                        active_ingredient: p.active_ingredient
+                                                                                                    };
+                                                                                                    setCart(newCart);
+                                                                                                    setRowSearchIdx(null);
+                                                                                                    setTimeout(() => {
+                                                                                                        const sec = document.getElementById(`qty-sec-${idx}`);
+                                                                                                        if (posMode === 'Wholesale' && sec && !sec.disabled) {
+                                                                                                            sec.focus();
+                                                                                                            sec.select?.();
+                                                                                                        } else {
+                                                                                                            const main = document.getElementById(`qty-main-${idx}`);
+                                                                                                            main?.focus();
+                                                                                                            main?.select?.();
+                                                                                                        }
+                                                                                                    }, 200);
+                                                                                                }
+                                                                                            } else {
+                                                                                                // No match, just move to quantity column
+                                                                                                setRowSearchIdx(null);
+                                                                                                setTimeout(() => {
+                                                                                                    const sec = document.getElementById(`qty-sec-${idx}`);
+                                                                                                    if (posMode === 'Wholesale' && sec && !sec.disabled) {
+                                                                                                        sec.focus();
+                                                                                                        sec.select?.();
+                                                                                                    } else {
+                                                                                                        const main = document.getElementById(`qty-main-${idx}`);
+                                                                                                        main?.focus();
+                                                                                                        main?.select?.();
+                                                                                                    }
+                                                                                                }, 200);
+                                                                                            }
+                                                                                        }
+                                                                                    }}
+                                                                                    id={`row-name-${idx}`}
+                                                                                />
+                                                                            </div>
+                                                                        ) : (
+                                                                            <div
+                                                                                onClick={() => {
+                                                                                    setRowSearchIdx(idx);
+                                                                                    setRowSearchTerm(item.product_name);
+                                                                                    setRowActiveIndex(0);
+                                                                                    setTimeout(() => {
+                                                                                        const el = document.getElementById(`row-name-${idx}`);
+                                                                                        el?.focus();
+                                                                                        el?.select?.();
+                                                                                    }, 50);
+                                                                                }}
+                                                                                className="w-full h-auto py-2 px-3 flex items-center justify-between gap-2.5 cursor-pointer group/marquee-wrap min-h-[44px]"
+                                                                            >
+                                                                                <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                                                        <div className={cn("min-w-0 flex items-center gap-2", cartColorConfig?.enableTextPills && "px-2.5 py-1 rounded-2xl border transition-all")} style={cartColorConfig?.enableTextPills ? getCartTextPillStyle(cartColorConfig, 'name') : undefined}>
+                                                                                            <MarqueeText
+                                                                                                text={item.product_name}
+                                                                                                className={cn(
+                                                                                                    "text-[17px] font-black tracking-tight leading-snug",
+                                                                                                    (!cartColorConfig?.productTextColor || cartColorConfig.productTextColor === 'default') && "text-emerald-900 dark:text-emerald-300"
+                                                                                                )}
+                                                                                                style={{
+                                                                                                    color: cartColorConfig?.productTextColor && cartColorConfig.productTextColor !== 'default' ? cartColorConfig.productTextColor : undefined,
+                                                                                                    ...getCartTextShadowStyle(cartColorConfig, cartColorConfig?.productTextColor)
+                                                                                                }}
+                                                                                                title={item.product_name}
+                                                                                                onContextMenu={(e) => {
+                                                                                                    e.preventDefault();
+                                                                                                    e.stopPropagation();
+                                                                                                    const p = products.find(prod => prod.id === item.product_id) || item;
+                                                                                                    if (p) {
+                                                                                                        setItemContextMenu({
+                                                                                                            type: 'product',
+                                                                                                            data: p,
+                                                                                                            position: { x: e.clientX, y: e.clientY },
+                                                                                                            onDelete: () => removeFromCart(item.cartId || idx)
+                                                                                                        });
+                                                                                                    }
+                                                                                                }}
+                                                                                            />
+                                                                                            <button
+                                                                                                type="button"
+                                                                                                onClick={(e) => {
+                                                                                                    e.stopPropagation();
+                                                                                                    const prod = products.find(s => s.id === item.product_id) || item;
+                                                                                                    const ingInfo = (prod.active_ingredient || item.active_ingredient) ? ` (Hoạt chất: ${prod.active_ingredient || item.active_ingredient})` : '';
+                                                                                                    const query = `Cho tôi biết công dụng, đặc trị bệnh gì, liều lượng pha và phối hợp thuốc của sản phẩm ${prod.name || item.product_name}${ingInfo}`;
+                                                                                                    window.dispatchEvent(new CustomEvent('lyang_open_ai_consultant', { detail: { query } }));
+                                                                                                    setTimeout(() => {
+                                                                                                        window.dispatchEvent(new CustomEvent('lyang_ai_query', { detail: { query } }));
+                                                                                                    }, 150);
+                                                                                                }}
+                                                                                                className="group/ai-btn opacity-0 group-hover:opacity-100 group-hover/marquee-wrap:opacity-100 focus:opacity-100 inline-flex items-center justify-center w-7 h-7 rounded-xl bg-gradient-to-tr from-emerald-500/20 via-teal-400/20 to-cyan-500/20 hover:from-emerald-500 hover:via-teal-500 hover:to-cyan-500 text-emerald-700 hover:text-white dark:from-emerald-400/20 dark:via-teal-300/20 dark:to-cyan-400/20 dark:text-emerald-300 dark:hover:from-emerald-400 dark:hover:via-teal-400 dark:hover:to-cyan-400 dark:hover:text-slate-950 border border-emerald-500/30 hover:border-emerald-400 shadow-sm hover:shadow-[0_0_15px_rgba(16,185,129,0.5)] transition-all duration-300 hover:scale-120 hover:-translate-y-0.5 active:scale-95 shrink-0 cursor-pointer select-none ml-1 relative overflow-hidden backdrop-blur-md"
+                                                                                                title="Hỏi AI: Tra cứu nhanh công dụng, liều dùng & phối hợp thuốc"
+                                                                                            >
+                                                                                                <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover/ai-btn:animate-[shimmer_1.2s_infinite] pointer-events-none" />
+                                                                                                <Bot size={14} strokeWidth={2.6} className="text-emerald-600 dark:text-emerald-300 group-hover/ai-btn:text-white dark:group-hover/ai-btn:text-slate-950 transition-all duration-300 group-hover/ai-btn:rotate-12 group-hover/ai-btn:scale-110 drop-shadow-sm" />
+                                                                                            </button>
+                                                                                            {item.is_combo && (
+                                                                                                <span className="shrink-0 px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-700 dark:text-amber-400 text-[10px] font-black tracking-widest border border-amber-500/30">COMBO</span>
                                                                                             )}
-                                                                                        >
-                                                                                            <div className="flex-1 flex flex-col gap-1.5 relative z-10 min-w-0 overflow-hidden mr-3">
-                                                                                                <div className="flex items-center gap-3 min-w-0">
-                                                                                                    <div className="min-w-0 flex-1 overflow-hidden">
-                                                                                                        <MarqueeText
-                                                                                                            text={p.name}
-                                                                                                            isActive={pIdx === rowActiveIndex}
-                                                                                                            className="font-black tracking-tight transition-all duration-300 leading-relaxed"
-                                                                                                            style={{
-                                                                                                                fontSize: pIdx === rowActiveIndex ? "18px" : "16px",
-                                                                                                                paddingLeft: pIdx === rowActiveIndex ? '12px' : '0px'
-                                                                                                            }}
-                                                                                                        />
-                                                                                                    </div>
-                                                                                                    {p.is_combo && (
-                                                                                                        <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-widest">COMBO</span>
+                                                                                        </div>
+                                                                                    </div>
+                                                                                    {item.ai_scanned && (
+                                                                                        <div className="mt-1 flex items-center gap-1.5 z-10 w-fit">
+                                                                                            {item.ai_matched_status === 'matched' ? (
+                                                                                                <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-black flex items-center gap-1 border border-emerald-500/20 shadow-xs">
+                                                                                                    <Sparkles size={10} className="text-emerald-500 dark:text-emerald-400 shrink-0" />
+                                                                                                    <span className="truncate max-w-[320px]">AI Tự khớp: "{item.ai_original_name}"</span>
+                                                                                                    <button
+                                                                                                        type="button"
+                                                                                                        onClick={(e) => {
+                                                                                                            e.stopPropagation();
+                                                                                                            const newCart = [...cart];
+                                                                                                            delete newCart[idx].ai_scanned;
+                                                                                                            setCart(newCart);
+                                                                                                        }}
+                                                                                                        className="hover:bg-emerald-500/20 rounded p-0.5 text-emerald-700 dark:text-emerald-300 transition-all inline-flex items-center justify-center ml-1"
+                                                                                                        title="Xác nhận khớp đúng"
+                                                                                                    >
+                                                                                                        <Check size={10} strokeWidth={3} />
+                                                                                                    </button>
+                                                                                                </span>
+                                                                                            ) : (
+                                                                                                <span className="px-1.5 py-0.5 rounded bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 text-[9px] font-black flex items-center gap-1 border border-amber-500/20 shadow-xs">
+                                                                                                    <AlertCircle size={10} className="text-amber-500 dark:text-amber-400 shrink-0" />
+                                                                                                    <span className="truncate max-w-[320px]">AI không khớp được: "{item.ai_original_name}"</span>
+                                                                                                    <button
+                                                                                                        type="button"
+                                                                                                        onClick={(e) => {
+                                                                                                            e.stopPropagation();
+                                                                                                            const newCart = [...cart];
+                                                                                                            delete newCart[idx].ai_scanned;
+                                                                                                            setCart(newCart);
+                                                                                                        }}
+                                                                                                        className="hover:bg-amber-500/20 rounded p-0.5 text-amber-700 dark:text-amber-300 transition-all inline-flex items-center justify-center ml-1"
+                                                                                                        title="Bỏ qua cảnh báo"
+                                                                                                    >
+                                                                                                        <X size={10} strokeWidth={3} />
+                                                                                                    </button>
+                                                                                                </span>
+                                                                                            )}
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                                {item.product_id && (() => {
+                                                                                    const currentProd = products.find(p => p.id === item.product_id) || item;
+                                                                                    const currentStock = currentProd.stock !== undefined ? currentProd.stock : (item.stock !== undefined ? item.stock : 0);
+                                                                                    const currentAccountingStock = currentProd.accounting_stock !== undefined ? currentProd.accounting_stock : (item.accounting_stock !== undefined ? item.accounting_stock : 0);
+                                                                                    return (
+                                                                                        <div className="shrink-0 z-10 flex flex-col items-end gap-1">
+                                                                                            <div
+                                                                                                onClick={(e) => {
+                                                                                                    e.stopPropagation();
+                                                                                                    const rect = e.currentTarget.getBoundingClientRect();
+                                                                                                    setAuditProduct(currentProd);
+                                                                                                    setAuditCoords({
+                                                                                                        top: rect.top,
+                                                                                                        bottom: rect.bottom,
+                                                                                                        left: rect.left,
+                                                                                                        right: rect.right
+                                                                                                    });
+                                                                                                    setIsAuditOpen(true);
+                                                                                                }}
+                                                                                                className={cn(
+                                                                                                    "relative cursor-pointer hover:scale-105 active:scale-95 px-2.5 py-0.5 rounded-full text-[11px] font-black border transition-all flex items-center gap-1.5 group/stock whitespace-nowrap shadow-xs select-none backdrop-blur-md",
+                                                                                                    currentStock <= 0
+                                                                                                        ? "bg-gradient-to-r from-rose-500/15 via-red-500/20 to-rose-600/15 dark:from-rose-500/25 dark:to-rose-600/30 text-rose-700 dark:text-rose-300 border-rose-500/35 dark:border-rose-400/45 shadow-rose-500/10 hover:border-rose-500/60"
+                                                                                                        : currentStock < 10
+                                                                                                            ? "bg-gradient-to-r from-amber-500/15 via-orange-500/20 to-amber-600/15 dark:from-amber-500/25 dark:to-amber-600/30 text-amber-800 dark:text-amber-300 border-amber-500/35 dark:border-amber-400/45 shadow-amber-500/10 hover:border-amber-500/60"
+                                                                                                            : "bg-gradient-to-r from-emerald-500/15 via-teal-500/20 to-emerald-600/15 dark:from-emerald-500/25 dark:to-emerald-600/30 text-emerald-800 dark:text-emerald-300 border-emerald-500/35 dark:border-emerald-400/45 shadow-emerald-500/10 hover:border-emerald-500/60"
+                                                                                                )}
+                                                                                                title="Kiểm tồn nhanh"
+                                                                                            >
+                                                                                                <div className="flex items-center gap-1 tabular-nums">
+                                                                                                    {currentStock <= 0 ? (
+                                                                                                        <Package size={12} strokeWidth={2.6} className="text-rose-600 dark:text-rose-400 shrink-0" />
+                                                                                                    ) : currentStock < 10 ? (
+                                                                                                        <AlertTriangle size={12} strokeWidth={2.6} className="text-amber-600 dark:text-amber-400 shrink-0" />
+                                                                                                    ) : (
+                                                                                                        <Package size={12} strokeWidth={2.6} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
                                                                                                     )}
+                                                                                                    <span className="tabular-nums font-black">
+                                                                                                        {currentStock}
+                                                                                                    </span>
                                                                                                 </div>
-                                                                                                <div className="flex items-center gap-5">
-                                                                                                    {p.active_ingredient && (
-                                                                                                        <span className={cn("text-[11px] font-black italic tracking-wide transition-colors", pIdx === rowActiveIndex ? "text-white/80" : "text-primary dark:text-emerald-400")}>
-                                                                                                            {p.active_ingredient}
-                                                                                                        </span>
-                                                                                                    )}
-                                                                                                    <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                                                                                                        {p.code && (
-                                                                                                            <span className={cn(
-                                                                                                                "shrink-0 px-2 py-0.5 rounded-md font-mono text-[9.5px] font-black tabular-nums transition-colors",
-                                                                                                                pIdx === rowActiveIndex ? "bg-white/20 text-white" : "bg-slate-900/10 dark:bg-white/10 text-slate-600 dark:text-slate-300"
-                                                                                                            )}>
-                                                                                                                {p.code}
+                                                                                                {localStorage.getItem('feature_accounting_enabled') !== 'false' && (
+                                                                                                    <>
+                                                                                                        <span className="w-px h-3 bg-white/40 shrink-0" />
+                                                                                                        <div className="inline-flex items-center gap-1 text-white/90 shrink-0 whitespace-nowrap" title="Tồn sổ sách kế toán">
+                                                                                                            <ReceiptText size={11} strokeWidth={2.4} className="shrink-0 text-white" />
+                                                                                                            <span className="tabular-nums font-black">
+                                                                                                                {currentAccountingStock}
                                                                                                             </span>
-                                                                                                        )}
-                                                                                                        <span className={cn(
-                                                                                                            "px-2.5 py-0.5 rounded-md transition-colors font-bold",
-                                                                                                            pIdx === rowActiveIndex ? "bg-white/20 text-white" : "bg-black/[0.05] dark:bg-white/[0.08] text-slate-700 dark:text-slate-300"
-                                                                                                        )}>
-                                                                                                            {normalizeUOM(p.unit)}
-                                                                                                        </span>
-                                                                                                        {p.multiplier > 1 && (
-                                                                                                            <span className={pIdx === rowActiveIndex ? "text-white/60" : "text-slate-500 opacity-60"}>
-                                                                                                                / {normalizeUOM(p.secondary_unit)} (x{p.multiplier})
-                                                                                                            </span>
-                                                                                                        )}
-                                                                                                    </div>
-                                                                                                </div>
-                                                                                            </div>
-
-                                                                                            <div className="flex items-center gap-8 relative z-10">
-                                                                                                <div
-                                                                                                    className={cn(
-                                                                                                        "px-3 py-1.5 rounded-full text-xs font-black transition-all flex items-center gap-2 select-none shadow-xs shrink-0",
-                                                                                                        p.stock <= 0
-                                                                                                            ? "bg-rose-600 text-white"
-                                                                                                            : p.stock < 10
-                                                                                                                ? "bg-amber-500 text-slate-950"
-                                                                                                                : pIdx === rowActiveIndex
-                                                                                                                    ? "bg-white/25 text-white"
-                                                                                                                    : "bg-[#8b6f47]/15 text-[#8b6f47] dark:text-[#d4a574]"
-                                                                                                    )}
-                                                                                                    title="Tồn kho thực tế"
-                                                                                                >
-                                                                                                    <div className="flex items-center gap-1.5 tabular-nums">
-                                                                                                        <Package size={14} strokeWidth={2.5} />
-                                                                                                        <span className="tabular-nums font-black">{p.stock}</span>
-                                                                                                    </div>
-                                                                                                </div>
-
-                                                                                                                                <div className="flex flex-col items-end gap-1 shrink-0">
-                                                                                                    <div className={cn(
-                                                                                                        "text-[22px] font-black tracking-tighter tabular-nums",
-                                                                                                        pIdx === rowActiveIndex ? "text-white" : "text-[#2d5016] dark:text-[#d4a574]"
-                                                                                                    )}>
-                                                                                                        {formatNumber(p.cost_price)}
-                                                                                                    </div>
-                                                                                                    <div className={cn(
-                                                                                                        "text-[10px] font-black uppercase tracking-widest opacity-80 flex items-center gap-1",
-                                                                                                        pIdx === rowActiveIndex ? "text-white/80" : "text-slate-500 dark:text-slate-400"
-                                                                                                    )}>
-                                                                                                        <History size={10} strokeWidth={2.5} />
-                                                                                                        NHẬP CUỐI: {formatNumber(p.latest_cost_price || 0)}
-                                                                                                    </div>
-                                                                                                </div>
+                                                                                                        </div>
+                                                                                                    </>
+                                                                                                )}
                                                                                             </div>
                                                                                         </div>
-                                                                                    ))}
+                                                                                    );
+                                                                                })()}
                                                                             </div>
-                                                                        </m.div>
-                                                                    )}
-                                                                    </AnimatePresence>
+                                                                        )}
+                                                                        <AnimatePresence>
+                                                                            {rowSearchIdx === idx && rowSearchTerm && (
+                                                                                <m.div
+                                                                                    initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                                                                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                                                    exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                                                                                    transition={{
+                                                                                        duration: 0.15
+                                                                                    }}
+                                                                                    className="dropdown-premium backdrop-blur-2xl absolute top-full left-0 mt-2 !z-[3000] w-[560px] md:w-[600px] max-w-[95vw] shadow-2xl rounded-2xl border border-[#8b6f47]/30 dark:border-white/10 overflow-hidden"
+                                                                                >
+                                                                                    <div ref={rowSearchDropdownRef} className="max-h-[380px] overflow-y-auto custom-scrollbar p-0 ">
+                                                                                        {products.filter(p => {
+                                                                                            const s = rowSearchTerm.toLowerCase();
+                                                                                            return (p.name || "").toLowerCase().includes(s) ||
+                                                                                                (p.code || "").toLowerCase().includes(s) ||
+                                                                                                (p.active_ingredient || "").toLowerCase().includes(s);
+                                                                                        })
+                                                                                            .sort((a, b) => {
+                                                                                                const s = rowSearchTerm.toLowerCase();
+                                                                                                const aName = (a.name || "").toLowerCase();
+                                                                                                const bName = (b.name || "").toLowerCase();
+                                                                                                if (aName.startsWith(s) && !bName.startsWith(s)) return -1;
+                                                                                                if (!aName.startsWith(s) && bName.startsWith(s)) return 1;
+                                                                                                if (a.code?.toLowerCase() === s && b.code?.toLowerCase() !== s) return -1;
+                                                                                                if (a.code?.toLowerCase() !== s && b.code?.toLowerCase() === s) return 1;
+                                                                                                return aName.localeCompare(bName, 'vi', { sensitivity: 'base' });
+                                                                                            })
+                                                                                            .slice(0, 50).map((p, pIdx) => (
+                                                                                                <div
+                                                                                                    key={p.id}
+                                                                                                    onMouseMove={() => { if (rowActiveIndex !== pIdx) setRowActiveIndex(pIdx); }}
+                                                                                                    onClick={() => {
+                                                                                                        let newCart = [...cart];
+                                                                                                        const currentQty = newCart[idx].quantity;
+                                                                                                        const existingIdx = newCart.findIndex((item, i) => i !== idx && item.product_id === p.id);
+                                                                                                        if (existingIdx > -1) {
+                                                                                                            newCart[existingIdx].quantity += currentQty;
+                                                                                                            newCart[existingIdx].secondary_qty = newCart[existingIdx].quantity / (newCart[existingIdx].multiplier || 1);
+                                                                                                            newCart.splice(idx, 1);
+                                                                                                        } else {
+                                                                                                            newCart[idx] = {
+                                                                                                                ...newCart[idx],
+                                                                                                                product_id: p.id,
+                                                                                                                product_name: p.name,
+                                                                                                                unit: p.unit,
+                                                                                                                secondary_unit: p.secondary_unit,
+                                                                                                                multiplier: p.multiplier || 1,
+                                                                                                                price: p.cost_price,
+                                                                                                                stock: p.stock,
+                                                                                                                secondary_qty: currentQty / (p.multiplier || 1),
+                                                                                                                active_ingredient: p.active_ingredient
+                                                                                                            };
+                                                                                                        }
+                                                                                                        setCart(newCart);
+                                                                                                        setRowSearchIdx(null);
+                                                                                                    }}
+                                                                                                    className={cn(
+                                                                                                        "dropdown-item flex justify-between items-center",
+                                                                                                        pIdx === rowActiveIndex && "active"
+                                                                                                    )}
+                                                                                                >
+                                                                                                    <div className="flex-1 flex flex-col gap-1.5 relative z-10 min-w-0 overflow-hidden mr-3">
+                                                                                                        <div className="flex items-center gap-3 min-w-0">
+                                                                                                            <div className="min-w-0 flex-1 overflow-hidden">
+                                                                                                                <MarqueeText
+                                                                                                                    text={p.name}
+                                                                                                                    isActive={pIdx === rowActiveIndex}
+                                                                                                                    className="font-black tracking-tight transition-all duration-300 leading-relaxed"
+                                                                                                                    style={{
+                                                                                                                        fontSize: pIdx === rowActiveIndex ? "18px" : "16px",
+                                                                                                                        paddingLeft: pIdx === rowActiveIndex ? '12px' : '0px'
+                                                                                                                    }}
+                                                                                                                />
+                                                                                                            </div>
+                                                                                                            {p.is_combo && (
+                                                                                                                <span className="shrink-0 px-2.5 py-0.5 rounded-lg bg-amber-500 text-white text-[10px] font-black tracking-widest">COMBO</span>
+                                                                                                            )}
+                                                                                                        </div>
+                                                                                                        <div className="flex items-center gap-5">
+                                                                                                            {p.active_ingredient && (
+                                                                                                                <span className={cn("text-[11px] font-black italic tracking-wide transition-colors", pIdx === rowActiveIndex ? "text-white/80" : "text-primary dark:text-emerald-400")}>
+                                                                                                                    {p.active_ingredient}
+                                                                                                                </span>
+                                                                                                            )}
+                                                                                                            <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                                                                                                                {p.code && (
+                                                                                                                    <span className={cn(
+                                                                                                                        "shrink-0 px-2 py-0.5 rounded-md font-mono text-[9.5px] font-black tabular-nums transition-colors",
+                                                                                                                        pIdx === rowActiveIndex ? "bg-white/20 text-white" : "bg-slate-900/10 dark:bg-white/10 text-slate-600 dark:text-slate-300"
+                                                                                                                    )}>
+                                                                                                                        {p.code}
+                                                                                                                    </span>
+                                                                                                                )}
+                                                                                                                <span className={cn(
+                                                                                                                    "px-2.5 py-0.5 rounded-md transition-colors font-bold",
+                                                                                                                    pIdx === rowActiveIndex ? "bg-white/20 text-white" : "bg-black/[0.05] dark:bg-white/[0.08] text-slate-700 dark:text-slate-300"
+                                                                                                                )}>
+                                                                                                                    {normalizeUOM(p.unit)}
+                                                                                                                </span>
+                                                                                                                {p.multiplier > 1 && (
+                                                                                                                    <span className={pIdx === rowActiveIndex ? "text-white/60" : "text-slate-500 opacity-60"}>
+                                                                                                                        / {normalizeUOM(p.secondary_unit)} (x{p.multiplier})
+                                                                                                                    </span>
+                                                                                                                )}
+                                                                                                            </div>
+                                                                                                        </div>
+                                                                                                    </div>
+
+                                                                                                    <div className="flex items-center gap-8 relative z-10">
+                                                                                                        <div
+                                                                                                            className={cn(
+                                                                                                                "px-3 py-1.5 rounded-full text-xs font-black transition-all flex items-center gap-2 select-none shadow-xs shrink-0",
+                                                                                                                p.stock <= 0
+                                                                                                                    ? "bg-rose-600 text-white"
+                                                                                                                    : p.stock < 10
+                                                                                                                        ? "bg-amber-500 text-slate-950"
+                                                                                                                        : pIdx === rowActiveIndex
+                                                                                                                            ? "bg-white/25 text-white"
+                                                                                                                            : "bg-[#8b6f47]/15 text-[#8b6f47] dark:text-[#d4a574]"
+                                                                                                            )}
+                                                                                                            title="Tồn kho thực tế"
+                                                                                                        >
+                                                                                                            <div className="flex items-center gap-1.5 tabular-nums">
+                                                                                                                <Package size={14} strokeWidth={2.5} />
+                                                                                                                <span className="tabular-nums font-black">{p.stock}</span>
+                                                                                                            </div>
+                                                                                                        </div>
+
+                                                                                                        <div className="flex flex-col items-end gap-1 shrink-0">
+                                                                                                            <div className={cn(
+                                                                                                                "text-[22px] font-black tracking-tighter tabular-nums",
+                                                                                                                pIdx === rowActiveIndex ? "text-white" : "text-[#2d5016] dark:text-[#d4a574]"
+                                                                                                            )}>
+                                                                                                                {formatNumber(p.cost_price)}
+                                                                                                            </div>
+                                                                                                            <div className={cn(
+                                                                                                                "text-[10px] font-black uppercase tracking-widest opacity-80 flex items-center gap-1",
+                                                                                                                pIdx === rowActiveIndex ? "text-white/80" : "text-slate-500 dark:text-slate-400"
+                                                                                                            )}>
+                                                                                                                <History size={10} strokeWidth={2.5} />
+                                                                                                                NHẬP CUỐI: {formatNumber(p.latest_cost_price || 0)}
+                                                                                                            </div>
+                                                                                                        </div>
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            ))}
+                                                                                    </div>
+                                                                                </m.div>
+                                                                            )}
+                                                                        </AnimatePresence>
                                                                         {item.active_ingredient && (
                                                                             <div data-tooltip="active-ingredient" className="no-print print:hidden pointer-events-none absolute left-0 bottom-full mb-2.5 opacity-0 translate-y-2 scale-95 group-hover/search-row:opacity-100 group-hover/search-row:translate-y-0 group-hover/search-row:scale-100 transition-all duration-200 ease-out z-[4000] bg-[#faf8f3]/95 dark:bg-[#141d13]/95 backdrop-blur-xl border border-[#8b6f47]/30 dark:border-emerald-500/30 rounded-2xl p-3 shadow-[0_16px_36px_-6px_rgba(45,80,22,0.22)] dark:shadow-[0_16px_36px_-6px_rgba(0,0,0,0.8)]">
                                                                                 <ActiveIngredientTooltipContent activeIngredient={item.active_ingredient} />
@@ -4177,1606 +4177,1606 @@ export default function Purchase() {
                                                                                 </div>
                                                                             )}
                                                                         </div>
-                                                                </div>
-                                                            </td>
-                                                            <td className="py-2 px-4 text-right">
-                                                                <div style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined, ...(cartColorConfig?.enableTextPills ? getCartTextPillStyle(cartColorConfig, 'amount') : {}), ...getCartTextShadowStyle(cartColorConfig, cartColorConfig?.cartValuesColor) }} className={cn("font-black text-slate-900 dark:text-white text-lg tabular-nums transition-all", cartColorConfig?.enableTextPills && "px-3 py-1 rounded-2xl border shadow-xs inline-block")}>
-                                                                    {formatNumber(item.price * item.quantity)}
-                                                                </div>
-                                                            </td>
-                                                            <td className="py-2 px-2 text-center">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        removeFromCart(item.cartId || idx);
-                                                                    }}
-                                                                    className="group/del-btn w-8 h-8 mx-auto rounded-xl flex items-center justify-center text-slate-400/80 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 bg-transparent hover:bg-rose-500/15 dark:hover:bg-rose-500/20 border border-transparent hover:border-rose-500/30 dark:hover:border-rose-500/40 hover:shadow-[0_0_12px_rgba(244,63,94,0.25)] hover:scale-110 active:scale-95 transition-all duration-200 opacity-0 group-hover:opacity-100 cursor-pointer"
-                                                                    title="Xóa dòng"
-                                                                >
-                                                                    <Trash2 size={17} strokeWidth={2.2} className="transition-transform duration-200 group-hover/del-btn:-rotate-12 group-hover/del-btn:scale-110" />
-                                                                </button>
-                                                            </td>
-                                                        </m.tr>
-                                                        ))}
-                                                </AnimatePresence>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-
-                                {/* In-Cart Save Success Visual Feedback */}
-                                <AnimatePresence>
-                                    {savedOrderNotice && (
-                                        <m.div
-                                            initial={{ opacity: 0 }}
-                                            animate={{ opacity: 1 }}
-                                            exit={{ opacity: 0, transition: { duration: 0.2 } }}
-                                            className="no-print print:hidden absolute inset-0 z-[500] pointer-events-none rounded-3xl flex items-center justify-center p-4"
-                                        >
-                                            {/* Floating notification badge in center */}
-                                            <m.div
-                                                initial={{ scale: 0.88, opacity: 0, y: 10 }}
-                                                animate={{ scale: 1, opacity: 1, y: 0 }}
-                                                exit={{ scale: 0.92, opacity: 0, y: -8, transition: { duration: 0.18 } }}
-                                                transition={{ type: "spring", stiffness: 450, damping: 28 }}
-                                                className="bg-[#fbf8f2] dark:bg-[#1a1e17] border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 shadow-2xl rounded-3xl px-6 py-5 md:px-8 md:py-6 flex flex-col items-center gap-2.5 text-center w-auto max-w-md mx-auto relative overflow-hidden pointer-events-auto"
-                                            >
-                                                <svg className="absolute inset-0 w-full h-full pointer-events-none z-20">
-                                                    <m.rect
-                                                        x="1"
-                                                        y="1"
-                                                        width="calc(100% - 2px)"
-                                                        height="calc(100% - 2px)"
-                                                        rx="23"
-                                                        fill="none"
-                                                        stroke="#10b981"
-                                                        strokeWidth="2"
-                                                        pathLength="100"
-                                                        strokeDasharray="25 75"
-                                                        initial={{ strokeDashoffset: 100 }}
-                                                        animate={{ strokeDashoffset: 0 }}
-                                                        transition={{ duration: 0.85, ease: "easeInOut" }}
-                                                    />
-                                                </svg>
-                                                <div className="relative flex items-center justify-center mb-0.5">
-                                                    <m.div
-                                                        initial={{ scale: 0.5, rotate: -15 }}
-                                                        animate={{ scale: 1, rotate: 0 }}
-                                                        transition={{ type: "spring", stiffness: 500, damping: 22 }}
-                                                        className="w-14 h-14 rounded-full bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white flex items-center justify-center shadow-lg shadow-[#2d5016]/25 relative z-10"
-                                                    >
-                                                        <Check size={30} strokeWidth={3.5} />
-                                                    </m.div>
-                                                </div>
-
-                                                <div className="text-base sm:text-lg font-black uppercase tracking-tight text-[#2d5016] dark:text-emerald-400 whitespace-nowrap select-none">
-                                                    ĐÃ LƯU ĐƠN NHẬP THÀNH CÔNG!
-                                                </div>
-
-                                                <div className="flex items-center flex-nowrap whitespace-nowrap gap-2 px-3.5 py-1 rounded-full bg-[#8b6f47]/10 dark:bg-[#d4a574]/15 border border-[#8b6f47]/25 dark:border-[#d4a574]/30 text-[#2d5016] dark:text-[#d4a574] text-xs font-black uppercase tracking-wide shrink-0">
-                                                    <span>ĐƠN #{savedOrderNotice.id}</span>
-                                                    <span className="opacity-40">•</span>
-                                                    <span>{savedOrderNotice.count} MÓN</span>
-                                                    {savedOrderNotice.partnerName && (
-                                                        <>
-                                                            <span className="opacity-40">•</span>
-                                                            <span className="truncate max-w-[140px]">{savedOrderNotice.partnerName}</span>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </m.div>
-                                        </m.div>
-                                    )}
-                                </AnimatePresence>
-
-                                {/* Floating Bubbles - Only visible when sidebar is collapsed and in sidebar mode */}
-                                <AnimatePresence initial={false}>
-                                {!isSidebarExpanded && summaryLayoutMode === 'sidebar' && (
-                                    <PurchaseFloatingBubbles
-                                        selectedPartner={selectedPartner}
-                                        oldDebt={oldDebt}
-                                        remainingDebt={remainingDebt}
-                                        cartColorConfig={cartColorConfig}
-                                        onOpenPartnerHistory={() => setIsHistoryPanelOpen(true)}
-                                        onOpenDailyHistory={() => setIsDailyHistoryOpen(true)}
-                                        note={note}
-                                        isNoteOpen={isNoteModalOpen}
-                                        onToggleNote={() => setIsNoteModalOpen(true)}
-                                        paymentMethod={paymentMethod}
-                                        onSelectPaymentMethod={(method) => {
-                                            setPaymentMethod(method);
-                                            if (method === 'Cash') setAmountPaid(totalAmount);
-                                            else setAmountPaid(0);
-                                        }}
-                                        amountPaid={amountPaid}
-                                        onChangeAmountPaid={setAmountPaid}
-                                        totalAmount={totalAmount}
-                                        canScrollDown={canScrollDown}
-                                        onScrollDownCart={handleScrollDownCart}
-                                        cartScrollContainerRef={cartScrollContainerRef}
-                                    />
-                                )}
-                                </AnimatePresence>
-                            </div>
-                        </div>
-
-                        {/* Bottom Summary Panel when in 'bottom' mode */}
-                        {summaryLayoutMode === 'bottom' && (
-                            <div 
-                                style={{ height: `${bottomSummaryHeight}px`, minHeight: '96px', maxHeight: '320px' }}
-                                className="mt-1 bg-transparent border-0 rounded-2xl p-1 shadow-none shrink-0 no-print relative flex flex-col justify-between overflow-visible select-none"
-                            >
-                                {/* Top Drag Handle for Resizing */}
-                                <div
-                                    id="purchase-bottom-summary-resizer"
-                                    onMouseDown={handleStartResizeBottom}
-                                    className="w-full h-3 -mt-3.5 mb-1 cursor-row-resize flex items-center justify-center group/resize-bar hover:bg-[#8b6f47]/10 transition-colors rounded-t-full"
-                                    title="Kéo để chỉnh độ cao thanh tổng kết"
-                                >
-                                    <div className={cn(
-                                        "w-16 h-1 rounded-full transition-all shadow-sm",
-                                        isResizingBottom
-                                            ? "bg-emerald-500 h-1.5 w-24 shadow-emerald-500/50"
-                                            : "bg-slate-400/40 dark:bg-slate-600/40 group-hover/resize-bar:bg-emerald-500 group-hover/resize-bar:h-1.5 group-hover/resize-bar:w-20"
-                                    )} />
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-stretch w-full h-full">
-                                    {/* Col 1: Dư nợ & Sổ nợ / Gửi kho (2 cols) */}
-                                    <m.div
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ duration: 0.3 }}
-                                        className="md:col-span-2 flex flex-col justify-between gap-1.5 min-w-0 h-full"
-                                    >
-                                        <div
-                                            onClick={() => {
-                                                if (selectedPartner) {
-                                                    setIsHistoryPanelOpen(true);
-                                                } else {
-                                                    setIsPartnerSearchExpanded(true);
-                                                    setIsPartnerDropdownOpen(true);
-                                                    setTimeout(() => partnerInputRef.current?.focus(), 50);
-                                                }
-                                            }}
-                                            className={cn(
-                                                "flex-1 min-h-[38px] relative overflow-hidden p-1.5 px-2.5 rounded-2xl border cursor-pointer transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] min-w-0 shadow-sm flex flex-col justify-between group/debt-card backdrop-blur-md",
-                                                (selectedPartner?.debt_balance || 0) > 0
-                                                    ? "bg-gradient-to-br from-rose-500/20 via-rose-500/10 to-transparent border-rose-500/40 text-rose-700 dark:text-rose-300 shadow-[0_0_15px_rgba(244,63,94,0.15)] hover:shadow-[0_0_20px_rgba(244,63,94,0.25)]"
-                                                    : (selectedPartner?.debt_balance || 0) < 0
-                                                        ? "bg-gradient-to-br from-emerald-500/20 via-emerald-500/10 to-transparent border-emerald-500/40 text-emerald-700 dark:text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:shadow-[0_0_20px_rgba(16,185,129,0.25)]"
-                                                        : "bg-card/40 hover:bg-card/70 border border-primary/25 dark:border-primary/30 hover:border-primary/50 shadow-[0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_0_15px_var(--primary-color)]/20"
-                                            )}
-                                            style={(selectedPartner?.debt_balance || 0) <= 0 && cartColorConfig.accentColor && cartColorConfig.accentColor !== 'default' ? {
-                                                background: `linear-gradient(135deg, ${cartColorConfig.accentColor}, ${cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : cartColorConfig.accentColor}dd)`,
-                                                borderColor: cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : `${cartColorConfig.accentColor}80`,
-                                                boxShadow: cartColorConfig.enableGlow !== false ? `0 0 20px ${cartColorConfig.accentColor}35` : undefined
-                                            } : undefined}
-                                            title={selectedPartner ? `Xem lịch sử nợ NCC ${selectedPartner.name}` : "Chưa chọn NCC"}
-                                        >
-                                            <div className="absolute -right-1.5 -bottom-2 opacity-[0.08] dark:opacity-[0.12] text-current pointer-events-none -rotate-6 transition-transform group-hover/debt-card:scale-110 select-none">
-                                                <Wallet size={42} strokeWidth={1.5} />
-                                            </div>
-                                            <div className="flex items-center justify-between w-full relative z-10 pt-0.5">
-                                                <span className="text-[9px] font-black uppercase tracking-wider text-muted-foreground leading-normal">
-                                                    Dư nợ
-                                                </span>
-                                                {selectedPartner && (selectedPartner.debt_balance || 0) !== 0 && (
-                                                    <m.span
-                                                        initial={{ opacity: 0, scale: 0.8 }}
-                                                        animate={{ opacity: 1, scale: 1 }}
-                                                        className={cn(
-                                                            "text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full shrink-0 transition-all leading-normal shadow-sm",
-                                                            (selectedPartner.debt_balance || 0) > 0 
-                                                                ? "bg-rose-500 text-white shadow-rose-500/30" 
-                                                                : "bg-emerald-600 text-white shadow-emerald-600/30"
-                                                        )}
-                                                    >
-                                                        {(selectedPartner.debt_balance || 0) > 0 ? "Khách nợ" : "Mình nợ"}
-                                                    </m.span>
-                                                )}
-                                            </div>
-                                            <m.div
-                                                key={Math.abs(selectedPartner?.debt_balance || 0)}
-                                                initial={{ opacity: 0, y: -3 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                transition={{ duration: 0.25 }}
-                                                className={cn(
-                                                    "text-sm lg:text-base font-black tracking-tight tabular-nums truncate leading-tight mt-auto text-right pb-0.5 transition-colors duration-300 relative z-10",
-                                                    (selectedPartner?.debt_balance || 0) > 0 
-                                                        ? "text-rose-600 dark:text-rose-400" 
-                                                        : (selectedPartner?.debt_balance || 0) < 0 
-                                                            ? "text-emerald-600 dark:text-emerald-400" 
-                                                            : "text-muted-foreground"
-                                                )}
-                                            >
-                                                {formatNumber(Math.abs(selectedPartner?.debt_balance || 0))}<span className="text-[10px] font-normal ml-0.5">đ</span>
-                                            </m.div>
-                                        </div>
-
-                                        {/* Sub-buttons: SỔ NỢ / GỬI KHO */}
-                                        <div className="flex-1 min-h-[28px] max-h-9 flex items-stretch gap-1.5">
-                                            <button
-                                                onClick={() => selectedPartner ? setIsHistoryPanelOpen(true) : setToast({ message: 'Vui lòng chọn NCC trước', type: 'warning' })}
-                                                className="relative overflow-hidden flex-1 h-full flex items-center justify-center rounded-xl border border-primary/25 dark:border-primary/30 bg-card/40 text-foreground text-[9px] font-black hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/25 transition-all text-center tracking-wider shadow-xs hover:scale-[1.02] active:scale-[0.98] group/sno backdrop-blur-sm"
-                                                title="Lịch sử đơn nhập NCC"
-                                            >
-                                                <div className="absolute -right-1 -bottom-2 opacity-[0.09] dark:opacity-[0.13] text-current pointer-events-none -rotate-6 transition-transform group-hover/sno:scale-115 select-none">
-                                                    <History size={30} strokeWidth={1.8} />
-                                                </div>
-                                                <span className="relative z-10">SỔ NỢ</span>
-                                            </button>
-                                            <button
-                                                onClick={() => setIsConsignment(prev => !prev)}
-                                                className={cn(
-                                                    "relative overflow-hidden flex-1 h-full flex items-center justify-center rounded-xl text-[9px] font-black tracking-wider transition-all text-center shadow-xs hover:scale-[1.02] active:scale-[0.98] group/gk backdrop-blur-sm",
-                                                    isConsignment
-                                                        ? "bg-gradient-to-r from-amber-500 to-amber-600 text-white border border-amber-400/80 shadow-[0_0_15px_rgba(245,158,11,0.35)]"
-                                                        : "border border-primary/25 dark:border-primary/30 bg-card/40 text-foreground hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/25"
-                                                )}
-                                                title={isConsignment ? "Đang chọn: Đơn hàng gửi kho (Bấm để tắt)" : "Chọn đơn hàng gửi kho (Bấm để bật)"}
-                                            >
-                                                <div className={cn(
-                                                    "absolute -right-1 -bottom-2 pointer-events-none -rotate-6 transition-transform group-hover/gk:scale-115 select-none",
-                                                    isConsignment ? "opacity-25 text-white" : "opacity-[0.09] dark:opacity-[0.13] text-current"
-                                                )}>
-                                                    <Warehouse size={30} strokeWidth={1.8} />
-                                                </div>
-                                                <span className="relative z-10">{isConsignment ? "GỬI KHO ✓" : "GỬI KHO"}</span>
-                                            </button>
-                                        </div>
-                                    </m.div>
-
-                                    {/* Col 2: Payment Method & Payment Input (3 cols) */}
-                                    <m.div
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ duration: 0.3, delay: 0.05 }}
-                                        className="md:col-span-3 flex flex-col justify-between gap-1.5 h-full"
-                                    >
-                                        <div className="flex-1 min-h-[30px] max-h-9 flex items-stretch w-full gap-1.5">
-                                            <button
-                                                onClick={() => { setPaymentMethod('Cash'); setAmountPaid(totalAmount); }}
-                                                className={cn(
-                                                    "relative overflow-hidden flex-1 h-full rounded-xl flex items-center justify-center text-[9px] font-black tracking-wider transition-all active:scale-95 cursor-pointer group/cash backdrop-blur-sm",
-                                                    paymentMethod === 'Cash' 
-                                                        ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-[0_0_18px_rgba(16,185,129,0.45)] border border-emerald-400/60" 
-                                                        : "bg-card/40 text-foreground border border-primary/25 dark:border-primary/30 hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/20"
-                                                )}
-                                                style={paymentMethod === 'Cash' && cartColorConfig.accentColor && cartColorConfig.accentColor !== 'default' ? {
-                                                    background: `linear-gradient(90deg, ${cartColorConfig.accentColor}, ${cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : cartColorConfig.accentColor})`,
-                                                    borderColor: cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : `${cartColorConfig.accentColor}80`,
-                                                    boxShadow: cartColorConfig.enableGlow !== false ? `0 0 18px ${cartColorConfig.accentColor}50` : undefined
-                                                } : undefined}
-                                            >
-                                                <div className={cn(
-                                                    "absolute -right-1 -bottom-2 pointer-events-none -rotate-6 transition-transform group-hover/cash:scale-110 select-none",
-                                                    paymentMethod === "Cash" ? "opacity-25 text-white" : "opacity-[0.09] dark:opacity-[0.13] text-current"
-                                                )}>
-                                                    <Banknote size={34} strokeWidth={1.8} />
-                                                </div>
-                                                <span className="relative z-10">TIỀN MẶT</span>
-                                            </button>
-                                            <button
-                                                onClick={() => { setPaymentMethod('Debt'); setAmountPaid(0); }}
-                                                className={cn(
-                                                    "relative overflow-hidden flex-1 h-full rounded-xl flex items-center justify-center text-[9px] font-black tracking-wider transition-all active:scale-95 cursor-pointer group/debt backdrop-blur-sm",
-                                                    paymentMethod === 'Debt' 
-                                                        ? "bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-[0_0_18px_rgba(244,63,94,0.45)] border border-rose-400/60" 
-                                                        : "bg-card/40 text-foreground border border-primary/25 dark:border-primary/30 hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/20"
-                                                )}
-                                            >
-                                                <div className={cn(
-                                                    "absolute -right-1 -bottom-2 pointer-events-none -rotate-6 transition-transform group-hover/debt:scale-110 select-none",
-                                                    paymentMethod === "Debt" ? "opacity-25 text-white" : "opacity-[0.09] dark:opacity-[0.13] text-current"
-                                                )}>
-                                                    <CreditCard size={34} strokeWidth={1.8} />
-                                                </div>
-                                                <span className="relative z-10">CÔNG NỢ</span>
-                                            </button>
-                                            <button
-                                                onClick={() => setPaymentMethod('Transfer')}
-                                                className={cn(
-                                                    "relative overflow-hidden flex-1 h-full rounded-xl flex items-center justify-center text-[9px] font-black tracking-wider transition-all active:scale-95 cursor-pointer group/ck backdrop-blur-sm",
-                                                    paymentMethod === 'Transfer' 
-                                                        ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-[0_0_18px_rgba(59,130,246,0.45)] border border-blue-400/60" 
-                                                        : "bg-card/40 text-foreground border border-primary/25 dark:border-primary/30 hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/20"
-                                                )}
-                                            >
-                                                <div className={cn(
-                                                    "absolute -right-1 -bottom-2 pointer-events-none -rotate-6 transition-transform group-hover/ck:scale-110 select-none",
-                                                    paymentMethod === "Transfer" ? "opacity-25 text-white" : "opacity-[0.09] dark:opacity-[0.13] text-current"
-                                                )}>
-                                                    <Sparkles size={34} strokeWidth={1.8} />
-                                                </div>
-                                                <span className="relative z-10">C/K</span>
-                                            </button>
-                                        </div>
-
-                                        {paymentMethod === 'Transfer' ? (
-                                            <CustomSelect
-                                                className="flex-1 min-h-[32px] max-h-10 w-full p-1 bg-card/40 border border-primary/25 dark:border-primary/30 rounded-xl font-bold text-xs outline-none text-foreground flex items-center shadow-xs focus-within:border-primary focus-within:shadow-[0_0_15px_var(--primary-color)]/25 backdrop-blur-sm"
-                                                value={selectedBankAccountId}
-                                                onChange={(e) => setSelectedBankAccountId(e.target.value)}
-                                                options={bankAccounts.map(acc => ({
-                                                    value: acc.id,
-                                                    label: `${acc.bank_name} - ${acc.account_number}`
-                                                }))}
-                                            />
-                                        ) : (
-                                            <div className="flex-1 min-h-[32px] max-h-10 relative flex items-center bg-card/40 rounded-xl border border-primary/25 dark:border-primary/30 shadow-xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 focus-within:shadow-[0_0_16px_var(--primary-color)]/30 group/pay-input transition-all duration-300 backdrop-blur-sm">
-                                                <div className="absolute right-16 -bottom-3 opacity-[0.06] dark:opacity-[0.08] text-foreground pointer-events-none -rotate-6 select-none overflow-hidden">
-                                                    <ReceiptText size={42} strokeWidth={1.5} />
-                                                </div>
-                                                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[9px] font-black text-muted-foreground uppercase tracking-widest pointer-events-none z-10">
-                                                    Thanh toán:
-                                                </span>
-                                                <input
-                                                    type="text"
-                                                    readOnly={paymentMethod === 'Cash'}
-                                                    className={cn(
-                                                        "w-full h-full pl-22 pr-3 text-right font-black text-base md:text-lg outline-none !border-none !shadow-none bg-transparent tabular-nums flex items-center transition-colors duration-300 relative z-10",
-                                                        paymentMethod === 'Cash' ? "text-primary/70 cursor-not-allowed" : "text-primary"
-                                                    )}
-                                                    value={formatNumber(amountPaid)}
-                                                    onChange={(e) => setAmountPaid(parseFloat(e.target.value.replace(/,/g, '')) || 0)}
-                                                />
-                                                {paymentMethod !== 'Cash' && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => setAmountPaid(totalAmount + (oldDebt < 0 ? Math.abs(oldDebt) : 0))}
-                                                        className="absolute right-2 -top-2.5 opacity-0 group-hover/pay-input:opacity-100 focus-within:opacity-100 px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white dark:text-slate-950 text-[8.5px] font-black uppercase rounded-full border border-white/40 dark:border-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all duration-200 active:scale-95 z-30 cursor-pointer"
-                                                        title="Thanh toán toàn bộ đơn nhập và nợ cũ"
-                                                    >
-                                                        Trả hết
-                                                    </button>
-                                                )}
-                                            </div>
-                                        )}
-                                    </m.div>
-
-                                    {/* Col 3: Debt status (Timeline Flow: Trước đơn ➔ Sau đơn) (3 cols) */}
-                                    <m.div
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ duration: 0.3, delay: 0.1 }}
-                                        className="md:col-span-3 h-full p-2 px-3 rounded-2xl bg-card/40 border border-primary/25 dark:border-primary/30 flex flex-col justify-between shadow-[0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_0_18px_var(--primary-color)]/20 hover:border-primary/50 transition-all duration-300 relative overflow-hidden group/debt-change backdrop-blur-md"
-                                    >
-                                        <div className="absolute -right-2 -bottom-2 opacity-[0.06] dark:opacity-[0.09] text-current pointer-events-none -rotate-6 transition-transform group-hover/debt-change:scale-105 select-none">
-                                            <ArrowLeftRight size={48} strokeWidth={1.5} />
-                                        </div>
-                                        <div className="flex items-center justify-between relative z-10 pt-0.5">
-                                            <span className="text-[9px] font-black text-muted-foreground uppercase tracking-wider leading-normal">
-                                                Biến động nợ
-                                            </span>
-                                            <m.span
-                                                key={remainingDebt < oldDebt ? "up" : remainingDebt > oldDebt ? "down" : "same"}
-                                                initial={{ opacity: 0, scale: 0.85 }}
-                                                animate={{ opacity: 1, scale: 1 }}
-                                                className={cn(
-                                                    "text-[8.5px] font-black uppercase px-1.5 py-0.5 rounded-full transition-all duration-300 leading-normal",
-                                                    remainingDebt < oldDebt 
-                                                        ? "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 shadow-[0_0_10px_rgba(244,63,94,0.2)]" 
-                                                        : remainingDebt > oldDebt 
-                                                            ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.2)]" 
-                                                            : "bg-black/[0.05] dark:bg-white/[0.05] text-muted-foreground"
-                                                )}
-                                            >
-                                                {remainingDebt < oldDebt ? "+ Tăng nợ" : remainingDebt > oldDebt ? "- Giảm nợ" : "Không đổi"}
-                                            </m.span>
-                                        </div>
-
-                                        <div className="flex items-center justify-between gap-1.5 mt-auto relative z-10">
-                                            {/* Trước đơn */}
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-1 leading-normal mb-0.5">
-                                                    <span className="text-[8.5px] font-bold text-muted-foreground uppercase leading-normal">Trước</span>
-                                                    {oldDebt !== 0 ? (
-                                                        <span className={cn(
-                                                            "text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border leading-normal shrink-0",
-                                                            oldDebt > 0 ? "text-rose-600 bg-rose-500/10 border-rose-500/25 dark:text-rose-400" : "text-emerald-600 bg-emerald-500/10 border-emerald-500/25 dark:text-emerald-400"
-                                                        )}>
-                                                            {oldDebt > 0 ? "Khách nợ" : "Mình nợ"}
-                                                        </span>
-                                                    ) : (
-                                                        <span className="text-[8px] font-bold text-muted-foreground uppercase shrink-0 leading-normal">Hết nợ</span>
-                                                    )}
-                                                </div>
-                                                <m.div
-                                                    key={Math.abs(oldDebt)}
-                                                    initial={{ opacity: 0, scale: 0.95 }}
-                                                    animate={{ opacity: 1, scale: 1 }}
-                                                    transition={{ duration: 0.25 }}
-                                                    className={cn("text-xs lg:text-sm font-black tracking-tight tabular-nums truncate leading-tight transition-colors duration-300", oldDebt > 0 ? "text-rose-500 dark:text-rose-400" : oldDebt < 0 ? "text-emerald-500 dark:text-emerald-400" : "text-muted-foreground")}
-                                                >
-                                                    {formatNumber(Math.abs(oldDebt))}<span className="text-[9px] font-normal ml-0.5">đ</span>
-                                                </m.div>
-                                            </div>
-
-                                            {/* Center Flow Arrow */}
-                                            <div className="flex items-center justify-center w-5 h-5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] text-muted-foreground shrink-0">
-                                                <ArrowRight size={11} strokeWidth={2.5} />
-                                            </div>
-
-                                            {/* Sau đơn */}
-                                            <div className="flex-1 min-w-0 text-right">
-                                                <div className="flex items-center justify-end gap-1 leading-normal mb-0.5">
-                                                    {remainingDebt !== 0 ? (
-                                                        <span className={cn(
-                                                            "text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border leading-normal shrink-0",
-                                                            remainingDebt > 0 ? "text-rose-600 bg-rose-500/10 border-rose-500/25 dark:text-rose-400" : "text-emerald-600 bg-emerald-500/10 border-emerald-500/25 dark:text-emerald-400"
-                                                        )}>
-                                                            {remainingDebt > 0 ? "Khách nợ" : "Mình nợ"}
-                                                        </span>
-                                                    ) : (
-                                                        <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border bg-emerald-500/10 border-emerald-500/25 text-emerald-600 dark:text-emerald-400 leading-normal shrink-0">Hết nợ</span>
-                                                    )}
-                                                    <span className="text-[8.5px] font-bold text-muted-foreground uppercase leading-normal">Sau đơn</span>
-                                                </div>
-                                                <m.div
-                                                    key={Math.abs(remainingDebt)}
-                                                    initial={{ opacity: 0, scale: 0.95 }}
-                                                    animate={{ opacity: 1, scale: 1 }}
-                                                    transition={{ duration: 0.25 }}
-                                                    className={cn("text-sm lg:text-base font-black tracking-tight tabular-nums truncate leading-tight transition-colors duration-300", remainingDebt > 0 ? "text-rose-600 dark:text-rose-400" : remainingDebt < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-foreground")}
-                                                >
-                                                    {formatNumber(Math.abs(remainingDebt))}<span className="text-[9px] font-normal ml-0.5">đ</span>
-                                                </m.div>
-                                            </div>
-                                        </div>
-                                    </m.div>
-
-                                    {/* Col 4: Total & Action Buttons (4 cols) */}
-                                    <m.div
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ duration: 0.3, delay: 0.15 }}
-                                        className="md:col-span-4 flex items-stretch gap-2 h-full"
-                                    >
-                                        <div 
-                                            onClick={() => selectedPartner ? setIsHistoryPanelOpen(true) : setIsDailyHistoryOpen(true)}
-                                            className="flex-1 h-full p-2 px-3.5 rounded-2xl bg-gradient-to-br from-[#1b4332] via-[#2d6a4f] to-[#1b4332] text-white flex flex-col justify-between relative overflow-hidden select-none active:scale-[0.98] transition-all cursor-pointer min-h-0 border border-emerald-400/50 shadow-[0_0_20px_rgba(16,185,129,0.35)] hover:shadow-[0_0_30px_rgba(16,185,129,0.55)] group/total-main"
-                                            style={cartColorConfig.accentColor && cartColorConfig.accentColor !== 'default' ? {
-                                                background: `linear-gradient(135deg, ${cartColorConfig.accentColor}, ${cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : cartColorConfig.accentColor}dd)`,
-                                                borderColor: cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : `${cartColorConfig.accentColor}80`,
-                                                boxShadow: cartColorConfig.enableGlow !== false ? `0 0 25px ${cartColorConfig.accentColor}40` : undefined
-                                            } : undefined}
-                                            title={selectedPartner ? "Xem lịch sử giao dịch nhà cung cấp" : "Xem lịch sử đơn nhập hàng hôm nay"}
-                                        >
-                                            {/* Subtle glass reflection overlay */}
-                                            <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-transparent pointer-events-none" />
-                                            <div className="absolute -right-3 -bottom-4 text-white/15 pointer-events-none -rotate-12 transition-transform group-hover/total-main:scale-110 group-hover/total-main:-rotate-6 select-none">
-                                                <ShoppingBag size={76} strokeWidth={1.2} />
-                                            </div>
-                                            <div className="flex items-center justify-between relative z-10">
-                                                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-emerald-200">
-                                                    TỔNG CỘNG ĐƠN HÀNG
-                                                </span>
-                                                <m.span
-                                                    key={cart.length}
-                                                    initial={{ opacity: 0, scale: 0.8 }}
-                                                    animate={{ opacity: 1, scale: 1 }}
-                                                    transition={{ duration: 0.2 }}
-                                                    className="text-[8px] font-bold px-1.5 py-0.5 rounded-md bg-white/20 text-emerald-100 backdrop-blur-md shadow-[0_0_8px_rgba(255,255,255,0.2)]"
-                                                >
-                                                    {cart.length} món
-                                                </m.span>
-                                            </div>
-                                            <m.div
-                                                key={totalAmount}
-                                                initial={{ opacity: 0, y: -4, scale: 0.98 }}
-                                                animate={{ opacity: 1, scale: 1 }}
-                                                transition={{ type: "spring", stiffness: 450, damping: 25 }}
-                                                className="text-2xl md:text-3xl font-black tracking-tight truncate leading-tight tabular-nums mt-auto relative z-10 drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)]"
-                                            >
-                                                {formatNumber(totalAmount)}
-                                                <span className="text-xs font-normal ml-0.5 opacity-90">đ</span>
-                                            </m.div>
-                                        </div>
-
-                                        <div className="flex flex-col justify-between gap-1.5 shrink-0 min-w-[140px] h-full">
-                                            <div className="flex-1 min-h-[32px] max-h-11 flex items-stretch gap-1.5 justify-between">
-                                                <m.button
-                                                    whileTap={{ scale: 0.95 }}
-                                                    disabled={cart.length === 0}
-                                                    onClick={handleHold}
-                                                    className="relative overflow-hidden flex-1 h-full bg-card/40 text-foreground rounded-xl flex items-center justify-center border border-primary/25 dark:border-primary/30 hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_14px_var(--primary-color)]/30 transition-all shadow-xs disabled:opacity-30 disabled:cursor-not-allowed group/btn-pause backdrop-blur-sm"
-                                                    title="Tạm đơn [F4]"
-                                                >
-                                                    <div className="absolute -right-1 -bottom-2 opacity-[0.08] dark:opacity-[0.12] text-current pointer-events-none -rotate-6 transition-transform group-hover/btn-pause:scale-115 select-none">
-                                                        <Pause size={28} strokeWidth={1.8} />
-                                                    </div>
-                                                    <Pause size={16} strokeWidth={2.5} className="relative z-10" />
-                                                </m.button>
-                                                <m.button
-                                                    whileTap={{ scale: 0.95 }}
-                                                    disabled={cart.length === 0 || loading}
-                                                    onClick={() => handleSave(false)}
-                                                    className="relative overflow-hidden flex-1 h-full bg-card/40 text-emerald-700 dark:text-emerald-300 rounded-xl flex items-center justify-center border border-emerald-600/30 dark:border-emerald-400/30 hover:bg-emerald-500/15 hover:border-emerald-500/50 hover:shadow-[0_0_14px_rgba(16,185,129,0.3)] transition-all shadow-xs group/btn-save backdrop-blur-sm"
-                                                    title="Lưu đơn [Ctrl+S]"
-                                                >
-                                                    <div className="absolute -right-1 -bottom-2 opacity-[0.08] dark:opacity-[0.12] text-current pointer-events-none -rotate-6 transition-transform group-hover/btn-save:scale-115 select-none">
-                                                        <Save size={28} strokeWidth={1.8} />
-                                                    </div>
-                                                    {loading ? <div className="w-3.5 h-3.5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin relative z-10" /> : <Save size={16} strokeWidth={2.5} className="relative z-10" />}
-                                                </m.button>
-                                                <m.button
-                                                    whileTap={{ scale: 0.95 }}
-                                                    disabled={cart.length === 0 || loading}
-                                                    onClick={() => handleSave(true)}
-                                                    className="relative overflow-hidden flex-1 h-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 text-white rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_28px_rgba(16,185,129,0.65)] border border-emerald-400/50 hover:scale-[1.02] active:scale-95 transition-all group/btn-print"
-                                                    title="Lưu và In hóa đơn [F9]"
-                                                >
-                                                    <div className="absolute -right-1 -bottom-2 text-white/15 pointer-events-none -rotate-6 transition-transform group-hover/btn-print:scale-115 select-none">
-                                                        <Printer size={28} strokeWidth={1.8} />
-                                                    </div>
-                                                    {loading ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin relative z-10" /> : <Printer size={17} strokeWidth={2.5} className="relative z-10" />}
-                                                </m.button>
-                                            </div>
-
-                                            {/* History navigation buttons below action row */}
-                                            <div className="flex-1 min-h-[26px] max-h-8 flex items-stretch gap-1.5 w-full">
-                                                <m.button
-                                                    onClick={() => navigateHistory('prev')}
-                                                    whileHover={{ scale: 1.03 }}
-                                                    whileTap={{ scale: 0.95 }}
-                                                    className="flex-1 h-full rounded-xl bg-emerald-500/10 dark:bg-emerald-500/15 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-500 dark:hover:text-slate-900 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 dark:border-emerald-400/25 flex items-center justify-center shadow-xs hover:shadow-[0_0_12px_rgba(16,185,129,0.35)] transition-all cursor-pointer"
-                                                    title="Xem đơn trước"
-                                                >
-                                                    <ChevronLeft size={18} strokeWidth={2.8} />
-                                                </m.button>
-                                                <m.button
-                                                    onClick={() => navigateHistory('next')}
-                                                    disabled={historyStep === 0}
-                                                    whileHover={historyStep === 0 ? {} : { scale: 1.03 }}
-                                                    whileTap={historyStep === 0 ? {} : { scale: 0.95 }}
-                                                    className={cn(
-                                                        "flex-1 h-full rounded-xl border flex items-center justify-center shadow-xs transition-all",
-                                                        historyStep === 0
-                                                            ? "bg-black/[0.03] dark:bg-white/[0.03] text-emerald-700/30 dark:text-emerald-400/30 border-black/5 dark:border-white/5 cursor-not-allowed"
-                                                            : "bg-emerald-500/10 dark:bg-emerald-500/15 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-500 dark:hover:text-slate-900 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 dark:border-emerald-400/25 hover:shadow-[0_0_12px_rgba(16,185,129,0.35)] cursor-pointer"
-                                                    )}
-                                                    title="Xem đơn kế tiếp"
-                                                >
-                                                    <ChevronRight size={18} strokeWidth={2.8} />
-                                                </m.button>
-                                            </div>
-                                        </div>
-                                    </m.div>
-                                </div>
-                            </div>
-                        )}
-                    </m.div>
-
-                    {/* Right: Summary & Actions Sidebar */}
-                    {summaryLayoutMode === 'sidebar' && (
-                        <m.div
-                            initial={false}
-                            animate={{ width: isSidebarExpanded ? "360px" : "90px" }}
-                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                            className="flex flex-col bg-transparent min-h-0 relative z-[3000] shrink-0"
-                        >
-                            <div className="p-1 transition-colors relative flex-1 flex flex-col min-h-0">
-
-                                <AnimatePresence mode="wait">
-                                    {isSidebarExpanded ? (
-                                        <m.div
-                                            key="expanded-sidebar"
-                                            initial={{ opacity: 0, x: 20 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            exit={{ opacity: 0, x: 20 }}
-                                            transition={{ type: "tween", duration: 0.2 }}
-                                            className="h-full flex flex-col relative bg-transparent border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/20 rounded-3xl p-3.5 shadow-2xl shadow-[#8b6f47]/10 dark:shadow-black/50"
-                                        >
-                                            {/* Close Button */}
-                                            <m.button
-                                                onClick={() => setIsSidebarExpanded(false)}
-                                                className="absolute -left-5 top-7 w-9 h-9 bg-[#f6f2ea] dark:bg-[#151311] hover:bg-[#8b6f47] hover:text-white dark:hover:bg-[#d4a574] dark:hover:text-slate-900 rounded-full flex items-center justify-center text-[#8b6f47] dark:text-[#d4a574] border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/40 z-[60] shadow-md hover:border-[#8b6f47] dark:hover:border-[#d4a574] transition-all cursor-pointer"
-                                                title="Thu gọn bảng thanh toán"
-                                            >
-                                                <ChevronRight size={18} strokeWidth={3.5} />
-                                            </m.button>
-
-                                            <div className="flex flex-col gap-3 relative z-10 flex-1 overflow-y-auto pr-1 pb-1 scroll-smooth custom-scrollbar">
-                                                {/* Top Partner & Note */}
-                                                <div className="space-y-2.5">
-                                                    {/* Partner Selection Bubble */}
-                                                    <div 
-                                                        onClick={() => {
-                                                            if (selectedPartner) {
-                                                                setIsHistoryPanelOpen(true);
-                                                            } else {
-                                                                partnerInputRef.current?.focus();
-                                                            }
-                                                        }}
-                                                        className="bg-transparent p-3 rounded-2xl border border-[#8b6f47]/25 dark:border-[#d4a574]/20 shadow-sm hover:border-[#2d5016]/40 dark:hover:border-emerald-500/40 transition-colors cursor-pointer relative overflow-hidden"
-                                                    >
-                                                        <Sprout className="absolute -right-3 -bottom-3 w-20 h-20 text-[#2d5016]/5 dark:text-emerald-400/5 -rotate-12 pointer-events-none select-none" />
-                                                        <div className="flex-1 min-w-0 relative z-10">
-                                                            <div className="flex items-center justify-between gap-2 mb-1">
-                                                                <div className="flex items-center gap-1.5">
-                                                                    <span className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-[0.15em]">
-                                                                        NHÀ CUNG CẤP
-                                                                    </span>
-                                                                    {selectedPartner && (
-                                                                        <span className="bg-[#2d5016]/10 dark:bg-emerald-500/15 text-[#2d5016] dark:text-emerald-300 border border-[#2d5016]/20 dark:border-emerald-500/30 text-[10px] font-black px-2 py-0.5 rounded-full">
-                                                                            #{selectedPartner.id}
-                                                                        </span>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                            <div className="font-black text-[#2d5016] dark:text-[#e8dfd5] text-lg uppercase leading-normal">
-                                                                <MarqueeText 
-                                                                    text={selectedPartner ? selectedPartner.name : "NHÀ CUNG CẤP LẺ"} 
-                                                                    className="font-black text-[#2d5016] dark:text-[#e8dfd5] text-lg uppercase leading-normal" 
-                                                                />
-                                                            </div>
-                                                            {selectedPartner && (
-                                                                <div className="flex flex-col gap-1.5 mt-2">
-                                                                    {selectedPartner.phone && (
-                                                                        <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 bg-black/[0.03] dark:bg-white/5 border border-[#8b6f47]/15 dark:border-white/10 px-2.5 py-1 rounded-xl w-full max-w-full overflow-hidden">
-                                                                            <Phone size={11} strokeWidth={3} className="shrink-0 text-[#8b6f47] dark:text-[#d4a574]" />
-                                                                            <div className="min-w-0 flex-1 overflow-hidden">
-                                                                                <MarqueeText text={selectedPartner.phone} className="text-xs font-bold text-slate-700 dark:text-slate-300" />
-                                                                            </div>
-                                                                        </div>
-                                                                    )}
-                                                                    {selectedPartner.address && (
-                                                                        <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 bg-black/[0.03] dark:bg-white/5 border border-[#8b6f47]/15 dark:border-white/10 px-2.5 py-1 rounded-xl w-full max-w-full overflow-hidden">
-                                                                            <MapPin size={11} strokeWidth={3} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
-                                                                            <div className="min-w-0 flex-1 overflow-hidden">
-                                                                                <MarqueeText text={selectedPartner.address} className="text-xs font-bold text-slate-700 dark:text-slate-300" />
-                                                                            </div>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Note */}
-                                                    <div className="relative bg-transparent rounded-xl border border-[#8b6f47]/20 dark:border-[#d4a574]/20 focus-within:border-[#2d5016] dark:focus-within:border-emerald-400/50 focus-within:ring-2 focus-within:ring-[#2d5016]/10 transition-colors shadow-2xs">
-                                                        <div className="absolute left-3 top-3 text-[#8b6f47] dark:text-[#d4a574] z-10">
-                                                            <Leaf size={16} />
-                                                        </div>
-                                                        <textarea
-                                                            placeholder="Ghi chú đơn nhập..."
-                                                            className="w-full pl-9 pr-3 py-2.5 bg-transparent outline-none resize-none h-14 text-xs font-medium text-slate-800 dark:text-slate-200 placeholder:text-slate-400/70 italic"
-                                                            value={note}
-                                                            onChange={(e) => setNote(e.target.value)}
-                                                        />
-                                                    </div>
-                                                </div>
-
-                                                {/* HERO: TỔNG CỘNG ĐƠN HÀNG */}
-                                                <div className="space-y-2.5 pt-0.5">
-                                                    <div 
-                                                        onClick={() => selectedPartner ? setIsHistoryPanelOpen(true) : setIsDailyHistoryOpen(true)}
-                                                        className="bg-gradient-to-br from-[#1a3812] via-[#2d5016] to-[#1e3a10] dark:from-[#173812] dark:via-[#244b18] dark:to-[#12280d] text-white p-4.5 rounded-2xl border-2 border-emerald-400/40 relative overflow-hidden flex flex-col justify-between cursor-pointer"
-                                                        title={selectedPartner ? "Xem lịch sử giao dịch nhà cung cấp" : "Xem lịch sử đơn nhập hàng hôm nay"}
-                                                    >
-                                                        <div className="absolute inset-0 bg-gradient-to-tr from-white/10 via-transparent to-transparent pointer-events-none" />
-                                                        <ShoppingBag size={84} strokeWidth={1} className="absolute -right-3 -bottom-4 text-white/[0.08] pointer-events-none -rotate-12 select-none" />
-                                                        <div className="w-full flex items-center justify-start relative z-10 mb-1">
-                                                            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-200/90 flex items-center gap-1.5">
-                                                                <Sparkles size={12} className="text-emerald-300" />
-                                                                TỔNG CỘNG ĐƠN HÀNG
-                                                            </div>
-                                                        </div>
-                                                        <div className="text-3xl lg:text-4xl font-black text-center text-white tracking-tight drop-shadow-md whitespace-nowrap overflow-hidden relative z-10">
-                                                            {formatNumber(totalAmount)}
-                                                            <span className="text-base font-bold opacity-80 ml-1">đ</span>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* ROWS: NỢ TRƯỚC / NỢ HIỆN TẠI / GỬI KHO */}
-                                                    <div className="space-y-2">
-                                                        <div className="flex justify-between items-center bg-transparent border border-[#8b6f47]/20 dark:border-[#d4a574]/20 p-2.5 px-3.5 rounded-xl shadow-2xs hover:border-[#8b6f47]/35 transition-colors">
-                                                            <span className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-wider">NỢ TRƯỚC ĐƠN:</span>
-                                                            <span className="font-black text-sm text-rose-600 dark:text-rose-400 tabular-nums">{formatNumber(oldDebt)}</span>
-                                                        </div>
-
-                                                        {selectedPartner && (
-                                                            <div className="flex justify-between items-center bg-transparent border border-[#8b6f47]/20 dark:border-[#d4a574]/20 p-2.5 px-3.5 rounded-xl shadow-2xs hover:border-[#8b6f47]/35 transition-colors">
-                                                                <span className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-wider">NỢ HIỆN TẠI:</span>
-                                                                <span className="font-black text-sm text-amber-600 dark:text-amber-400 tabular-nums">{formatNumber(selectedPartner.debt_balance || 0)}</span>
-                                                            </div>
-                                                        )}
-
-                                                        {/* Consignment Order Toggle */}
-                                                        <div className="flex justify-between items-center bg-transparent border border-[#8b6f47]/20 dark:border-[#d4a574]/20 p-2.5 px-3.5 rounded-xl shadow-2xs hover:border-[#8b6f47]/35 transition-colors">
-                                                            <div className="flex items-center gap-2">
-                                                                <Warehouse size={16} className="text-[#8b6f47] dark:text-[#d4a574]" />
-                                                                <span className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-wider">ĐƠN HÀNG GỬI KHO:</span>
-                                                            </div>
-                                                            <label 
-                                                                onClick={(e) => {
-                                                                    e.preventDefault();
-                                                                    setIsConsignment(!isConsignment);
-                                                                }}
-                                                                className="relative inline-flex items-center cursor-pointer"
-                                                            >
-                                                                <input 
-                                                                    type="checkbox" 
-                                                                    checked={isConsignment} 
-                                                                    readOnly
-                                                                    className="sr-only" 
-                                                                />
-                                                                <div className={cn(
-                                                                    "w-10 h-5.5 rounded-full transition-colors duration-200 relative border",
-                                                                    isConsignment 
-                                                                        ? "bg-[#2d5016] border-[#2d5016]" 
-                                                                        : "bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600"
-                                                                )}>
-                                                                    <div className={cn(
-                                                                        "absolute top-[2px] left-[2px] w-4 h-4 bg-white rounded-full transition-transform duration-200 shadow-md",
-                                                                        isConsignment ? "translate-x-[18px]" : "translate-x-0"
-                                                                    )} />
-                                                                </div>
-                                                            </label>
-                                                        </div>
-
-                                                        {/* PAYMENT SECTION */}
-                                                        <div className="flex flex-col gap-2.5 pt-1">
-                                                            <div className="flex bg-black/[0.03] dark:bg-white/[0.04] p-1.5 rounded-xl border border-[#8b6f47]/25 dark:border-[#d4a574]/20 gap-1.5 shadow-inner">
-                                                                <button
-                                                                    onClick={() => {
-                                                                        setPaymentMethod('Cash');
-                                                                        setAmountPaid(totalAmount);
-                                                                    }}
-                                                                    className={cn(
-                                                                        "flex-1 py-1.5 rounded-lg text-[10px] font-black cursor-pointer transition-colors",
-                                                                        paymentMethod === 'Cash' 
-                                                                            ? "bg-gradient-to-r from-[#2d5016] to-[#4a7c59] text-white shadow-md shadow-[#2d5016]/25 border border-emerald-400/30" 
-                                                                            : "text-[#8b6f47] dark:text-[#d4a574]/75 hover:bg-black/5 dark:hover:bg-white/5"
-                                                                    )}
-                                                                >
-                                                                    TIỀN MẶT
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => { setPaymentMethod('Debt'); setAmountPaid(0); }}
-                                                                    className={cn(
-                                                                        "flex-1 py-1.5 rounded-lg text-[10px] font-black cursor-pointer transition-colors",
-                                                                        paymentMethod === 'Debt' 
-                                                                            ? "bg-gradient-to-r from-[#8b6f47] to-[#b38f5d] dark:from-[#b38f5d] dark:to-[#d4a574] text-white shadow-md shadow-[#8b6f47]/25 border border-amber-300/30" 
-                                                                            : "text-[#8b6f47] dark:text-[#d4a574]/75 hover:bg-black/5 dark:hover:bg-white/5"
-                                                                    )}
-                                                                >
-                                                                    CÔNG NỢ
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => { setPaymentMethod('Transfer'); }}
-                                                                    className={cn(
-                                                                        "flex-1 py-1.5 rounded-lg text-[10px] font-black cursor-pointer transition-colors",
-                                                                        paymentMethod === 'Transfer' 
-                                                                            ? "bg-gradient-to-r from-blue-700 to-indigo-600 text-white shadow-md shadow-blue-600/25 border border-blue-400/30" 
-                                                                            : "text-[#8b6f47] dark:text-[#d4a574]/75 hover:bg-black/5 dark:hover:bg-white/5"
-                                                                    )}
-                                                                >
-                                                                    CHUYỂN KHOẢN
-                                                                </button>
-                                                            </div>
-                                                            {paymentMethod === 'Transfer' && (
-                                                                <div className="relative overflow-hidden flex items-center justify-between p-2.5 pl-3.5 bg-transparent border-2 border-blue-400/30 dark:border-blue-500/30 rounded-xl shadow-2xs">
-                                                                    <div className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase whitespace-nowrap">
-                                                                        TK Chuyển:
                                                                     </div>
-                                                                    <CustomSelect
-                                                                        className="w-full min-w-0 border-none shadow-none text-right justify-end font-bold text-xs bg-transparent dark:text-white outline-none"
-                                                                        value={selectedBankAccountId}
-                                                                        onChange={(e) => setSelectedBankAccountId(e.target.value)}
-                                                                        options={bankAccounts.map(acc => ({
-                                                                            value: acc.id,
-                                                                            label: `${acc.bank_name} - ${acc.account_number}`
-                                                                        }))}
-                                                                    />
-                                                                </div>
-                                                            )}
-                                                            <div className="relative bg-transparent border-2 border-[#8b6f47]/25 dark:border-[#d4a574]/25 focus-within:border-[#2d5016] dark:focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-[#2d5016]/15 rounded-xl shadow-2xs">
-                                                                <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase z-10">Thanh toán:</div>
-                                                                <input
-                                                                    type="text"
-                                                                    readOnly={paymentMethod === 'Cash'}
-                                                                    className={cn(
-                                                                        "w-full p-2.5 pl-28 pr-4 text-right rounded-xl font-black text-xl outline-none bg-transparent tabular-nums",
-                                                                        paymentMethod === 'Cash'
-                                                                            ? "text-[#2d5016]/50 dark:text-emerald-400/50 cursor-not-allowed"
-                                                                            : "text-[#2d5016] dark:text-emerald-400"
-                                                                    )}
-                                                                    value={formatNumber(amountPaid)}
-                                                                    autoComplete="off"
-                                                                    onChange={(e) => setAmountPaid(parseFloat(e.target.value.replace(/,/g, '')) || 0)}
-                                                                />
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                                                </td>
+                                                                <td className="py-2 px-4 text-right">
+                                                                    <div style={{ color: (cartColorConfig?.cartValuesColor && cartColorConfig.cartValuesColor !== 'default') ? cartColorConfig.cartValuesColor : undefined, ...(cartColorConfig?.enableTextPills ? getCartTextPillStyle(cartColorConfig, 'amount') : {}), ...getCartTextShadowStyle(cartColorConfig, cartColorConfig?.cartValuesColor) }} className={cn("font-black text-slate-900 dark:text-white text-lg tabular-nums transition-all", cartColorConfig?.enableTextPills && "px-3 py-1 rounded-2xl border shadow-xs inline-block")}>
+                                                                        {formatNumber(item.price * item.quantity)}
+                                                                    </div>
+                                                                </td>
+                                                                <td className="py-2 px-2 text-center">
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            removeFromCart(item.cartId || idx);
+                                                                        }}
+                                                                        className="group/del-btn w-8 h-8 mx-auto rounded-xl flex items-center justify-center text-slate-400/80 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 bg-transparent hover:bg-rose-500/15 dark:hover:bg-rose-500/20 border border-transparent hover:border-rose-500/30 dark:hover:border-rose-500/40 hover:shadow-[0_0_12px_rgba(244,63,94,0.25)] hover:scale-110 active:scale-95 transition-all duration-200 opacity-0 group-hover:opacity-100 cursor-pointer"
+                                                                        title="Xóa dòng"
+                                                                    >
+                                                                        <Trash2 size={17} strokeWidth={2.2} className="transition-transform duration-200 group-hover/del-btn:-rotate-12 group-hover/del-btn:scale-110" />
+                                                                    </button>
+                                                                </td>
+                                                            </m.tr>
+                                                        ))}
+                                                    </AnimatePresence>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
 
-                                            {/* Bottom Summary: NỢ NCC SAU ĐƠN & Action Buttons */}
-                                            <div className="pt-2 space-y-2 border-t border-[#8b6f47]/20 dark:border-[#d4a574]/20 shrink-0">
-                                                {/* Remaining Balance */}
-                                                <div className={cn(
-                                                    "py-3.5 px-4.5 rounded-2xl flex items-center justify-between shadow-xl relative overflow-hidden group/debt-card transition-all",
-                                                    remainingDebt > 0
-                                                        ? "bg-gradient-to-br from-rose-600 via-rose-700 to-rose-800 dark:from-rose-800 dark:via-rose-900 dark:to-[#4c0519] text-white border-2 border-rose-400/50 shadow-rose-600/30 dark:shadow-rose-950/60"
-                                                        : "bg-gradient-to-br from-[#1a3812] via-[#2d5016] to-[#1e3a10] dark:from-[#173812] dark:via-[#244b18] dark:to-[#12280d] text-white border-2 border-emerald-400/40 shadow-[#2d5016]/25"
-                                                )}>
-                                                    <div className="absolute inset-0 bg-gradient-to-tr from-white/10 via-transparent to-transparent pointer-events-none" />
-                                                    <div className="min-w-0 flex flex-col justify-center relative z-10">
-                                                        <span className={cn(
-                                                            "text-[10px] font-black uppercase tracking-[0.2em] block mb-0.5 leading-tight",
-                                                            remainingDebt > 0 ? "text-rose-200/90" : "text-emerald-200/90"
-                                                        )}>
-                                                            NỢ NCC SAU ĐƠN:
-                                                        </span>
-                                                        <span className="text-3xl font-black tracking-tight block leading-tight tabular-nums text-white drop-shadow-md">
-                                                            {formatNumber(Math.abs(remainingDebt))}
-                                                            <span className="text-base font-bold opacity-80 ml-1">đ</span>
-                                                        </span>
+                                    {/* In-Cart Save Success Visual Feedback */}
+                                    <AnimatePresence>
+                                        {savedOrderNotice && (
+                                            <m.div
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                exit={{ opacity: 0, transition: { duration: 0.2 } }}
+                                                className="no-print print:hidden absolute inset-0 z-[500] pointer-events-none rounded-3xl flex items-center justify-center p-4"
+                                            >
+                                                {/* Floating notification badge in center */}
+                                                <m.div
+                                                    initial={{ scale: 0.88, opacity: 0, y: 10 }}
+                                                    animate={{ scale: 1, opacity: 1, y: 0 }}
+                                                    exit={{ scale: 0.92, opacity: 0, y: -8, transition: { duration: 0.18 } }}
+                                                    transition={{ type: "spring", stiffness: 450, damping: 28 }}
+                                                    className="bg-[#fbf8f2] dark:bg-[#1a1e17] border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 shadow-2xl rounded-3xl px-6 py-5 md:px-8 md:py-6 flex flex-col items-center gap-2.5 text-center w-auto max-w-md mx-auto relative overflow-hidden pointer-events-auto"
+                                                >
+                                                    <svg className="absolute inset-0 w-full h-full pointer-events-none z-20">
+                                                        <m.rect
+                                                            x="1"
+                                                            y="1"
+                                                            width="calc(100% - 2px)"
+                                                            height="calc(100% - 2px)"
+                                                            rx="23"
+                                                            fill="none"
+                                                            stroke="#10b981"
+                                                            strokeWidth="2"
+                                                            pathLength="100"
+                                                            strokeDasharray="25 75"
+                                                            initial={{ strokeDashoffset: 100 }}
+                                                            animate={{ strokeDashoffset: 0 }}
+                                                            transition={{ duration: 0.85, ease: "easeInOut" }}
+                                                        />
+                                                    </svg>
+                                                    <div className="relative flex items-center justify-center mb-0.5">
+                                                        <m.div
+                                                            initial={{ scale: 0.5, rotate: -15 }}
+                                                            animate={{ scale: 1, rotate: 0 }}
+                                                            transition={{ type: "spring", stiffness: 500, damping: 22 }}
+                                                            className="w-14 h-14 rounded-full bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white flex items-center justify-center shadow-lg shadow-[#2d5016]/25 relative z-10"
+                                                        >
+                                                            <Check size={30} strokeWidth={3.5} />
+                                                        </m.div>
                                                     </div>
-                                                    <Coins className="text-white/20 shrink-0 ml-2 select-none relative z-10" size={36} />
-                                                </div>
 
-                                                {/* Actions */}
-                                                <div className="flex flex-col gap-2">
-                                                    <div className="flex gap-2">
-                                                        <button
-                                                            disabled={cart.length === 0}
-                                                            onClick={handleHold}
-                                                            style={getButtonComputedStyle(cartColorConfig, 'hold')}
-                                                            className="flex-1 bg-transparent text-[#8b6f47] dark:text-[#d4a574] border-2 border-[#8b6f47]/35 dark:border-[#d4a574]/35 hover:bg-[#8b6f47] hover:text-white rounded-xl font-black py-2.5 text-sm uppercase tracking-widest flex items-center justify-center gap-1.5 transition-colors shadow-xs disabled:opacity-40 cursor-pointer"
-                                                        >
-                                                            <DynamicIcon id="purchase.hold_btn" defaultIcon={Pause} label="Nút Tạm Lưu Đơn Nhập" size={18} strokeWidth={2.5} />
-                                                            <span>TẠM</span>
-                                                        </button>
-                                                        <button
-                                                            disabled={cart.length === 0 || loading}
-                                                            onClick={() => handleSave(false)}
-                                                            style={getButtonComputedStyle(cartColorConfig, 'save')}
-                                                            className="flex-1 bg-transparent text-[#2d5016] dark:text-emerald-400 border-2 border-[#2d5016]/40 dark:border-emerald-500/40 hover:bg-[#2d5016] hover:text-white dark:hover:bg-emerald-600 rounded-xl font-black py-2.5 text-sm uppercase tracking-widest flex items-center justify-center gap-1.5 transition-colors shadow-xs disabled:opacity-40 cursor-pointer"
-                                                        >
-                                                            <DynamicIcon id="purchase.save_btn" defaultIcon={Save} label="Nút Lưu Đơn Nhập" size={18} strokeWidth={2.5} />
-                                                            <span>LƯU</span>
-                                                        </button>
+                                                    <div className="text-base sm:text-lg font-black uppercase tracking-tight text-[#2d5016] dark:text-emerald-400 whitespace-nowrap select-none">
+                                                        ĐÃ LƯU ĐƠN NHẬP THÀNH CÔNG!
                                                     </div>
-                                                    <div className="flex gap-2">
-                                                        <button
-                                                            disabled={cart.length === 0}
-                                                            onClick={() => setIsPOExportModalOpen(true)}
-                                                            className="flex-1 bg-gradient-to-r from-amber-600 to-amber-700 hover:brightness-110 text-white rounded-2xl flex items-center justify-center py-3.5 h-14 text-base font-black uppercase tracking-wider gap-2 shadow-lg shadow-amber-600/20 border-2 border-amber-400/40 transition-all disabled:opacity-40 cursor-pointer"
-                                                            title="Xuất phiếu đặt hàng gửi NCC qua Zalo/PDF (không lưu đơn)"
-                                                        >
-                                                            <DynamicIcon id="purchase.export_btn" defaultIcon={FileText} label="Nút Đặt Hàng NCC" size={20} strokeWidth={2.5} />
-                                                            <span>ĐẶT HÀNG</span>
-                                                        </button>
-                                                        <button
-                                                            disabled={cart.length === 0 || loading}
-                                                            onClick={() => handleSave(true)}
-                                                            style={getButtonComputedStyle(cartColorConfig, 'save_print')}
-                                                            className="flex-1 bg-gradient-to-r from-[#2d5016] via-emerald-600 to-[#1e3a10] hover:brightness-110 text-white rounded-2xl flex items-center justify-center py-3.5 h-14 text-xl font-black uppercase tracking-widest gap-2 shadow-xl shadow-[#2d5016]/25 border-2 border-emerald-400/40 transition-all disabled:opacity-40 cursor-pointer"
-                                                        >
-                                                            {loading ? (
-                                                                <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
-                                                            ) : (
-                                                                <>
-                                                                    <DynamicIcon id="purchase.print_btn" defaultIcon={Printer} label="Nút In Hóa Đơn Nhập" size={22} strokeWidth={2.5} />
-                                                                    <span>IN</span>
-                                                                </>
-                                                            )}
-                                                        </button>
+
+                                                    <div className="flex items-center flex-nowrap whitespace-nowrap gap-2 px-3.5 py-1 rounded-full bg-[#8b6f47]/10 dark:bg-[#d4a574]/15 border border-[#8b6f47]/25 dark:border-[#d4a574]/30 text-[#2d5016] dark:text-[#d4a574] text-xs font-black uppercase tracking-wide shrink-0">
+                                                        <span>ĐƠN #{savedOrderNotice.id}</span>
+                                                        <span className="opacity-40">•</span>
+                                                        <span>{savedOrderNotice.count} MÓN</span>
+                                                        {savedOrderNotice.partnerName && (
+                                                            <>
+                                                                <span className="opacity-40">•</span>
+                                                                <span className="truncate max-w-[140px]">{savedOrderNotice.partnerName}</span>
+                                                            </>
+                                                        )}
                                                     </div>
-                                                </div>
-                                            </div>
-                                        </m.div>
-                                    ) : (
+                                                </m.div>
+                                            </m.div>
+                                        )}
+                                    </AnimatePresence>
+
+                                    {/* Floating Bubbles - Only visible when sidebar is collapsed and in sidebar mode */}
+                                    <AnimatePresence initial={false}>
+                                        {!isSidebarExpanded && summaryLayoutMode === 'sidebar' && (
+                                            <PurchaseFloatingBubbles
+                                                selectedPartner={selectedPartner}
+                                                oldDebt={oldDebt}
+                                                remainingDebt={remainingDebt}
+                                                cartColorConfig={cartColorConfig}
+                                                onOpenPartnerHistory={() => setIsHistoryPanelOpen(true)}
+                                                onOpenDailyHistory={() => setIsDailyHistoryOpen(true)}
+                                                note={note}
+                                                isNoteOpen={isNoteModalOpen}
+                                                onToggleNote={() => setIsNoteModalOpen(true)}
+                                                paymentMethod={paymentMethod}
+                                                onSelectPaymentMethod={(method) => {
+                                                    setPaymentMethod(method);
+                                                    if (method === 'Cash') setAmountPaid(totalAmount);
+                                                    else setAmountPaid(0);
+                                                }}
+                                                amountPaid={amountPaid}
+                                                onChangeAmountPaid={setAmountPaid}
+                                                totalAmount={totalAmount}
+                                                canScrollDown={canScrollDown}
+                                                onScrollDownCart={handleScrollDownCart}
+                                                cartScrollContainerRef={cartScrollContainerRef}
+                                            />
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+                            </div>
+
+                            {/* Bottom Summary Panel when in 'bottom' mode */}
+                            {summaryLayoutMode === 'bottom' && (
+                                <div
+                                    style={{ height: `${bottomSummaryHeight}px`, minHeight: '96px', maxHeight: '320px' }}
+                                    className="mt-1 bg-transparent border-0 rounded-2xl p-1 shadow-none shrink-0 no-print relative flex flex-col justify-between overflow-visible select-none"
+                                >
+                                    {/* Top Drag Handle for Resizing */}
+                                    <div
+                                        id="purchase-bottom-summary-resizer"
+                                        onMouseDown={handleStartResizeBottom}
+                                        className="w-full h-3 -mt-3.5 mb-1 cursor-row-resize flex items-center justify-center group/resize-bar hover:bg-[#8b6f47]/10 transition-colors rounded-t-full"
+                                        title="Kéo để chỉnh độ cao thanh tổng kết"
+                                    >
+                                        <div className={cn(
+                                            "w-16 h-1 rounded-full transition-all shadow-sm",
+                                            isResizingBottom
+                                                ? "bg-emerald-500 h-1.5 w-24 shadow-emerald-500/50"
+                                                : "bg-slate-400/40 dark:bg-slate-600/40 group-hover/resize-bar:bg-emerald-500 group-hover/resize-bar:h-1.5 group-hover/resize-bar:w-20"
+                                        )} />
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-stretch w-full h-full">
+                                        {/* Col 1: Dư nợ & Sổ nợ / Gửi kho (2 cols) */}
                                         <m.div
-                                            key="mini-sidebar"
-                                            initial={{ opacity: 0, x: -20 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            exit={{ opacity: 0, x: -20 }}
-                                            transition={{ type: "tween", duration: 0.2 }}
-                                            className="flex flex-col items-center py-6 gap-5 h-full relative z-10 no-print bg-transparent"
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ duration: 0.3 }}
+                                            className="md:col-span-2 flex flex-col justify-between gap-1.5 min-w-0 h-full"
                                         >
-                                            {/* Supplier Status Mini */}
-                                            <div 
+                                            <div
                                                 onClick={() => {
                                                     if (selectedPartner) {
-                                                        setEditingPartner(selectedPartner);
-                                                        setIsPartnerEditModalOpen(true);
+                                                        setIsHistoryPanelOpen(true);
                                                     } else {
-                                                        partnerInputRef.current?.focus();
+                                                        setIsPartnerSearchExpanded(true);
+                                                        setIsPartnerDropdownOpen(true);
+                                                        setTimeout(() => partnerInputRef.current?.focus(), 50);
                                                     }
                                                 }}
                                                 className={cn(
-                                                    "w-14 h-14 rounded-2xl flex items-center justify-center border-2 transition-colors relative cursor-pointer shadow-md shadow-[#8b6f47]/5",
-                                                    selectedPartner 
-                                                        ? "bg-transparent text-[#2d5016] dark:text-emerald-400 border-[#8b6f47]/35 dark:border-[#d4a574]/35 hover:border-[#2d5016] dark:hover:border-emerald-400 hover:bg-[#8b6f47]/10" 
-                                                        : "bg-transparent text-[#8b6f47]/70 dark:text-[#d4a574]/70 border-[#8b6f47]/25 dark:border-[#d4a574]/25 hover:bg-black/5 dark:hover:bg-white/10"
+                                                    "flex-1 min-h-[38px] relative overflow-hidden p-1.5 px-2.5 rounded-2xl border cursor-pointer transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] min-w-0 shadow-sm flex flex-col justify-between group/debt-card backdrop-blur-md",
+                                                    (selectedPartner?.debt_balance || 0) > 0
+                                                        ? "bg-gradient-to-br from-rose-500/20 via-rose-500/10 to-transparent border-rose-500/40 text-rose-700 dark:text-rose-300 shadow-[0_0_15px_rgba(244,63,94,0.15)] hover:shadow-[0_0_20px_rgba(244,63,94,0.25)]"
+                                                        : (selectedPartner?.debt_balance || 0) < 0
+                                                            ? "bg-gradient-to-br from-emerald-500/20 via-emerald-500/10 to-transparent border-emerald-500/40 text-emerald-700 dark:text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:shadow-[0_0_20px_rgba(16,185,129,0.25)]"
+                                                            : "bg-card/40 hover:bg-card/70 border border-primary/25 dark:border-primary/30 hover:border-primary/50 shadow-[0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_0_15px_var(--primary-color)]/20"
                                                 )}
-                                                title={selectedPartner ? `NCC: ${selectedPartner.name}` : "Chưa chọn NCC"}
+                                                style={(selectedPartner?.debt_balance || 0) <= 0 && cartColorConfig.accentColor && cartColorConfig.accentColor !== 'default' ? {
+                                                    background: `linear-gradient(135deg, ${cartColorConfig.accentColor}, ${cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : cartColorConfig.accentColor}dd)`,
+                                                    borderColor: cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : `${cartColorConfig.accentColor}80`,
+                                                    boxShadow: cartColorConfig.enableGlow !== false ? `0 0 20px ${cartColorConfig.accentColor}35` : undefined
+                                                } : undefined}
+                                                title={selectedPartner ? `Xem lịch sử nợ NCC ${selectedPartner.name}` : "Chưa chọn NCC"}
                                             >
-                                                <Sprout size={24} />
-                                                {selectedPartner && (
-                                                    <div className="absolute -top-1.5 -right-2 bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white text-[9px] font-black tracking-wider px-2 py-0.5 rounded-full border border-white/40 shadow-xs z-20">
-                                                        #{selectedPartner.id}
+                                                <div className="absolute -right-1.5 -bottom-2 opacity-[0.08] dark:opacity-[0.12] text-current pointer-events-none -rotate-6 transition-transform group-hover/debt-card:scale-110 select-none">
+                                                    <Wallet size={42} strokeWidth={1.5} />
+                                                </div>
+                                                <div className="flex items-center justify-between w-full relative z-10 pt-0.5">
+                                                    <span className="text-[9px] font-black uppercase tracking-wider text-muted-foreground leading-normal">
+                                                        Dư nợ
+                                                    </span>
+                                                    {selectedPartner && (selectedPartner.debt_balance || 0) !== 0 && (
+                                                        <m.span
+                                                            initial={{ opacity: 0, scale: 0.8 }}
+                                                            animate={{ opacity: 1, scale: 1 }}
+                                                            className={cn(
+                                                                "text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full shrink-0 transition-all leading-normal shadow-sm",
+                                                                (selectedPartner.debt_balance || 0) > 0
+                                                                    ? "bg-rose-500 text-white shadow-rose-500/30"
+                                                                    : "bg-emerald-600 text-white shadow-emerald-600/30"
+                                                            )}
+                                                        >
+                                                            {(selectedPartner.debt_balance || 0) > 0 ? "Khách nợ" : "Mình nợ"}
+                                                        </m.span>
+                                                    )}
+                                                </div>
+                                                <m.div
+                                                    key={Math.abs(selectedPartner?.debt_balance || 0)}
+                                                    initial={{ opacity: 0, y: -3 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    transition={{ duration: 0.25 }}
+                                                    className={cn(
+                                                        "text-sm lg:text-base font-black tracking-tight tabular-nums truncate leading-tight mt-auto text-right pb-0.5 transition-colors duration-300 relative z-10",
+                                                        (selectedPartner?.debt_balance || 0) > 0
+                                                            ? "text-rose-600 dark:text-rose-400"
+                                                            : (selectedPartner?.debt_balance || 0) < 0
+                                                                ? "text-emerald-600 dark:text-emerald-400"
+                                                                : "text-muted-foreground"
+                                                    )}
+                                                >
+                                                    {formatNumber(Math.abs(selectedPartner?.debt_balance || 0))}<span className="text-[10px] font-normal ml-0.5">đ</span>
+                                                </m.div>
+                                            </div>
+
+                                            {/* Sub-buttons: SỔ NỢ / GỬI KHO */}
+                                            <div className="flex-1 min-h-[28px] max-h-9 flex items-stretch gap-1.5">
+                                                <button
+                                                    onClick={() => selectedPartner ? setIsHistoryPanelOpen(true) : setToast({ message: 'Vui lòng chọn NCC trước', type: 'warning' })}
+                                                    className="relative overflow-hidden flex-1 h-full flex items-center justify-center rounded-xl border border-primary/25 dark:border-primary/30 bg-card/40 text-foreground text-[9px] font-black hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/25 transition-all text-center tracking-wider shadow-xs hover:scale-[1.02] active:scale-[0.98] group/sno backdrop-blur-sm"
+                                                    title="Lịch sử đơn nhập NCC"
+                                                >
+                                                    <div className="absolute -right-1 -bottom-2 opacity-[0.09] dark:opacity-[0.13] text-current pointer-events-none -rotate-6 transition-transform group-hover/sno:scale-115 select-none">
+                                                        <History size={30} strokeWidth={1.8} />
                                                     </div>
-                                                )}
-                                            </div>
-
-                                            {/* Toggle Button */}
-                                            <div className="flex-1 flex items-center justify-center w-full min-h-[60px] relative">
-                                                <button
-                                                    onClick={() => setIsSidebarExpanded(true)}
-                                                    className="w-14 h-14 bg-transparent text-[#8b6f47] dark:text-[#d4a574] hover:text-[#2d5016] dark:hover:text-emerald-400 border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 hover:border-[#2d5016] dark:hover:border-emerald-400 rounded-2xl flex items-center justify-center transition-colors shadow-md shadow-[#8b6f47]/5 cursor-pointer hover:bg-black/5 dark:hover:bg-white/10"
-                                                    title="Mở rộng bảng thanh toán"
-                                                >
-                                                    <ChevronLeft size={28} strokeWidth={3.5} />
-                                                </button>
-                                            </div>
-
-                                            {/* Actions Mini */}
-                                            <div className="flex flex-col gap-3 pb-4">
-                                                <button
-                                                    onClick={handleHold}
-                                                    disabled={cart.length === 0}
-                                                    className="w-14 h-14 bg-transparent text-[#8b6f47] dark:text-[#d4a574] rounded-2xl flex items-center justify-center border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 hover:border-[#2d5016] dark:hover:border-emerald-400 hover:text-[#2d5016] transition-colors shadow-md shadow-[#8b6f47]/5 disabled:opacity-40 cursor-pointer hover:bg-black/5 dark:hover:bg-white/10"
-                                                    title="Tạm đơn [F4]"
-                                                >
-                                                    <Pause size={22} strokeWidth={2.5} />
+                                                    <span className="relative z-10">SỔ NỢ</span>
                                                 </button>
                                                 <button
-                                                    onClick={() => handleSave(false)}
-                                                    disabled={cart.length === 0 || loading}
-                                                    className="w-14 h-14 bg-transparent text-[#2d5016] dark:text-emerald-400 rounded-2xl flex items-center justify-center border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 hover:border-[#2d5016] dark:hover:border-emerald-400 hover:bg-emerald-500/10 transition-colors shadow-md shadow-[#8b6f47]/5 disabled:opacity-40 cursor-pointer hover:bg-black/5 dark:hover:bg-white/10"
-                                                    title="Lưu đơn [Ctrl+S]"
+                                                    onClick={() => setIsConsignment(prev => !prev)}
+                                                    className={cn(
+                                                        "relative overflow-hidden flex-1 h-full flex items-center justify-center rounded-xl text-[9px] font-black tracking-wider transition-all text-center shadow-xs hover:scale-[1.02] active:scale-[0.98] group/gk backdrop-blur-sm",
+                                                        isConsignment
+                                                            ? "bg-gradient-to-r from-amber-500 to-amber-600 text-white border border-amber-400/80 shadow-[0_0_15px_rgba(245,158,11,0.35)]"
+                                                            : "border border-primary/25 dark:border-primary/30 bg-card/40 text-foreground hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/25"
+                                                    )}
+                                                    title={isConsignment ? "Đang chọn: Đơn hàng gửi kho (Bấm để tắt)" : "Chọn đơn hàng gửi kho (Bấm để bật)"}
                                                 >
-                                                    {loading ? <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" /> : <Save size={22} strokeWidth={2.5} />}
-                                                </button>
-                                                <button
-                                                    onClick={() => setIsPOExportModalOpen(true)}
-                                                    disabled={cart.length === 0}
-                                                    className="w-14 h-14 bg-gradient-to-tr from-amber-600 to-amber-700 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-amber-600/25 hover:brightness-110 border-2 border-amber-400/50 transition-colors disabled:opacity-40 cursor-pointer"
-                                                    title="Xuất phiếu đặt hàng gửi NCC qua Zalo/PDF (không lưu đơn)"
-                                                >
-                                                    <FileText size={22} strokeWidth={2.5} />
-                                                </button>
-                                                <button
-                                                    onClick={() => handleSave(true)}
-                                                    disabled={cart.length === 0 || loading}
-                                                    className="w-14 h-14 bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-[#2d5016]/25 hover:brightness-110 border-2 border-emerald-500/50 dark:border-emerald-400/50 transition-colors disabled:opacity-40 cursor-pointer"
-                                                    title="Lưu và In [F9]"
-                                                >
-                                                    {loading ? <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <Printer size={24} strokeWidth={2.5} />}
+                                                    <div className={cn(
+                                                        "absolute -right-1 -bottom-2 pointer-events-none -rotate-6 transition-transform group-hover/gk:scale-115 select-none",
+                                                        isConsignment ? "opacity-25 text-white" : "opacity-[0.09] dark:opacity-[0.13] text-current"
+                                                    )}>
+                                                        <Warehouse size={30} strokeWidth={1.8} />
+                                                    </div>
+                                                    <span className="relative z-10">{isConsignment ? "GỬI KHO ✓" : "GỬI KHO"}</span>
                                                 </button>
                                             </div>
                                         </m.div>
-                                    )}
-                                </AnimatePresence>
-                            </div>
-                        </m.div>
-                    )}
-                </div>
 
-
-                {/* Held Purchases Sidebar */}
-                <AnimatePresence>
-                    {isHeldSidebarOpen && (
-                        <Portal>
-                            <div className="fixed inset-0 z-[3000] flex justify-end font-sans">
-                                <m.div
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                                    onClick={() => setIsHeldSidebarOpen(false)}
-                                />
-                                <m.div
-                                    initial={{ x: '100%', opacity: 0.5 }}
-                                    animate={{ x: 0, opacity: 1 }}
-                                    exit={{ x: '100%', opacity: 0.5 }}
-                                    transition={{ type: "spring", damping: 30, stiffness: 300, mass: 0.8 }}
-                                    className="relative w-[360px] md:w-[440px] bg-[#f8f4e8] dark:bg-[#1a1714] border-l border-[#8b6f47]/30 dark:border-white/10 shadow-2xl h-full flex flex-col p-6 z-10"
-                                >
-                                    <div className="flex justify-between items-center mb-6 pb-4 border-b border-[#8b6f47]/20">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2.5 bg-[#8b6f47]/15 text-[#8b6f47] dark:text-[#d4a574] rounded-2xl border border-[#8b6f47]/30">
-                                                <Pause size={22} strokeWidth={2.5} />
-                                            </div>
-                                            <div>
-                                                <h2 className="text-xl font-black text-foreground uppercase tracking-tight">
-                                                    Đơn nhập tạm
-                                                </h2>
-                                                <p className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-[0.2em] mt-0.5">
-                                                    Đang chờ ({heldPurchases.length})
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <button
-                                            onClick={() => setIsHeldSidebarOpen(false)}
-                                            className="w-9 h-9 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/5 hover:bg-rose-500 hover:text-white text-muted transition-colors"
+                                        {/* Col 2: Payment Method & Payment Input (3 cols) */}
+                                        <m.div
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ duration: 0.3, delay: 0.05 }}
+                                            className="md:col-span-3 flex flex-col justify-between gap-1.5 h-full"
                                         >
-                                            <X size={18} strokeWidth={2.5} />
-                                        </button>
-                                    </div>
-
-                                    <div className="flex-1 overflow-auto space-y-4 pr-1 custom-scrollbar">
-                                        {heldPurchases.length === 0 ? (
-                                            <div className="text-center py-32 text-muted/40">
-                                                <div className="relative inline-block mb-4">
-                                                    <Pause size={64} className="opacity-20 mx-auto" />
-                                                </div>
-                                                <p className="font-black uppercase text-xs tracking-widest">Trống trải...</p>
-                                            </div>
-                                        ) : (
-                                            <AnimatePresence mode="popLayout">
-                                                {heldPurchases.map((held, idx) => (
-                                                    <m.div
-                                                        key={held.id}
-                                                        layout
-                                                        initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                                                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                        exit={{ opacity: 0, scale: 0.9, x: 20 }}
-                                                        transition={{
-                                                            delay: idx * 0.05,
-                                                            type: "spring",
-                                                            stiffness: 400,
-                                                            damping: 30
-                                                        }}
-                                                        className="bg-white/90 dark:bg-[#25201b] border border-[#8b6f47]/25 dark:border-white/10 rounded-3xl p-4 hover:border-[#8b6f47]/50 transition-all group shadow-sm hover:shadow-lg"
-                                                    >
-                                                        <div className="flex justify-between items-start mb-3">
-                                                            <div className="flex-1 min-w-0 pr-2">
-                                                                <div className="font-black text-foreground uppercase text-sm leading-tight group-hover:text-[#8b6f47] dark:group-hover:text-[#d4a574] transition-colors truncate">
-                                                                    {held.partner ? held.partner.name : "NCC VÃNG LAI"}
-                                                                </div>
-                                                                <div className="flex items-center gap-2 mt-1.5">
-                                                                    <div className="text-[10px] font-black text-muted bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded-full uppercase tabular-nums">
-                                                                        🕒 {held.time}
-                                                                    </div>
-                                                                    <div className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] bg-[#8b6f47]/10 px-2 py-0.5 rounded-full uppercase">
-                                                                        {held.cart.length} món
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <button
-                                                                onClick={() => handleRemoveHeld(held.id)}
-                                                                className="text-muted/60 hover:text-rose-500 transition-colors p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl shrink-0"
-                                                                title="Xóa đơn tạm"
-                                                            >
-                                                                <Trash2 size={16} />
-                                                            </button>
-                                                        </div>
-                                                        <div className="flex justify-between items-center bg-[#8b6f47]/10 dark:bg-[#8b6f47]/20 p-3 rounded-2xl border border-[#8b6f47]/20">
-                                                            <div>
-                                                                <div className="text-[9px] font-black text-muted uppercase leading-none mb-1">Tổng cộng</div>
-                                                                <div className="text-[#8b6f47] dark:text-[#d4a574] font-black text-lg tracking-tight">
-                                                                    {formatNumber(held.total)} đ
-                                                                </div>
-                                                            </div>
-                                                            <m.button
-                                                                whileHover={{ scale: 1.04 }}
-                                                                whileTap={{ scale: 0.96 }}
-                                                                onClick={() => handleRestore(held)}
-                                                                className="bg-[#8b6f47] hover:bg-[#725938] text-white px-4 py-2 rounded-xl font-black text-[11px] uppercase flex items-center gap-1.5 shadow-md transition-all"
-                                                            >
-                                                                <RotateCcw size={13} strokeWidth={3} />
-                                                                THU HỒI
-                                                            </m.button>
-                                                        </div>
-                                                    </m.div>
-                                                ))}
-                                            </AnimatePresence>
-                                        )}
-                                    </div>
-
-                                    <div className="mt-6 pt-4 border-t border-[#8b6f47]/20">
-                                        <button
-                                            onClick={() => setIsHeldSidebarOpen(false)}
-                                            className="w-full py-3.5 rounded-2xl bg-white/70 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-800 border-0 text-foreground font-black uppercase text-xs transition-all tracking-widest shadow-sm"
-                                        >
-                                            Đóng sidebar
-                                        </button>
-                                    </div>
-                                </m.div>
-                            </div>
-                        </Portal>
-                    )}
-                </AnimatePresence>
-
-                {/* Modals & Components */}
-                {/* Quick Add Modals */}
-                <PartnerEditModal
-                    isOpen={showQuickAddPartner}
-                    partner={{ name: quickAddName, is_customer: false, is_supplier: true }}
-                    onClose={() => setShowQuickAddPartner(false)}
-                    onSave={(newPartner) => {
-                        fetchPartners();
-                        setShowQuickAddPartner(false);
-                        if (newPartner) {
-                            setSelectedPartner(newPartner);
-                            setPartnerSearch('');
-                            setTimeout(() => searchInputRef.current?.focus(), 100);
-                        }
-                    }}
-                />
-
-                <ProductEditModal
-                    isOpen={showQuickAddProduct}
-                    product={{ name: quickAddName }}
-                    onClose={() => setShowQuickAddProduct(false)}
-                    existingProducts={products}
-                    onSave={() => {
-                        fetchProducts();
-                        setShowQuickAddProduct(false);
-                    }}
-                />
-
-                <AnimatePresence>
-                    {isScanModalOpen && (
-                        <Portal>
-                            <div className="fixed inset-0 z-[500000] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
-                                <m.div
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    className="fixed inset-0"
-                                    onClick={() => {
-                                        setIsScanModalOpen(false);
-                                        setScannedImages([]);
-                                    }}
-                                />
-                                <m.div
-                                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                                    exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                                    transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                                    className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white w-full max-w-lg rounded-3xl border border-slate-200 dark:border-slate-700/80 shadow-2xl dark:shadow-[0_20px_60px_rgba(0,0,0,0.9)] flex flex-col relative z-10 overflow-hidden max-h-[90vh]"
-                                >
-                                    {/* Modal Header */}
-                                    <m.div 
-                                        initial={{ opacity: 0, y: -10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        className="p-4 px-5 flex items-center justify-between border-b border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-slate-800/80 shrink-0"
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center border border-emerald-500/20 shadow-sm">
-                                                <Bot size={20} />
-                                            </div>
-                                            <div className="flex flex-col min-w-0">
-                                                <h3 className="text-base font-black text-foreground uppercase tracking-tight leading-relaxed py-0.5 truncate">
-                                                    Quét Hóa Đơn Bằng AI
-                                                </h3>
-                                                <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest mt-0.5">Tự động nhận dạng & thêm vào giỏ bằng Gemini</p>
-                                            </div>
-                                        </div>
-                                        <button 
-                                            onClick={() => {
-                                                setIsScanModalOpen(false);
-                                                setScannedImages([]);
-                                            }}
-                                            className="w-8 h-8 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 hover:bg-rose-500 hover:text-white text-muted-foreground transition-colors"
-                                        >
-                                            <X size={16} strokeWidth={2.5} />
-                                        </button>
-                                    </m.div>
-
-                                    {/* Modal Content */}
-                                    <div className="p-6 overflow-y-auto flex-1 space-y-6 custom-scrollbar">
-                                        {/* API Key Configuration if missing */}
-                                        {!settings.gemini_api_key && (
-                                            <div className="p-4 bg-amber-500/10 border border-amber-500/20 dark:border-amber-500/30 rounded-2xl space-y-2">
-                                                <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-black text-xs uppercase">
-                                                    <AlertTriangle size={16} /> Cần cấu hình API Key
-                                                </div>
-                                                <p className="text-xs text-slate-600 dark:text-slate-400">
-                                                    Vui lòng nhập <strong>Gemini API Key</strong> của bạn để tiếp tục.
-                                                </p>
-                                                <input
-                                                    type="password"
-                                                    value={scanApiKey}
-                                                    onChange={(e) => setScanApiKey(e.target.value)}
-                                                    placeholder="Nhập Gemini API Key..."
-                                                    className="w-full p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono outline-none focus:border-emerald-500 text-slate-900 dark:text-white focus:ring-1 focus:ring-emerald-500/35 transition-all"
-                                                />
-                                            </div>
-                                        )}
-
-                                        <div className="space-y-4 flex flex-col">
-                                            <div 
-                                                onDragOver={(e) => e.preventDefault()}
-                                                onDrop={(e) => {
-                                                    e.preventDefault();
-                                                    if (e.dataTransfer?.files?.length) {
-                                                        const imgFiles = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
-                                                        if (imgFiles.length > 0) {
-                                                            const promises = imgFiles.map(file => new Promise(resolve => {
-                                                                const reader = new FileReader();
-                                                                reader.onloadend = () => resolve(reader.result);
-                                                                reader.readAsDataURL(file);
-                                                            }));
-                                                            Promise.all(promises).then(results => {
-                                                                setScannedImages(prev => [...prev, ...results]);
-                                                                setToast({ message: `Đã thêm ${imgFiles.length} ảnh thả vào!`, type: 'success' });
-                                                            });
-                                                        }
-                                                    }
-                                                }}
-                                                className="flex-1 flex flex-col justify-center items-center border-2 border-dashed border-slate-200 dark:border-slate-700/80 hover:border-emerald-500/50 rounded-[2rem] p-6 bg-slate-50/50 dark:bg-slate-800/20 min-h-[260px] relative overflow-hidden group transition-all duration-300"
-                                            >
-                                                {scannedImages.length > 0 ? (
-                                                    <div className="w-full h-full flex flex-col space-y-4">
-                                                        <div className="grid grid-cols-3 gap-3 max-h-[240px] overflow-y-auto p-1 custom-scrollbar">
-                                                            {scannedImages.map((img, index) => (
-                                                                <div key={index} className="relative aspect-square rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700/80 group/thumb shadow-sm">
-                                                                    <img src={img} alt={`Preview ${index + 1}`} className="w-full h-full object-cover" />
-                                                                    <button 
-                                                                        type="button" 
-                                                                        onClick={() => setScannedImages(prev => prev.filter((_, i) => i !== index))}
-                                                                        className="absolute top-1.5 right-1.5 p-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-full transition-all shadow opacity-0 group-hover/thumb:opacity-100 duration-200"
-                                                                    >
-                                                                        <X size={10} />
-                                                                    </button>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                        <div className="flex justify-center gap-3">
-                                                            <label 
-                                                                htmlFor="scan-image-upload"
-                                                                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl cursor-pointer transition-all uppercase tracking-wider flex items-center gap-1.5 shadow-sm active:scale-95"
-                                                            >
-                                                                <Plus size={14} strokeWidth={3} /> Thêm ảnh
-                                                            </label>
-                                                            <button 
-                                                                type="button" 
-                                                                onClick={() => setScannedImages([])}
-                                                                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl transition-all uppercase tracking-wider shadow-sm active:scale-95"
-                                                            >
-                                                                Xóa tất cả
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                ) : (
-                                                    <label 
-                                                        htmlFor="scan-image-upload"
-                                                        className="flex flex-col items-center justify-center cursor-pointer space-y-4 w-full h-full py-8"
-                                                    >
-                                                        <div className="p-5 bg-emerald-500/10 text-emerald-600 rounded-full group-hover:scale-110 group-hover:bg-emerald-500/20 transition-all duration-300">
-                                                            <Camera size={36} />
-                                                        </div>
-                                                        <div className="text-center space-y-1.5">
-                                                            <p className="text-sm font-black text-slate-700 dark:text-slate-300">Chụp, tải hoặc dán ảnh (Ctrl + V)</p>
-                                                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Hỗ trợ Paste Clipboard, Kéo thả & Chọn tệp ảnh</p>
-                                                        </div>
-                                                    </label>
-                                                )}
-                                                <input 
-                                                    type="file" 
-                                                    accept="image/*" 
-                                                    multiple
-                                                    capture="environment" 
-                                                    onChange={handleImageSelect} 
-                                                    className="hidden" 
-                                                    id="scan-image-upload" 
-                                                />
-                                            </div>
-
-                                            {scannedImages.length > 0 && (
-                                                <m.button
-                                                    whileTap={{ scale: 0.98 }}
-                                                    onClick={handleScanInvoice}
-                                                    disabled={isScanning || (!settings.gemini_api_key && !scanApiKey)}
-                                                    className="w-full p-4 bg-gradient-to-r from-emerald-600 via-emerald-600 to-teal-700 hover:brightness-110 disabled:opacity-50 text-white font-black uppercase text-xs tracking-wider rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-700/20 active:scale-[0.98] transition-all"
-                                                >
-                                                    {isScanning ? (
-                                                        <>
-                                                            <Loader2 size={16} className="animate-spin text-white" />
-                                                            Đang phân tích hóa đơn bằng AI...
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <Sparkles size={16} className="text-white" />
-                                                            Bắt đầu phân tích hóa đơn (AI)
-                                                        </>
-                                                    )}
-                                                </m.button>
-                                            )}
-                                        </div>
-                                    </div>
-                                </m.div>
-                            </div>
-                        </Portal>
-                    )}
-                </AnimatePresence>
-
-
-
-                <PartnerEditModal
-                    isOpen={isPartnerEditModalOpen}
-                    partner={editingPartner}
-                    onClose={() => setIsPartnerEditModalOpen(false)}
-                    onSave={async (updatedPartner) => {
-                        await fetchPartners();
-                        if (updatedPartner) {
-                            setSelectedPartner(updatedPartner);
-                            setPartnerSearch('');
-                            setTimeout(() => searchInputRef.current?.focus(), 100);
-                        }
-                    }}
-                />
-
-
-                {/* Print Preview Studio (POS Style) */}
-                <AnimatePresence>
-                    {showPreview && previewData && (
-                        <Portal>
-                            <div className="fixed inset-0 z-[1000] flex bg-slate-900/60 dark:bg-black/80 backdrop-blur-xl animate-in fade-in duration-300 font-sans overflow-hidden">
-                                {/* Left Sidebar Settings Panel */}
-                                <m.div
-                                    initial={{ x: -100, opacity: 0 }}
-                                    animate={{ x: 0, opacity: 1 }}
-                                    exit={{ x: -100, opacity: 0 }}
-                                    transition={{ type: "spring", stiffness: 220, damping: 25 }}
-                                    className="w-80 h-full bg-[#faf8f3] dark:bg-[#0c120c] text-slate-800 dark:text-slate-100 border-r border-[#8b6f47]/20 dark:border-white/10 flex flex-col z-50 relative shadow-2xl"
-                                    onClick={(e) => e.stopPropagation()}
-                                >
-                                    <div className="p-6 border-b border-[#8b6f47]/15 dark:border-white/10 bg-white/40 dark:bg-white/[0.02]">
-                                        <div className="flex items-center gap-2">
-                                            <Printer className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                                            <h3 className="text-lg font-black uppercase tracking-tight text-slate-900 dark:text-white">
-                                                Thiết lập in
-                                            </h3>
-                                        </div>
-                                        <p className="text-[10.5px] font-bold text-slate-500 dark:text-white/40 uppercase tracking-widest mt-1">
-                                            Tùy chỉnh nội dung hiển thị
-                                        </p>
-                                    </div>
-
-                                    <div className="flex-1 overflow-y-auto p-5 space-y-5 no-scrollbar">
-                                        <div className="space-y-4">
-                                            <div className="flex bg-black/[0.04] dark:bg-white/5 p-1 rounded-2xl border border-black/5 dark:border-white/10 mb-3 gap-1">
+                                            <div className="flex-1 min-h-[30px] max-h-9 flex items-stretch w-full gap-1.5">
                                                 <button
-                                                    className="flex-1 py-2.5 px-2 rounded-xl text-[10.5px] font-black uppercase tracking-wider transition-all bg-emerald-600 text-white shadow-md shadow-emerald-600/30 flex items-center justify-center gap-1.5"
+                                                    onClick={() => { setPaymentMethod('Cash'); setAmountPaid(totalAmount); }}
+                                                    className={cn(
+                                                        "relative overflow-hidden flex-1 h-full rounded-xl flex items-center justify-center text-[9px] font-black tracking-wider transition-all active:scale-95 cursor-pointer group/cash backdrop-blur-sm",
+                                                        paymentMethod === 'Cash'
+                                                            ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-[0_0_18px_rgba(16,185,129,0.45)] border border-emerald-400/60"
+                                                            : "bg-card/40 text-foreground border border-primary/25 dark:border-primary/30 hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/20"
+                                                    )}
+                                                    style={paymentMethod === 'Cash' && cartColorConfig.accentColor && cartColorConfig.accentColor !== 'default' ? {
+                                                        background: `linear-gradient(90deg, ${cartColorConfig.accentColor}, ${cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : cartColorConfig.accentColor})`,
+                                                        borderColor: cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : `${cartColorConfig.accentColor}80`,
+                                                        boxShadow: cartColorConfig.enableGlow !== false ? `0 0 18px ${cartColorConfig.accentColor}50` : undefined
+                                                    } : undefined}
                                                 >
-                                                    <FileText size={14} />
-                                                    <span>Phiếu nhập hàng</span>
+                                                    <div className={cn(
+                                                        "absolute -right-1 -bottom-2 pointer-events-none -rotate-6 transition-transform group-hover/cash:scale-110 select-none",
+                                                        paymentMethod === "Cash" ? "opacity-25 text-white" : "opacity-[0.09] dark:opacity-[0.13] text-current"
+                                                    )}>
+                                                        <Banknote size={34} strokeWidth={1.8} />
+                                                    </div>
+                                                    <span className="relative z-10">TIỀN MẶT</span>
+                                                </button>
+                                                <button
+                                                    onClick={() => { setPaymentMethod('Debt'); setAmountPaid(0); }}
+                                                    className={cn(
+                                                        "relative overflow-hidden flex-1 h-full rounded-xl flex items-center justify-center text-[9px] font-black tracking-wider transition-all active:scale-95 cursor-pointer group/debt backdrop-blur-sm",
+                                                        paymentMethod === 'Debt'
+                                                            ? "bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-[0_0_18px_rgba(244,63,94,0.45)] border border-rose-400/60"
+                                                            : "bg-card/40 text-foreground border border-primary/25 dark:border-primary/30 hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/20"
+                                                    )}
+                                                >
+                                                    <div className={cn(
+                                                        "absolute -right-1 -bottom-2 pointer-events-none -rotate-6 transition-transform group-hover/debt:scale-110 select-none",
+                                                        paymentMethod === "Debt" ? "opacity-25 text-white" : "opacity-[0.09] dark:opacity-[0.13] text-current"
+                                                    )}>
+                                                        <CreditCard size={34} strokeWidth={1.8} />
+                                                    </div>
+                                                    <span className="relative z-10">CÔNG NỢ</span>
+                                                </button>
+                                                <button
+                                                    onClick={() => setPaymentMethod('Transfer')}
+                                                    className={cn(
+                                                        "relative overflow-hidden flex-1 h-full rounded-xl flex items-center justify-center text-[9px] font-black tracking-wider transition-all active:scale-95 cursor-pointer group/ck backdrop-blur-sm",
+                                                        paymentMethod === 'Transfer'
+                                                            ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-[0_0_18px_rgba(59,130,246,0.45)] border border-blue-400/60"
+                                                            : "bg-card/40 text-foreground border border-primary/25 dark:border-primary/30 hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_12px_var(--primary-color)]/20"
+                                                    )}
+                                                >
+                                                    <div className={cn(
+                                                        "absolute -right-1 -bottom-2 pointer-events-none -rotate-6 transition-transform group-hover/ck:scale-110 select-none",
+                                                        paymentMethod === "Transfer" ? "opacity-25 text-white" : "opacity-[0.09] dark:opacity-[0.13] text-current"
+                                                    )}>
+                                                        <Sparkles size={34} strokeWidth={1.8} />
+                                                    </div>
+                                                    <span className="relative z-10">C/K</span>
                                                 </button>
                                             </div>
 
-                                            <div className="space-y-3">
-                                                <div className="flex items-center justify-between px-1">
-                                                    <label className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-[0.15em]">
-                                                        Thông tin tài chính
-                                                    </label>
-                                                    <div className="h-[1px] flex-1 bg-gradient-to-r from-emerald-500/30 to-transparent ml-3" />
+                                            {paymentMethod === 'Transfer' ? (
+                                                <CustomSelect
+                                                    className="flex-1 min-h-[32px] max-h-10 w-full p-1 bg-card/40 border border-primary/25 dark:border-primary/30 rounded-xl font-bold text-xs outline-none text-foreground flex items-center shadow-xs focus-within:border-primary focus-within:shadow-[0_0_15px_var(--primary-color)]/25 backdrop-blur-sm"
+                                                    value={selectedBankAccountId}
+                                                    onChange={(e) => setSelectedBankAccountId(e.target.value)}
+                                                    options={bankAccounts.map(acc => ({
+                                                        value: acc.id,
+                                                        label: `${acc.bank_name} - ${acc.account_number}`
+                                                    }))}
+                                                />
+                                            ) : (
+                                                <div className="flex-1 min-h-[32px] max-h-10 relative flex items-center bg-card/40 rounded-xl border border-primary/25 dark:border-primary/30 shadow-xs focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 focus-within:shadow-[0_0_16px_var(--primary-color)]/30 group/pay-input transition-all duration-300 backdrop-blur-sm">
+                                                    <div className="absolute right-16 -bottom-3 opacity-[0.06] dark:opacity-[0.08] text-foreground pointer-events-none -rotate-6 select-none overflow-hidden">
+                                                        <ReceiptText size={42} strokeWidth={1.5} />
+                                                    </div>
+                                                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[9px] font-black text-muted-foreground uppercase tracking-widest pointer-events-none z-10">
+                                                        Thanh toán:
+                                                    </span>
+                                                    <input
+                                                        type="text"
+                                                        readOnly={paymentMethod === 'Cash'}
+                                                        className={cn(
+                                                            "w-full h-full pl-22 pr-3 text-right font-black text-base md:text-lg outline-none !border-none !shadow-none bg-transparent tabular-nums flex items-center transition-colors duration-300 relative z-10",
+                                                            paymentMethod === 'Cash' ? "text-primary/70 cursor-not-allowed" : "text-primary"
+                                                        )}
+                                                        value={formatNumber(amountPaid)}
+                                                        onChange={(e) => setAmountPaid(parseFloat(e.target.value.replace(/,/g, '')) || 0)}
+                                                    />
+                                                    {paymentMethod !== 'Cash' && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setAmountPaid(totalAmount + (oldDebt < 0 ? Math.abs(oldDebt) : 0))}
+                                                            className="absolute right-2 -top-2.5 opacity-0 group-hover/pay-input:opacity-100 focus-within:opacity-100 px-2 py-0.5 bg-emerald-600 hover:bg-emerald-500 text-white dark:text-slate-950 text-[8.5px] font-black uppercase rounded-full border border-white/40 dark:border-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all duration-200 active:scale-95 z-30 cursor-pointer"
+                                                            title="Thanh toán toàn bộ đơn nhập và nợ cũ"
+                                                        >
+                                                            Trả hết
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </m.div>
+
+                                        {/* Col 3: Debt status (Timeline Flow: Trước đơn ➔ Sau đơn) (3 cols) */}
+                                        <m.div
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ duration: 0.3, delay: 0.1 }}
+                                            className="md:col-span-3 h-full p-2 px-3 rounded-2xl bg-card/40 border border-primary/25 dark:border-primary/30 flex flex-col justify-between shadow-[0_4px_16px_rgba(0,0,0,0.04)] hover:shadow-[0_0_18px_var(--primary-color)]/20 hover:border-primary/50 transition-all duration-300 relative overflow-hidden group/debt-change backdrop-blur-md"
+                                        >
+                                            <div className="absolute -right-2 -bottom-2 opacity-[0.06] dark:opacity-[0.09] text-current pointer-events-none -rotate-6 transition-transform group-hover/debt-change:scale-105 select-none">
+                                                <ArrowLeftRight size={48} strokeWidth={1.5} />
+                                            </div>
+                                            <div className="flex items-center justify-between relative z-10 pt-0.5">
+                                                <span className="text-[9px] font-black text-muted-foreground uppercase tracking-wider leading-normal">
+                                                    Biến động nợ
+                                                </span>
+                                                <m.span
+                                                    key={remainingDebt < oldDebt ? "up" : remainingDebt > oldDebt ? "down" : "same"}
+                                                    initial={{ opacity: 0, scale: 0.85 }}
+                                                    animate={{ opacity: 1, scale: 1 }}
+                                                    className={cn(
+                                                        "text-[8.5px] font-black uppercase px-1.5 py-0.5 rounded-full transition-all duration-300 leading-normal",
+                                                        remainingDebt < oldDebt
+                                                            ? "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 shadow-[0_0_10px_rgba(244,63,94,0.2)]"
+                                                            : remainingDebt > oldDebt
+                                                                ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.2)]"
+                                                                : "bg-black/[0.05] dark:bg-white/[0.05] text-muted-foreground"
+                                                    )}
+                                                >
+                                                    {remainingDebt < oldDebt ? "+ Tăng nợ" : remainingDebt > oldDebt ? "- Giảm nợ" : "Không đổi"}
+                                                </m.span>
+                                            </div>
+
+                                            <div className="flex items-center justify-between gap-1.5 mt-auto relative z-10">
+                                                {/* Trước đơn */}
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-1 leading-normal mb-0.5">
+                                                        <span className="text-[8.5px] font-bold text-muted-foreground uppercase leading-normal">Trước</span>
+                                                        {oldDebt !== 0 ? (
+                                                            <span className={cn(
+                                                                "text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border leading-normal shrink-0",
+                                                                oldDebt > 0 ? "text-rose-600 bg-rose-500/10 border-rose-500/25 dark:text-rose-400" : "text-emerald-600 bg-emerald-500/10 border-emerald-500/25 dark:text-emerald-400"
+                                                            )}>
+                                                                {oldDebt > 0 ? "Khách nợ" : "Mình nợ"}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-[8px] font-bold text-muted-foreground uppercase shrink-0 leading-normal">Hết nợ</span>
+                                                        )}
+                                                    </div>
+                                                    <m.div
+                                                        key={Math.abs(oldDebt)}
+                                                        initial={{ opacity: 0, scale: 0.95 }}
+                                                        animate={{ opacity: 1, scale: 1 }}
+                                                        transition={{ duration: 0.25 }}
+                                                        className={cn("text-xs lg:text-sm font-black tracking-tight tabular-nums truncate leading-tight transition-colors duration-300", oldDebt > 0 ? "text-rose-500 dark:text-rose-400" : oldDebt < 0 ? "text-emerald-500 dark:text-emerald-400" : "text-muted-foreground")}
+                                                    >
+                                                        {formatNumber(Math.abs(oldDebt))}<span className="text-[9px] font-normal ml-0.5">đ</span>
+                                                    </m.div>
                                                 </div>
 
-                                                <div className="grid gap-2.5">
-                                                    {[
-                                                        { id: 'showOldDebt', label: 'Hiển thị nợ cũ', icon: Coins, color: 'text-amber-500 dark:text-amber-400', bgActive: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30' },
-                                                        { id: 'showPayment', label: 'Hiển thị thanh toán', icon: Wallet, color: 'text-emerald-600 dark:text-emerald-400', bgActive: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30' },
-                                                        { id: 'showRemaining', label: 'Hiển thị còn lại', icon: FileText, color: 'text-blue-600 dark:text-blue-400', bgActive: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30' },
-                                                    ].map(opt => {
-                                                        const IconComp = opt.icon;
-                                                        const val = printOptions[opt.id];
-                                                        return (
-                                                            <m.button
-                                                                key={opt.id}
-                                                                whileHover={{ x: 4 }}
-                                                                whileTap={{ scale: 0.97 }}
-                                                                onClick={() => setPrintOptions(prev => ({ ...prev, [opt.id]: !prev[opt.id] }))}
-                                                                className={cn(
-                                                                    "w-full p-3.5 rounded-2xl flex items-center justify-between transition-all duration-200 border group relative cursor-pointer select-none",
-                                                                    val 
-                                                                        ? "bg-white dark:bg-white/[0.08] border-emerald-500/30 dark:border-emerald-500/40 shadow-sm" 
-                                                                        : "bg-black/[0.02] dark:bg-white/[0.02] border-black/5 dark:border-white/5 opacity-70 hover:opacity-100 hover:bg-black/[0.04] dark:hover:bg-white/[0.05]"
-                                                                )}
-                                                            >
-                                                                <div className="flex items-center gap-3 relative z-10">
-                                                                    <div className={cn(
-                                                                        "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300",
-                                                                        val ? `${opt.bgActive} shadow-xs` : "bg-black/[0.05] dark:bg-white/5 text-slate-400 dark:text-white/30"
-                                                                    )}>
-                                                                        <IconComp size={18} strokeWidth={2.4} className={cn("transition-transform", val ? "scale-105" : "scale-95")} />
-                                                                    </div>
-                                                                    <div className="flex flex-col items-start">
-                                                                        <span className={cn(
-                                                                            "text-[12px] font-bold tracking-tight transition-colors",
-                                                                            val ? "text-slate-900 dark:text-white" : "text-slate-600 dark:text-white/50"
-                                                                        )}>
-                                                                            {opt.label}
+                                                {/* Center Flow Arrow */}
+                                                <div className="flex items-center justify-center w-5 h-5 rounded-full bg-black/[0.04] dark:bg-white/[0.06] text-muted-foreground shrink-0">
+                                                    <ArrowRight size={11} strokeWidth={2.5} />
+                                                </div>
+
+                                                {/* Sau đơn */}
+                                                <div className="flex-1 min-w-0 text-right">
+                                                    <div className="flex items-center justify-end gap-1 leading-normal mb-0.5">
+                                                        {remainingDebt !== 0 ? (
+                                                            <span className={cn(
+                                                                "text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border leading-normal shrink-0",
+                                                                remainingDebt > 0 ? "text-rose-600 bg-rose-500/10 border-rose-500/25 dark:text-rose-400" : "text-emerald-600 bg-emerald-500/10 border-emerald-500/25 dark:text-emerald-400"
+                                                            )}>
+                                                                {remainingDebt > 0 ? "Khách nợ" : "Mình nợ"}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-[8px] font-black uppercase px-1.5 py-0.5 rounded-full border bg-emerald-500/10 border-emerald-500/25 text-emerald-600 dark:text-emerald-400 leading-normal shrink-0">Hết nợ</span>
+                                                        )}
+                                                        <span className="text-[8.5px] font-bold text-muted-foreground uppercase leading-normal">Sau đơn</span>
+                                                    </div>
+                                                    <m.div
+                                                        key={Math.abs(remainingDebt)}
+                                                        initial={{ opacity: 0, scale: 0.95 }}
+                                                        animate={{ opacity: 1, scale: 1 }}
+                                                        transition={{ duration: 0.25 }}
+                                                        className={cn("text-sm lg:text-base font-black tracking-tight tabular-nums truncate leading-tight transition-colors duration-300", remainingDebt > 0 ? "text-rose-600 dark:text-rose-400" : remainingDebt < 0 ? "text-emerald-600 dark:text-emerald-400" : "text-foreground")}
+                                                    >
+                                                        {formatNumber(Math.abs(remainingDebt))}<span className="text-[9px] font-normal ml-0.5">đ</span>
+                                                    </m.div>
+                                                </div>
+                                            </div>
+                                        </m.div>
+
+                                        {/* Col 4: Total & Action Buttons (4 cols) */}
+                                        <m.div
+                                            initial={{ opacity: 0, y: 10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            transition={{ duration: 0.3, delay: 0.15 }}
+                                            className="md:col-span-4 flex items-stretch gap-2 h-full"
+                                        >
+                                            <div
+                                                onClick={() => selectedPartner ? setIsHistoryPanelOpen(true) : setIsDailyHistoryOpen(true)}
+                                                className="flex-1 h-full p-2 px-3.5 rounded-2xl bg-gradient-to-br from-[#1b4332] via-[#2d6a4f] to-[#1b4332] text-white flex flex-col justify-between relative overflow-hidden select-none active:scale-[0.98] transition-all cursor-pointer min-h-0 border border-emerald-400/50 shadow-[0_0_20px_rgba(16,185,129,0.35)] hover:shadow-[0_0_30px_rgba(16,185,129,0.55)] group/total-main"
+                                                style={cartColorConfig.accentColor && cartColorConfig.accentColor !== 'default' ? {
+                                                    background: `linear-gradient(135deg, ${cartColorConfig.accentColor}, ${cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : cartColorConfig.accentColor}dd)`,
+                                                    borderColor: cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : `${cartColorConfig.accentColor}80`,
+                                                    boxShadow: cartColorConfig.enableGlow !== false ? `0 0 25px ${cartColorConfig.accentColor}40` : undefined
+                                                } : undefined}
+                                                title={selectedPartner ? "Xem lịch sử giao dịch nhà cung cấp" : "Xem lịch sử đơn nhập hàng hôm nay"}
+                                            >
+                                                {/* Subtle glass reflection overlay */}
+                                                <div className="absolute inset-0 bg-gradient-to-b from-white/20 via-transparent to-transparent pointer-events-none" />
+                                                <div className="absolute -right-3 -bottom-4 text-white/15 pointer-events-none -rotate-12 transition-transform group-hover/total-main:scale-110 group-hover/total-main:-rotate-6 select-none">
+                                                    <ShoppingBag size={76} strokeWidth={1.2} />
+                                                </div>
+                                                <div className="flex items-center justify-between relative z-10">
+                                                    <span className="text-[8px] font-black uppercase tracking-[0.2em] text-emerald-200">
+                                                        TỔNG CỘNG ĐƠN HÀNG
+                                                    </span>
+                                                    <m.span
+                                                        key={cart.length}
+                                                        initial={{ opacity: 0, scale: 0.8 }}
+                                                        animate={{ opacity: 1, scale: 1 }}
+                                                        transition={{ duration: 0.2 }}
+                                                        className="text-[8px] font-bold px-1.5 py-0.5 rounded-md bg-white/20 text-emerald-100 backdrop-blur-md shadow-[0_0_8px_rgba(255,255,255,0.2)]"
+                                                    >
+                                                        {cart.length} món
+                                                    </m.span>
+                                                </div>
+                                                <m.div
+                                                    key={totalAmount}
+                                                    initial={{ opacity: 0, y: -4, scale: 0.98 }}
+                                                    animate={{ opacity: 1, scale: 1 }}
+                                                    transition={{ type: "spring", stiffness: 450, damping: 25 }}
+                                                    className="text-2xl md:text-3xl font-black tracking-tight truncate leading-tight tabular-nums mt-auto relative z-10 drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)]"
+                                                >
+                                                    {formatNumber(totalAmount)}
+                                                    <span className="text-xs font-normal ml-0.5 opacity-90">đ</span>
+                                                </m.div>
+                                            </div>
+
+                                            <div className="flex flex-col justify-between gap-1.5 shrink-0 min-w-[140px] h-full">
+                                                <div className="flex-1 min-h-[32px] max-h-11 flex items-stretch gap-1.5 justify-between">
+                                                    <m.button
+                                                        whileTap={{ scale: 0.95 }}
+                                                        disabled={cart.length === 0}
+                                                        onClick={handleHold}
+                                                        className="relative overflow-hidden flex-1 h-full bg-card/40 text-foreground rounded-xl flex items-center justify-center border border-primary/25 dark:border-primary/30 hover:bg-primary/10 hover:border-primary/50 hover:text-primary hover:shadow-[0_0_14px_var(--primary-color)]/30 transition-all shadow-xs disabled:opacity-30 disabled:cursor-not-allowed group/btn-pause backdrop-blur-sm"
+                                                        title="Tạm đơn [F4]"
+                                                    >
+                                                        <div className="absolute -right-1 -bottom-2 opacity-[0.08] dark:opacity-[0.12] text-current pointer-events-none -rotate-6 transition-transform group-hover/btn-pause:scale-115 select-none">
+                                                            <Pause size={28} strokeWidth={1.8} />
+                                                        </div>
+                                                        <Pause size={16} strokeWidth={2.5} className="relative z-10" />
+                                                    </m.button>
+                                                    <m.button
+                                                        whileTap={{ scale: 0.95 }}
+                                                        disabled={cart.length === 0 || loading}
+                                                        onClick={() => handleSave(false)}
+                                                        className="relative overflow-hidden flex-1 h-full bg-card/40 text-emerald-700 dark:text-emerald-300 rounded-xl flex items-center justify-center border border-emerald-600/30 dark:border-emerald-400/30 hover:bg-emerald-500/15 hover:border-emerald-500/50 hover:shadow-[0_0_14px_rgba(16,185,129,0.3)] transition-all shadow-xs group/btn-save backdrop-blur-sm"
+                                                        title="Lưu đơn [Ctrl+S]"
+                                                    >
+                                                        <div className="absolute -right-1 -bottom-2 opacity-[0.08] dark:opacity-[0.12] text-current pointer-events-none -rotate-6 transition-transform group-hover/btn-save:scale-115 select-none">
+                                                            <Save size={28} strokeWidth={1.8} />
+                                                        </div>
+                                                        {loading ? <div className="w-3.5 h-3.5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin relative z-10" /> : <Save size={16} strokeWidth={2.5} className="relative z-10" />}
+                                                    </m.button>
+                                                    <m.button
+                                                        whileTap={{ scale: 0.95 }}
+                                                        disabled={cart.length === 0 || loading}
+                                                        onClick={() => handleSave(true)}
+                                                        className="relative overflow-hidden flex-1 h-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 text-white rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_28px_rgba(16,185,129,0.65)] border border-emerald-400/50 hover:scale-[1.02] active:scale-95 transition-all group/btn-print"
+                                                        title="Lưu và In hóa đơn [F9]"
+                                                    >
+                                                        <div className="absolute -right-1 -bottom-2 text-white/15 pointer-events-none -rotate-6 transition-transform group-hover/btn-print:scale-115 select-none">
+                                                            <Printer size={28} strokeWidth={1.8} />
+                                                        </div>
+                                                        {loading ? <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin relative z-10" /> : <Printer size={17} strokeWidth={2.5} className="relative z-10" />}
+                                                    </m.button>
+                                                </div>
+
+                                                {/* History navigation buttons below action row */}
+                                                <div className="flex-1 min-h-[26px] max-h-8 flex items-stretch gap-1.5 w-full">
+                                                    <m.button
+                                                        onClick={() => navigateHistory('prev')}
+                                                        whileHover={{ scale: 1.03 }}
+                                                        whileTap={{ scale: 0.95 }}
+                                                        className="flex-1 h-full rounded-xl bg-emerald-500/10 dark:bg-emerald-500/15 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-500 dark:hover:text-slate-900 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 dark:border-emerald-400/25 flex items-center justify-center shadow-xs hover:shadow-[0_0_12px_rgba(16,185,129,0.35)] transition-all cursor-pointer"
+                                                        title="Xem đơn trước"
+                                                    >
+                                                        <ChevronLeft size={18} strokeWidth={2.8} />
+                                                    </m.button>
+                                                    <m.button
+                                                        onClick={() => navigateHistory('next')}
+                                                        disabled={historyStep === 0}
+                                                        whileHover={historyStep === 0 ? {} : { scale: 1.03 }}
+                                                        whileTap={historyStep === 0 ? {} : { scale: 0.95 }}
+                                                        className={cn(
+                                                            "flex-1 h-full rounded-xl border flex items-center justify-center shadow-xs transition-all",
+                                                            historyStep === 0
+                                                                ? "bg-black/[0.03] dark:bg-white/[0.03] text-emerald-700/30 dark:text-emerald-400/30 border-black/5 dark:border-white/5 cursor-not-allowed"
+                                                                : "bg-emerald-500/10 dark:bg-emerald-500/15 hover:bg-emerald-600 hover:text-white dark:hover:bg-emerald-500 dark:hover:text-slate-900 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 dark:border-emerald-400/25 hover:shadow-[0_0_12px_rgba(16,185,129,0.35)] cursor-pointer"
+                                                        )}
+                                                        title="Xem đơn kế tiếp"
+                                                    >
+                                                        <ChevronRight size={18} strokeWidth={2.8} />
+                                                    </m.button>
+                                                </div>
+                                            </div>
+                                        </m.div>
+                                    </div>
+                                </div>
+                            )}
+                        </m.div>
+
+                        {/* Right: Summary & Actions Sidebar */}
+                        {summaryLayoutMode === 'sidebar' && (
+                            <m.div
+                                initial={false}
+                                animate={{ width: isSidebarExpanded ? "360px" : "90px" }}
+                                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                className="flex flex-col bg-transparent min-h-0 relative z-[3000] shrink-0"
+                            >
+                                <div className="p-1 transition-colors relative flex-1 flex flex-col min-h-0">
+
+                                    <AnimatePresence mode="wait">
+                                        {isSidebarExpanded ? (
+                                            <m.div
+                                                key="expanded-sidebar"
+                                                initial={{ opacity: 0, x: 20 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                exit={{ opacity: 0, x: 20 }}
+                                                transition={{ type: "tween", duration: 0.2 }}
+                                                className="h-full flex flex-col relative bg-transparent border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/20 rounded-3xl p-3.5 shadow-2xl shadow-[#8b6f47]/10 dark:shadow-black/50"
+                                            >
+                                                {/* Close Button */}
+                                                <m.button
+                                                    onClick={() => setIsSidebarExpanded(false)}
+                                                    className="absolute -left-5 top-7 w-9 h-9 bg-[#f6f2ea] dark:bg-[#151311] hover:bg-[#8b6f47] hover:text-white dark:hover:bg-[#d4a574] dark:hover:text-slate-900 rounded-full flex items-center justify-center text-[#8b6f47] dark:text-[#d4a574] border-2 border-[#8b6f47]/40 dark:border-[#d4a574]/40 z-[60] shadow-md hover:border-[#8b6f47] dark:hover:border-[#d4a574] transition-all cursor-pointer"
+                                                    title="Thu gọn bảng thanh toán"
+                                                >
+                                                    <ChevronRight size={18} strokeWidth={3.5} />
+                                                </m.button>
+
+                                                <div className="flex flex-col gap-3 relative z-10 flex-1 overflow-y-auto pr-1 pb-1 scroll-smooth custom-scrollbar">
+                                                    {/* Top Partner & Note */}
+                                                    <div className="space-y-2.5">
+                                                        {/* Partner Selection Bubble */}
+                                                        <div
+                                                            onClick={() => {
+                                                                if (selectedPartner) {
+                                                                    setIsHistoryPanelOpen(true);
+                                                                } else {
+                                                                    partnerInputRef.current?.focus();
+                                                                }
+                                                            }}
+                                                            className="bg-transparent p-3 rounded-2xl border border-[#8b6f47]/25 dark:border-[#d4a574]/20 shadow-sm hover:border-[#2d5016]/40 dark:hover:border-emerald-500/40 transition-colors cursor-pointer relative overflow-hidden"
+                                                        >
+                                                            <Sprout className="absolute -right-3 -bottom-3 w-20 h-20 text-[#2d5016]/5 dark:text-emerald-400/5 -rotate-12 pointer-events-none select-none" />
+                                                            <div className="flex-1 min-w-0 relative z-10">
+                                                                <div className="flex items-center justify-between gap-2 mb-1">
+                                                                    <div className="flex items-center gap-1.5">
+                                                                        <span className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-[0.15em]">
+                                                                            NHÀ CUNG CẤP
                                                                         </span>
-                                                                        <span className={cn(
-                                                                            "text-[9px] font-black uppercase tracking-wider",
-                                                                            val ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400 dark:text-white/30"
-                                                                        )}>
-                                                                            {val ? "ĐANG HIỆN" : "ĐANG ẨN"}
-                                                                        </span>
+                                                                        {selectedPartner && (
+                                                                            <span className="bg-[#2d5016]/10 dark:bg-emerald-500/15 text-[#2d5016] dark:text-emerald-300 border border-[#2d5016]/20 dark:border-emerald-500/30 text-[10px] font-black px-2 py-0.5 rounded-full">
+                                                                                #{selectedPartner.id}
+                                                                            </span>
+                                                                        )}
                                                                     </div>
                                                                 </div>
-                                                                
-                                                                {/* Custom Toggle switch */}
-                                                                <div className={cn(
-                                                                    "w-11 h-6 rounded-full relative p-0.5 transition-colors duration-300",
-                                                                    val ? "bg-emerald-500" : "bg-slate-300 dark:bg-white/20"
-                                                                )}>
-                                                                    <m.div
-                                                                        layout
-                                                                        animate={{ x: val ? 20 : 0 }}
-                                                                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                                                                        className="w-5 h-5 rounded-full bg-white shadow-md"
+                                                                <div className="font-black text-[#2d5016] dark:text-[#e8dfd5] text-lg uppercase leading-normal">
+                                                                    <MarqueeText
+                                                                        text={selectedPartner ? selectedPartner.name : "NHÀ CUNG CẤP LẺ"}
+                                                                        className="font-black text-[#2d5016] dark:text-[#e8dfd5] text-lg uppercase leading-normal"
                                                                     />
                                                                 </div>
-                                                            </m.button>
-                                                        );
-                                                    })}
+                                                                {selectedPartner && (
+                                                                    <div className="flex flex-col gap-1.5 mt-2">
+                                                                        {selectedPartner.phone && (
+                                                                            <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 bg-black/[0.03] dark:bg-white/5 border border-[#8b6f47]/15 dark:border-white/10 px-2.5 py-1 rounded-xl w-full max-w-full overflow-hidden">
+                                                                                <Phone size={11} strokeWidth={3} className="shrink-0 text-[#8b6f47] dark:text-[#d4a574]" />
+                                                                                <div className="min-w-0 flex-1 overflow-hidden">
+                                                                                    <MarqueeText text={selectedPartner.phone} className="text-xs font-bold text-slate-700 dark:text-slate-300" />
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+                                                                        {selectedPartner.address && (
+                                                                            <div className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 bg-black/[0.03] dark:bg-white/5 border border-[#8b6f47]/15 dark:border-white/10 px-2.5 py-1 rounded-xl w-full max-w-full overflow-hidden">
+                                                                                <MapPin size={11} strokeWidth={3} className="shrink-0 text-emerald-600 dark:text-emerald-400" />
+                                                                                <div className="min-w-0 flex-1 overflow-hidden">
+                                                                                    <MarqueeText text={selectedPartner.address} className="text-xs font-bold text-slate-700 dark:text-slate-300" />
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Note */}
+                                                        <div className="relative bg-transparent rounded-xl border border-[#8b6f47]/20 dark:border-[#d4a574]/20 focus-within:border-[#2d5016] dark:focus-within:border-emerald-400/50 focus-within:ring-2 focus-within:ring-[#2d5016]/10 transition-colors shadow-2xs">
+                                                            <div className="absolute left-3 top-3 text-[#8b6f47] dark:text-[#d4a574] z-10">
+                                                                <Leaf size={16} />
+                                                            </div>
+                                                            <textarea
+                                                                placeholder="Ghi chú đơn nhập..."
+                                                                className="w-full pl-9 pr-3 py-2.5 bg-transparent outline-none resize-none h-14 text-xs font-medium text-slate-800 dark:text-slate-200 placeholder:text-slate-400/70 italic"
+                                                                value={note}
+                                                                onChange={(e) => setNote(e.target.value)}
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    {/* HERO: TỔNG CỘNG ĐƠN HÀNG */}
+                                                    <div className="space-y-2.5 pt-0.5">
+                                                        <div
+                                                            onClick={() => selectedPartner ? setIsHistoryPanelOpen(true) : setIsDailyHistoryOpen(true)}
+                                                            className="bg-gradient-to-br from-[#1a3812] via-[#2d5016] to-[#1e3a10] dark:from-[#173812] dark:via-[#244b18] dark:to-[#12280d] text-white p-4.5 rounded-2xl border-2 border-emerald-400/40 relative overflow-hidden flex flex-col justify-between cursor-pointer"
+                                                            title={selectedPartner ? "Xem lịch sử giao dịch nhà cung cấp" : "Xem lịch sử đơn nhập hàng hôm nay"}
+                                                        >
+                                                            <div className="absolute inset-0 bg-gradient-to-tr from-white/10 via-transparent to-transparent pointer-events-none" />
+                                                            <ShoppingBag size={84} strokeWidth={1} className="absolute -right-3 -bottom-4 text-white/[0.08] pointer-events-none -rotate-12 select-none" />
+                                                            <div className="w-full flex items-center justify-start relative z-10 mb-1">
+                                                                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-200/90 flex items-center gap-1.5">
+                                                                    <Sparkles size={12} className="text-emerald-300" />
+                                                                    TỔNG CỘNG ĐƠN HÀNG
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-3xl lg:text-4xl font-black text-center text-white tracking-tight drop-shadow-md whitespace-nowrap overflow-hidden relative z-10">
+                                                                {formatNumber(totalAmount)}
+                                                                <span className="text-base font-bold opacity-80 ml-1">đ</span>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* ROWS: NỢ TRƯỚC / NỢ HIỆN TẠI / GỬI KHO */}
+                                                        <div className="space-y-2">
+                                                            <div className="flex justify-between items-center bg-transparent border border-[#8b6f47]/20 dark:border-[#d4a574]/20 p-2.5 px-3.5 rounded-xl shadow-2xs hover:border-[#8b6f47]/35 transition-colors">
+                                                                <span className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-wider">NỢ TRƯỚC ĐƠN:</span>
+                                                                <span className="font-black text-sm text-rose-600 dark:text-rose-400 tabular-nums">{formatNumber(oldDebt)}</span>
+                                                            </div>
+
+                                                            {selectedPartner && (
+                                                                <div className="flex justify-between items-center bg-transparent border border-[#8b6f47]/20 dark:border-[#d4a574]/20 p-2.5 px-3.5 rounded-xl shadow-2xs hover:border-[#8b6f47]/35 transition-colors">
+                                                                    <span className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-wider">NỢ HIỆN TẠI:</span>
+                                                                    <span className="font-black text-sm text-amber-600 dark:text-amber-400 tabular-nums">{formatNumber(selectedPartner.debt_balance || 0)}</span>
+                                                                </div>
+                                                            )}
+
+                                                            {/* Consignment Order Toggle */}
+                                                            <div className="flex justify-between items-center bg-transparent border border-[#8b6f47]/20 dark:border-[#d4a574]/20 p-2.5 px-3.5 rounded-xl shadow-2xs hover:border-[#8b6f47]/35 transition-colors">
+                                                                <div className="flex items-center gap-2">
+                                                                    <Warehouse size={16} className="text-[#8b6f47] dark:text-[#d4a574]" />
+                                                                    <span className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-wider">ĐƠN HÀNG GỬI KHO:</span>
+                                                                </div>
+                                                                <label
+                                                                    onClick={(e) => {
+                                                                        e.preventDefault();
+                                                                        setIsConsignment(!isConsignment);
+                                                                    }}
+                                                                    className="relative inline-flex items-center cursor-pointer"
+                                                                >
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        checked={isConsignment}
+                                                                        readOnly
+                                                                        className="sr-only"
+                                                                    />
+                                                                    <div className={cn(
+                                                                        "w-10 h-5.5 rounded-full transition-colors duration-200 relative border",
+                                                                        isConsignment
+                                                                            ? "bg-[#2d5016] border-[#2d5016]"
+                                                                            : "bg-slate-200 dark:bg-slate-700 border-slate-300 dark:border-slate-600"
+                                                                    )}>
+                                                                        <div className={cn(
+                                                                            "absolute top-[2px] left-[2px] w-4 h-4 bg-white rounded-full transition-transform duration-200 shadow-md",
+                                                                            isConsignment ? "translate-x-[18px]" : "translate-x-0"
+                                                                        )} />
+                                                                    </div>
+                                                                </label>
+                                                            </div>
+
+                                                            {/* PAYMENT SECTION */}
+                                                            <div className="flex flex-col gap-2.5 pt-1">
+                                                                <div className="flex bg-black/[0.03] dark:bg-white/[0.04] p-1.5 rounded-xl border border-[#8b6f47]/25 dark:border-[#d4a574]/20 gap-1.5 shadow-inner">
+                                                                    <button
+                                                                        onClick={() => {
+                                                                            setPaymentMethod('Cash');
+                                                                            setAmountPaid(totalAmount);
+                                                                        }}
+                                                                        className={cn(
+                                                                            "flex-1 py-1.5 rounded-lg text-[10px] font-black cursor-pointer transition-colors",
+                                                                            paymentMethod === 'Cash'
+                                                                                ? "bg-gradient-to-r from-[#2d5016] to-[#4a7c59] text-white shadow-md shadow-[#2d5016]/25 border border-emerald-400/30"
+                                                                                : "text-[#8b6f47] dark:text-[#d4a574]/75 hover:bg-black/5 dark:hover:bg-white/5"
+                                                                        )}
+                                                                    >
+                                                                        TIỀN MẶT
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => { setPaymentMethod('Debt'); setAmountPaid(0); }}
+                                                                        className={cn(
+                                                                            "flex-1 py-1.5 rounded-lg text-[10px] font-black cursor-pointer transition-colors",
+                                                                            paymentMethod === 'Debt'
+                                                                                ? "bg-gradient-to-r from-[#8b6f47] to-[#b38f5d] dark:from-[#b38f5d] dark:to-[#d4a574] text-white shadow-md shadow-[#8b6f47]/25 border border-amber-300/30"
+                                                                                : "text-[#8b6f47] dark:text-[#d4a574]/75 hover:bg-black/5 dark:hover:bg-white/5"
+                                                                        )}
+                                                                    >
+                                                                        CÔNG NỢ
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => { setPaymentMethod('Transfer'); }}
+                                                                        className={cn(
+                                                                            "flex-1 py-1.5 rounded-lg text-[10px] font-black cursor-pointer transition-colors",
+                                                                            paymentMethod === 'Transfer'
+                                                                                ? "bg-gradient-to-r from-blue-700 to-indigo-600 text-white shadow-md shadow-blue-600/25 border border-blue-400/30"
+                                                                                : "text-[#8b6f47] dark:text-[#d4a574]/75 hover:bg-black/5 dark:hover:bg-white/5"
+                                                                        )}
+                                                                    >
+                                                                        CHUYỂN KHOẢN
+                                                                    </button>
+                                                                </div>
+                                                                {paymentMethod === 'Transfer' && (
+                                                                    <div className="relative overflow-hidden flex items-center justify-between p-2.5 pl-3.5 bg-transparent border-2 border-blue-400/30 dark:border-blue-500/30 rounded-xl shadow-2xs">
+                                                                        <div className="text-[9px] font-black text-blue-600 dark:text-blue-400 uppercase whitespace-nowrap">
+                                                                            TK Chuyển:
+                                                                        </div>
+                                                                        <CustomSelect
+                                                                            className="w-full min-w-0 border-none shadow-none text-right justify-end font-bold text-xs bg-transparent dark:text-white outline-none"
+                                                                            value={selectedBankAccountId}
+                                                                            onChange={(e) => setSelectedBankAccountId(e.target.value)}
+                                                                            options={bankAccounts.map(acc => ({
+                                                                                value: acc.id,
+                                                                                label: `${acc.bank_name} - ${acc.account_number}`
+                                                                            }))}
+                                                                        />
+                                                                    </div>
+                                                                )}
+                                                                <div className="relative bg-transparent border-2 border-[#8b6f47]/25 dark:border-[#d4a574]/25 focus-within:border-[#2d5016] dark:focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-[#2d5016]/15 rounded-xl shadow-2xs">
+                                                                    <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase z-10">Thanh toán:</div>
+                                                                    <input
+                                                                        type="text"
+                                                                        readOnly={paymentMethod === 'Cash'}
+                                                                        className={cn(
+                                                                            "w-full p-2.5 pl-28 pr-4 text-right rounded-xl font-black text-xl outline-none bg-transparent tabular-nums",
+                                                                            paymentMethod === 'Cash'
+                                                                                ? "text-[#2d5016]/50 dark:text-emerald-400/50 cursor-not-allowed"
+                                                                                : "text-[#2d5016] dark:text-emerald-400"
+                                                                        )}
+                                                                        value={formatNumber(amountPaid)}
+                                                                        autoComplete="off"
+                                                                        onChange={(e) => setAmountPaid(parseFloat(e.target.value.replace(/,/g, '')) || 0)}
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Bottom Summary: NỢ NCC SAU ĐƠN & Action Buttons */}
+                                                <div className="pt-2 space-y-2 border-t border-[#8b6f47]/20 dark:border-[#d4a574]/20 shrink-0">
+                                                    {/* Remaining Balance */}
+                                                    <div className={cn(
+                                                        "py-3.5 px-4.5 rounded-2xl flex items-center justify-between shadow-xl relative overflow-hidden group/debt-card transition-all",
+                                                        remainingDebt > 0
+                                                            ? "bg-gradient-to-br from-rose-600 via-rose-700 to-rose-800 dark:from-rose-800 dark:via-rose-900 dark:to-[#4c0519] text-white border-2 border-rose-400/50 shadow-rose-600/30 dark:shadow-rose-950/60"
+                                                            : "bg-gradient-to-br from-[#1a3812] via-[#2d5016] to-[#1e3a10] dark:from-[#173812] dark:via-[#244b18] dark:to-[#12280d] text-white border-2 border-emerald-400/40 shadow-[#2d5016]/25"
+                                                    )}>
+                                                        <div className="absolute inset-0 bg-gradient-to-tr from-white/10 via-transparent to-transparent pointer-events-none" />
+                                                        <div className="min-w-0 flex flex-col justify-center relative z-10">
+                                                            <span className={cn(
+                                                                "text-[10px] font-black uppercase tracking-[0.2em] block mb-0.5 leading-tight",
+                                                                remainingDebt > 0 ? "text-rose-200/90" : "text-emerald-200/90"
+                                                            )}>
+                                                                NỢ NCC SAU ĐƠN:
+                                                            </span>
+                                                            <span className="text-3xl font-black tracking-tight block leading-tight tabular-nums text-white drop-shadow-md">
+                                                                {formatNumber(Math.abs(remainingDebt))}
+                                                                <span className="text-base font-bold opacity-80 ml-1">đ</span>
+                                                            </span>
+                                                        </div>
+                                                        <Coins className="text-white/20 shrink-0 ml-2 select-none relative z-10" size={36} />
+                                                    </div>
+
+                                                    {/* Actions */}
+                                                    <div className="flex flex-col gap-2">
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                disabled={cart.length === 0}
+                                                                onClick={handleHold}
+                                                                style={getButtonComputedStyle(cartColorConfig, 'hold')}
+                                                                className="flex-1 bg-transparent text-[#8b6f47] dark:text-[#d4a574] border-2 border-[#8b6f47]/35 dark:border-[#d4a574]/35 hover:bg-[#8b6f47] hover:text-white rounded-xl font-black py-2.5 text-sm uppercase tracking-widest flex items-center justify-center gap-1.5 transition-colors shadow-xs disabled:opacity-40 cursor-pointer"
+                                                            >
+                                                                <DynamicIcon id="purchase.hold_btn" defaultIcon={Pause} label="Nút Tạm Lưu Đơn Nhập" size={18} strokeWidth={2.5} />
+                                                                <span>TẠM</span>
+                                                            </button>
+                                                            <button
+                                                                disabled={cart.length === 0 || loading}
+                                                                onClick={() => handleSave(false)}
+                                                                style={getButtonComputedStyle(cartColorConfig, 'save')}
+                                                                className="flex-1 bg-transparent text-[#2d5016] dark:text-emerald-400 border-2 border-[#2d5016]/40 dark:border-emerald-500/40 hover:bg-[#2d5016] hover:text-white dark:hover:bg-emerald-600 rounded-xl font-black py-2.5 text-sm uppercase tracking-widest flex items-center justify-center gap-1.5 transition-colors shadow-xs disabled:opacity-40 cursor-pointer"
+                                                            >
+                                                                <DynamicIcon id="purchase.save_btn" defaultIcon={Save} label="Nút Lưu Đơn Nhập" size={18} strokeWidth={2.5} />
+                                                                <span>LƯU</span>
+                                                            </button>
+                                                        </div>
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                disabled={cart.length === 0}
+                                                                onClick={() => setIsPOExportModalOpen(true)}
+                                                                className="flex-1 bg-gradient-to-r from-amber-600 to-amber-700 hover:brightness-110 text-white rounded-2xl flex items-center justify-center py-3.5 h-14 text-base font-black uppercase tracking-wider gap-2 shadow-lg shadow-amber-600/20 border-2 border-amber-400/40 transition-all disabled:opacity-40 cursor-pointer"
+                                                                title="Xuất phiếu đặt hàng gửi NCC qua Zalo/PDF (không lưu đơn)"
+                                                            >
+                                                                <DynamicIcon id="purchase.export_btn" defaultIcon={FileText} label="Nút Đặt Hàng NCC" size={20} strokeWidth={2.5} />
+                                                                <span>ĐẶT HÀNG</span>
+                                                            </button>
+                                                            <button
+                                                                disabled={cart.length === 0 || loading}
+                                                                onClick={() => handleSave(true)}
+                                                                style={getButtonComputedStyle(cartColorConfig, 'save_print')}
+                                                                className="flex-1 bg-gradient-to-r from-[#2d5016] via-emerald-600 to-[#1e3a10] hover:brightness-110 text-white rounded-2xl flex items-center justify-center py-3.5 h-14 text-xl font-black uppercase tracking-widest gap-2 shadow-xl shadow-[#2d5016]/25 border-2 border-emerald-400/40 transition-all disabled:opacity-40 cursor-pointer"
+                                                            >
+                                                                {loading ? (
+                                                                    <div className="w-6 h-6 border-3 border-white/30 border-t-white rounded-full animate-spin" />
+                                                                ) : (
+                                                                    <>
+                                                                        <DynamicIcon id="purchase.print_btn" defaultIcon={Printer} label="Nút In Hóa Đơn Nhập" size={22} strokeWidth={2.5} />
+                                                                        <span>IN</span>
+                                                                    </>
+                                                                )}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </m.div>
+                                        ) : (
+                                            <m.div
+                                                key="mini-sidebar"
+                                                initial={{ opacity: 0, x: -20 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                exit={{ opacity: 0, x: -20 }}
+                                                transition={{ type: "tween", duration: 0.2 }}
+                                                className="flex flex-col items-center py-6 gap-5 h-full relative z-10 no-print bg-transparent"
+                                            >
+                                                {/* Supplier Status Mini */}
+                                                <div
+                                                    onClick={() => {
+                                                        if (selectedPartner) {
+                                                            setEditingPartner(selectedPartner);
+                                                            setIsPartnerEditModalOpen(true);
+                                                        } else {
+                                                            partnerInputRef.current?.focus();
+                                                        }
+                                                    }}
+                                                    className={cn(
+                                                        "w-14 h-14 rounded-2xl flex items-center justify-center border-2 transition-colors relative cursor-pointer shadow-md shadow-[#8b6f47]/5",
+                                                        selectedPartner
+                                                            ? "bg-transparent text-[#2d5016] dark:text-emerald-400 border-[#8b6f47]/35 dark:border-[#d4a574]/35 hover:border-[#2d5016] dark:hover:border-emerald-400 hover:bg-[#8b6f47]/10"
+                                                            : "bg-transparent text-[#8b6f47]/70 dark:text-[#d4a574]/70 border-[#8b6f47]/25 dark:border-[#d4a574]/25 hover:bg-black/5 dark:hover:bg-white/10"
+                                                    )}
+                                                    title={selectedPartner ? `NCC: ${selectedPartner.name}` : "Chưa chọn NCC"}
+                                                >
+                                                    <Sprout size={24} />
+                                                    {selectedPartner && (
+                                                        <div className="absolute -top-1.5 -right-2 bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white text-[9px] font-black tracking-wider px-2 py-0.5 rounded-full border border-white/40 shadow-xs z-20">
+                                                            #{selectedPartner.id}
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Toggle Button */}
+                                                <div className="flex-1 flex items-center justify-center w-full min-h-[60px] relative">
+                                                    <button
+                                                        onClick={() => setIsSidebarExpanded(true)}
+                                                        className="w-14 h-14 bg-transparent text-[#8b6f47] dark:text-[#d4a574] hover:text-[#2d5016] dark:hover:text-emerald-400 border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 hover:border-[#2d5016] dark:hover:border-emerald-400 rounded-2xl flex items-center justify-center transition-colors shadow-md shadow-[#8b6f47]/5 cursor-pointer hover:bg-black/5 dark:hover:bg-white/10"
+                                                        title="Mở rộng bảng thanh toán"
+                                                    >
+                                                        <ChevronLeft size={28} strokeWidth={3.5} />
+                                                    </button>
+                                                </div>
+
+                                                {/* Actions Mini */}
+                                                <div className="flex flex-col gap-3 pb-4">
+                                                    <button
+                                                        onClick={handleHold}
+                                                        disabled={cart.length === 0}
+                                                        className="w-14 h-14 bg-transparent text-[#8b6f47] dark:text-[#d4a574] rounded-2xl flex items-center justify-center border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 hover:border-[#2d5016] dark:hover:border-emerald-400 hover:text-[#2d5016] transition-colors shadow-md shadow-[#8b6f47]/5 disabled:opacity-40 cursor-pointer hover:bg-black/5 dark:hover:bg-white/10"
+                                                        title="Tạm đơn [F4]"
+                                                    >
+                                                        <Pause size={22} strokeWidth={2.5} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleSave(false)}
+                                                        disabled={cart.length === 0 || loading}
+                                                        className="w-14 h-14 bg-transparent text-[#2d5016] dark:text-emerald-400 rounded-2xl flex items-center justify-center border-2 border-[#8b6f47]/30 dark:border-[#d4a574]/30 hover:border-[#2d5016] dark:hover:border-emerald-400 hover:bg-emerald-500/10 transition-colors shadow-md shadow-[#8b6f47]/5 disabled:opacity-40 cursor-pointer hover:bg-black/5 dark:hover:bg-white/10"
+                                                        title="Lưu đơn [Ctrl+S]"
+                                                    >
+                                                        {loading ? <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" /> : <Save size={22} strokeWidth={2.5} />}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setIsPOExportModalOpen(true)}
+                                                        disabled={cart.length === 0}
+                                                        className="w-14 h-14 bg-gradient-to-tr from-amber-600 to-amber-700 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-amber-600/25 hover:brightness-110 border-2 border-amber-400/50 transition-colors disabled:opacity-40 cursor-pointer"
+                                                        title="Xuất phiếu đặt hàng gửi NCC qua Zalo/PDF (không lưu đơn)"
+                                                    >
+                                                        <FileText size={22} strokeWidth={2.5} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleSave(true)}
+                                                        disabled={cart.length === 0 || loading}
+                                                        className="w-14 h-14 bg-gradient-to-tr from-[#2d5016] to-emerald-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-[#2d5016]/25 hover:brightness-110 border-2 border-emerald-500/50 dark:border-emerald-400/50 transition-colors disabled:opacity-40 cursor-pointer"
+                                                        title="Lưu và In [F9]"
+                                                    >
+                                                        {loading ? <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <Printer size={24} strokeWidth={2.5} />}
+                                                    </button>
+                                                </div>
+                                            </m.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+                            </m.div>
+                        )}
+                    </div>
+
+
+                    {/* Held Purchases Sidebar */}
+                    <AnimatePresence>
+                        {isHeldSidebarOpen && (
+                            <Portal>
+                                <div className="fixed inset-0 z-[3000] flex justify-end font-sans">
+                                    <m.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                                        onClick={() => setIsHeldSidebarOpen(false)}
+                                    />
+                                    <m.div
+                                        initial={{ x: '100%', opacity: 0.5 }}
+                                        animate={{ x: 0, opacity: 1 }}
+                                        exit={{ x: '100%', opacity: 0.5 }}
+                                        transition={{ type: "spring", damping: 30, stiffness: 300, mass: 0.8 }}
+                                        className="relative w-[360px] md:w-[440px] bg-[#f8f4e8] dark:bg-[#1a1714] border-l border-[#8b6f47]/30 dark:border-white/10 shadow-2xl h-full flex flex-col p-6 z-10"
+                                    >
+                                        <div className="flex justify-between items-center mb-6 pb-4 border-b border-[#8b6f47]/20">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2.5 bg-[#8b6f47]/15 text-[#8b6f47] dark:text-[#d4a574] rounded-2xl border border-[#8b6f47]/30">
+                                                    <Pause size={22} strokeWidth={2.5} />
+                                                </div>
+                                                <div>
+                                                    <h2 className="text-xl font-black text-foreground uppercase tracking-tight">
+                                                        Đơn nhập tạm
+                                                    </h2>
+                                                    <p className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] uppercase tracking-[0.2em] mt-0.5">
+                                                        Đang chờ ({heldPurchases.length})
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => setIsHeldSidebarOpen(false)}
+                                                className="w-9 h-9 flex items-center justify-center rounded-full bg-black/5 dark:bg-white/5 hover:bg-rose-500 hover:text-white text-muted transition-colors"
+                                            >
+                                                <X size={18} strokeWidth={2.5} />
+                                            </button>
+                                        </div>
+
+                                        <div className="flex-1 overflow-auto space-y-4 pr-1 custom-scrollbar">
+                                            {heldPurchases.length === 0 ? (
+                                                <div className="text-center py-32 text-muted/40">
+                                                    <div className="relative inline-block mb-4">
+                                                        <Pause size={64} className="opacity-20 mx-auto" />
+                                                    </div>
+                                                    <p className="font-black uppercase text-xs tracking-widest">Trống trải...</p>
+                                                </div>
+                                            ) : (
+                                                <AnimatePresence mode="popLayout">
+                                                    {heldPurchases.map((held, idx) => (
+                                                        <m.div
+                                                            key={held.id}
+                                                            layout
+                                                            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                            exit={{ opacity: 0, scale: 0.9, x: 20 }}
+                                                            transition={{
+                                                                delay: idx * 0.05,
+                                                                type: "spring",
+                                                                stiffness: 400,
+                                                                damping: 30
+                                                            }}
+                                                            className="bg-white/90 dark:bg-[#25201b] border border-[#8b6f47]/25 dark:border-white/10 rounded-3xl p-4 hover:border-[#8b6f47]/50 transition-all group shadow-sm hover:shadow-lg"
+                                                        >
+                                                            <div className="flex justify-between items-start mb-3">
+                                                                <div className="flex-1 min-w-0 pr-2">
+                                                                    <div className="font-black text-foreground uppercase text-sm leading-tight group-hover:text-[#8b6f47] dark:group-hover:text-[#d4a574] transition-colors truncate">
+                                                                        {held.partner ? held.partner.name : "NCC VÃNG LAI"}
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2 mt-1.5">
+                                                                        <div className="text-[10px] font-black text-muted bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded-full uppercase tabular-nums">
+                                                                            🕒 {held.time}
+                                                                        </div>
+                                                                        <div className="text-[10px] font-black text-[#8b6f47] dark:text-[#d4a574] bg-[#8b6f47]/10 px-2 py-0.5 rounded-full uppercase">
+                                                                            {held.cart.length} món
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => handleRemoveHeld(held.id)}
+                                                                    className="text-muted/60 hover:text-rose-500 transition-colors p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl shrink-0"
+                                                                    title="Xóa đơn tạm"
+                                                                >
+                                                                    <Trash2 size={16} />
+                                                                </button>
+                                                            </div>
+                                                            <div className="flex justify-between items-center bg-[#8b6f47]/10 dark:bg-[#8b6f47]/20 p-3 rounded-2xl border border-[#8b6f47]/20">
+                                                                <div>
+                                                                    <div className="text-[9px] font-black text-muted uppercase leading-none mb-1">Tổng cộng</div>
+                                                                    <div className="text-[#8b6f47] dark:text-[#d4a574] font-black text-lg tracking-tight">
+                                                                        {formatNumber(held.total)} đ
+                                                                    </div>
+                                                                </div>
+                                                                <m.button
+                                                                    whileHover={{ scale: 1.04 }}
+                                                                    whileTap={{ scale: 0.96 }}
+                                                                    onClick={() => handleRestore(held)}
+                                                                    className="bg-[#8b6f47] hover:bg-[#725938] text-white px-4 py-2 rounded-xl font-black text-[11px] uppercase flex items-center gap-1.5 shadow-md transition-all"
+                                                                >
+                                                                    <RotateCcw size={13} strokeWidth={3} />
+                                                                    THU HỒI
+                                                                </m.button>
+                                                            </div>
+                                                        </m.div>
+                                                    ))}
+                                                </AnimatePresence>
+                                            )}
+                                        </div>
+
+                                        <div className="mt-6 pt-4 border-t border-[#8b6f47]/20">
+                                            <button
+                                                onClick={() => setIsHeldSidebarOpen(false)}
+                                                className="w-full py-3.5 rounded-2xl bg-white/70 dark:bg-slate-900/70 hover:bg-white dark:hover:bg-slate-800 border-0 text-foreground font-black uppercase text-xs transition-all tracking-widest shadow-sm"
+                                            >
+                                                Đóng sidebar
+                                            </button>
+                                        </div>
+                                    </m.div>
+                                </div>
+                            </Portal>
+                        )}
+                    </AnimatePresence>
+
+                    {/* Modals & Components */}
+                    {/* Quick Add Modals */}
+                    <PartnerEditModal
+                        isOpen={showQuickAddPartner}
+                        partner={{ name: quickAddName, is_customer: false, is_supplier: true }}
+                        onClose={() => setShowQuickAddPartner(false)}
+                        onSave={(newPartner) => {
+                            fetchPartners();
+                            setShowQuickAddPartner(false);
+                            if (newPartner) {
+                                setSelectedPartner(newPartner);
+                                setPartnerSearch('');
+                                setTimeout(() => searchInputRef.current?.focus(), 100);
+                            }
+                        }}
+                    />
+
+                    <ProductEditModal
+                        isOpen={showQuickAddProduct}
+                        product={{ name: quickAddName }}
+                        onClose={() => setShowQuickAddProduct(false)}
+                        existingProducts={products}
+                        onSave={() => {
+                            fetchProducts();
+                            setShowQuickAddProduct(false);
+                        }}
+                    />
+
+                    <AnimatePresence>
+                        {isScanModalOpen && (
+                            <Portal>
+                                <div className="fixed inset-0 z-[500000] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
+                                    <m.div
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        className="fixed inset-0"
+                                        onClick={() => {
+                                            setIsScanModalOpen(false);
+                                            setScannedImages([]);
+                                        }}
+                                    />
+                                    <m.div
+                                        initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                                        exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                        transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                                        className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white w-full max-w-lg rounded-3xl border border-slate-200 dark:border-slate-700/80 shadow-2xl dark:shadow-[0_20px_60px_rgba(0,0,0,0.9)] flex flex-col relative z-10 overflow-hidden max-h-[90vh]"
+                                    >
+                                        {/* Modal Header */}
+                                        <m.div
+                                            initial={{ opacity: 0, y: -10 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className="p-4 px-5 flex items-center justify-between border-b border-slate-200 dark:border-slate-700/80 bg-slate-50 dark:bg-slate-800/80 shrink-0"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-2xl flex items-center justify-center border border-emerald-500/20 shadow-sm">
+                                                    <Bot size={20} />
+                                                </div>
+                                                <div className="flex flex-col min-w-0">
+                                                    <h3 className="text-base font-black text-foreground uppercase tracking-tight leading-relaxed py-0.5 truncate">
+                                                        Quét Hóa Đơn Bằng AI
+                                                    </h3>
+                                                    <p className="text-muted-foreground text-[10px] font-bold uppercase tracking-widest mt-0.5">Tự động nhận dạng & thêm vào giỏ bằng Gemini</p>
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    setIsScanModalOpen(false);
+                                                    setScannedImages([]);
+                                                }}
+                                                className="w-8 h-8 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 hover:bg-rose-500 hover:text-white text-muted-foreground transition-colors"
+                                            >
+                                                <X size={16} strokeWidth={2.5} />
+                                            </button>
+                                        </m.div>
+
+                                        {/* Modal Content */}
+                                        <div className="p-6 overflow-y-auto flex-1 space-y-6 custom-scrollbar">
+                                            {/* API Key Configuration if missing */}
+                                            {!settings.gemini_api_key && (
+                                                <div className="p-4 bg-amber-500/10 border border-amber-500/20 dark:border-amber-500/30 rounded-2xl space-y-2">
+                                                    <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-black text-xs uppercase">
+                                                        <AlertTriangle size={16} /> Cần cấu hình API Key
+                                                    </div>
+                                                    <p className="text-xs text-slate-600 dark:text-slate-400">
+                                                        Vui lòng nhập <strong>Gemini API Key</strong> của bạn để tiếp tục.
+                                                    </p>
+                                                    <input
+                                                        type="password"
+                                                        value={scanApiKey}
+                                                        onChange={(e) => setScanApiKey(e.target.value)}
+                                                        placeholder="Nhập Gemini API Key..."
+                                                        className="w-full p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-mono outline-none focus:border-emerald-500 text-slate-900 dark:text-white focus:ring-1 focus:ring-emerald-500/35 transition-all"
+                                                    />
+                                                </div>
+                                            )}
+
+                                            <div className="space-y-4 flex flex-col">
+                                                <div
+                                                    onDragOver={(e) => e.preventDefault()}
+                                                    onDrop={(e) => {
+                                                        e.preventDefault();
+                                                        if (e.dataTransfer?.files?.length) {
+                                                            const imgFiles = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+                                                            if (imgFiles.length > 0) {
+                                                                const promises = imgFiles.map(file => new Promise(resolve => {
+                                                                    const reader = new FileReader();
+                                                                    reader.onloadend = () => resolve(reader.result);
+                                                                    reader.readAsDataURL(file);
+                                                                }));
+                                                                Promise.all(promises).then(results => {
+                                                                    setScannedImages(prev => [...prev, ...results]);
+                                                                    setToast({ message: `Đã thêm ${imgFiles.length} ảnh thả vào!`, type: 'success' });
+                                                                });
+                                                            }
+                                                        }
+                                                    }}
+                                                    className="flex-1 flex flex-col justify-center items-center border-2 border-dashed border-slate-200 dark:border-slate-700/80 hover:border-emerald-500/50 rounded-[2rem] p-6 bg-slate-50/50 dark:bg-slate-800/20 min-h-[260px] relative overflow-hidden group transition-all duration-300"
+                                                >
+                                                    {scannedImages.length > 0 ? (
+                                                        <div className="w-full h-full flex flex-col space-y-4">
+                                                            <div className="grid grid-cols-3 gap-3 max-h-[240px] overflow-y-auto p-1 custom-scrollbar">
+                                                                {scannedImages.map((img, index) => (
+                                                                    <div key={index} className="relative aspect-square rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700/80 group/thumb shadow-sm">
+                                                                        <img src={img} alt={`Preview ${index + 1}`} className="w-full h-full object-cover" />
+                                                                        <button
+                                                                            type="button"
+                                                                            onClick={() => setScannedImages(prev => prev.filter((_, i) => i !== index))}
+                                                                            className="absolute top-1.5 right-1.5 p-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-full transition-all shadow opacity-0 group-hover/thumb:opacity-100 duration-200"
+                                                                        >
+                                                                            <X size={10} />
+                                                                        </button>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                            <div className="flex justify-center gap-3">
+                                                                <label
+                                                                    htmlFor="scan-image-upload"
+                                                                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl cursor-pointer transition-all uppercase tracking-wider flex items-center gap-1.5 shadow-sm active:scale-95"
+                                                                >
+                                                                    <Plus size={14} strokeWidth={3} /> Thêm ảnh
+                                                                </label>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setScannedImages([])}
+                                                                    className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-xl transition-all uppercase tracking-wider shadow-sm active:scale-95"
+                                                                >
+                                                                    Xóa tất cả
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <label
+                                                            htmlFor="scan-image-upload"
+                                                            className="flex flex-col items-center justify-center cursor-pointer space-y-4 w-full h-full py-8"
+                                                        >
+                                                            <div className="p-5 bg-emerald-500/10 text-emerald-600 rounded-full group-hover:scale-110 group-hover:bg-emerald-500/20 transition-all duration-300">
+                                                                <Camera size={36} />
+                                                            </div>
+                                                            <div className="text-center space-y-1.5">
+                                                                <p className="text-sm font-black text-slate-700 dark:text-slate-300">Chụp, tải hoặc dán ảnh (Ctrl + V)</p>
+                                                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Hỗ trợ Paste Clipboard, Kéo thả & Chọn tệp ảnh</p>
+                                                            </div>
+                                                        </label>
+                                                    )}
+                                                    <input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        multiple
+                                                        capture="environment"
+                                                        onChange={handleImageSelect}
+                                                        className="hidden"
+                                                        id="scan-image-upload"
+                                                    />
+                                                </div>
+
+                                                {scannedImages.length > 0 && (
+                                                    <m.button
+                                                        whileTap={{ scale: 0.98 }}
+                                                        onClick={handleScanInvoice}
+                                                        disabled={isScanning || (!settings.gemini_api_key && !scanApiKey)}
+                                                        className="w-full p-4 bg-gradient-to-r from-emerald-600 via-emerald-600 to-teal-700 hover:brightness-110 disabled:opacity-50 text-white font-black uppercase text-xs tracking-wider rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-700/20 active:scale-[0.98] transition-all"
+                                                    >
+                                                        {isScanning ? (
+                                                            <>
+                                                                <Loader2 size={16} className="animate-spin text-white" />
+                                                                Đang phân tích hóa đơn bằng AI...
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Sparkles size={16} className="text-white" />
+                                                                Bắt đầu phân tích hóa đơn (AI)
+                                                            </>
+                                                        )}
+                                                    </m.button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </m.div>
+                                </div>
+                            </Portal>
+                        )}
+                    </AnimatePresence>
+
+
+
+                    <PartnerEditModal
+                        isOpen={isPartnerEditModalOpen}
+                        partner={editingPartner}
+                        onClose={() => setIsPartnerEditModalOpen(false)}
+                        onSave={async (updatedPartner) => {
+                            await fetchPartners();
+                            if (updatedPartner) {
+                                setSelectedPartner(updatedPartner);
+                                setPartnerSearch('');
+                                setTimeout(() => searchInputRef.current?.focus(), 100);
+                            }
+                        }}
+                    />
+
+
+                    {/* Print Preview Studio (POS Style) */}
+                    <AnimatePresence>
+                        {showPreview && previewData && (
+                            <Portal>
+                                <div className="fixed inset-0 z-[1000] flex bg-slate-900/60 dark:bg-black/80 backdrop-blur-xl animate-in fade-in duration-300 font-sans overflow-hidden">
+                                    {/* Left Sidebar Settings Panel */}
+                                    <m.div
+                                        initial={{ x: -100, opacity: 0 }}
+                                        animate={{ x: 0, opacity: 1 }}
+                                        exit={{ x: -100, opacity: 0 }}
+                                        transition={{ type: "spring", stiffness: 220, damping: 25 }}
+                                        className="w-80 h-full bg-[#faf8f3] dark:bg-[#0c120c] text-slate-800 dark:text-slate-100 border-r border-[#8b6f47]/20 dark:border-white/10 flex flex-col z-50 relative shadow-2xl"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <div className="p-6 border-b border-[#8b6f47]/15 dark:border-white/10 bg-white/40 dark:bg-white/[0.02]">
+                                            <div className="flex items-center gap-2">
+                                                <Printer className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                                                <h3 className="text-lg font-black uppercase tracking-tight text-slate-900 dark:text-white">
+                                                    Thiết lập in
+                                                </h3>
+                                            </div>
+                                            <p className="text-[10.5px] font-bold text-slate-500 dark:text-white/40 uppercase tracking-widest mt-1">
+                                                Tùy chỉnh nội dung hiển thị
+                                            </p>
+                                        </div>
+
+                                        <div className="flex-1 overflow-y-auto p-5 space-y-5 no-scrollbar">
+                                            <div className="space-y-4">
+                                                <div className="flex bg-black/[0.04] dark:bg-white/5 p-1 rounded-2xl border border-black/5 dark:border-white/10 mb-3 gap-1">
+                                                    <button
+                                                        className="flex-1 py-2.5 px-2 rounded-xl text-[10.5px] font-black uppercase tracking-wider transition-all bg-emerald-600 text-white shadow-md shadow-emerald-600/30 flex items-center justify-center gap-1.5"
+                                                    >
+                                                        <FileText size={14} />
+                                                        <span>Phiếu nhập hàng</span>
+                                                    </button>
+                                                </div>
+
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center justify-between px-1">
+                                                        <label className="text-[10px] font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-[0.15em]">
+                                                            Thông tin tài chính
+                                                        </label>
+                                                        <div className="h-[1px] flex-1 bg-gradient-to-r from-emerald-500/30 to-transparent ml-3" />
+                                                    </div>
+
+                                                    <div className="grid gap-2.5">
+                                                        {[
+                                                            { id: 'showOldDebt', label: 'Hiển thị nợ cũ', icon: Coins, color: 'text-amber-500 dark:text-amber-400', bgActive: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30' },
+                                                            { id: 'showPayment', label: 'Hiển thị thanh toán', icon: Wallet, color: 'text-emerald-600 dark:text-emerald-400', bgActive: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30' },
+                                                            { id: 'showRemaining', label: 'Hiển thị còn lại', icon: FileText, color: 'text-blue-600 dark:text-blue-400', bgActive: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30' },
+                                                        ].map(opt => {
+                                                            const IconComp = opt.icon;
+                                                            const val = printOptions[opt.id];
+                                                            return (
+                                                                <m.button
+                                                                    key={opt.id}
+                                                                    whileHover={{ x: 4 }}
+                                                                    whileTap={{ scale: 0.97 }}
+                                                                    onClick={() => setPrintOptions(prev => ({ ...prev, [opt.id]: !prev[opt.id] }))}
+                                                                    className={cn(
+                                                                        "w-full p-3.5 rounded-2xl flex items-center justify-between transition-all duration-200 border group relative cursor-pointer select-none",
+                                                                        val
+                                                                            ? "bg-white dark:bg-white/[0.08] border-emerald-500/30 dark:border-emerald-500/40 shadow-sm"
+                                                                            : "bg-black/[0.02] dark:bg-white/[0.02] border-black/5 dark:border-white/5 opacity-70 hover:opacity-100 hover:bg-black/[0.04] dark:hover:bg-white/[0.05]"
+                                                                    )}
+                                                                >
+                                                                    <div className="flex items-center gap-3 relative z-10">
+                                                                        <div className={cn(
+                                                                            "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-300",
+                                                                            val ? `${opt.bgActive} shadow-xs` : "bg-black/[0.05] dark:bg-white/5 text-slate-400 dark:text-white/30"
+                                                                        )}>
+                                                                            <IconComp size={18} strokeWidth={2.4} className={cn("transition-transform", val ? "scale-105" : "scale-95")} />
+                                                                        </div>
+                                                                        <div className="flex flex-col items-start">
+                                                                            <span className={cn(
+                                                                                "text-[12px] font-bold tracking-tight transition-colors",
+                                                                                val ? "text-slate-900 dark:text-white" : "text-slate-600 dark:text-white/50"
+                                                                            )}>
+                                                                                {opt.label}
+                                                                            </span>
+                                                                            <span className={cn(
+                                                                                "text-[9px] font-black uppercase tracking-wider",
+                                                                                val ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400 dark:text-white/30"
+                                                                            )}>
+                                                                                {val ? "ĐANG HIỆN" : "ĐANG ẨN"}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    {/* Custom Toggle switch */}
+                                                                    <div className={cn(
+                                                                        "w-11 h-6 rounded-full relative p-0.5 transition-colors duration-300",
+                                                                        val ? "bg-emerald-500" : "bg-slate-300 dark:bg-white/20"
+                                                                    )}>
+                                                                        <m.div
+                                                                            layout
+                                                                            animate={{ x: val ? 20 : 0 }}
+                                                                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                                                            className="w-5 h-5 rounded-full bg-white shadow-md"
+                                                                        />
+                                                                    </div>
+                                                                </m.button>
+                                                            );
+                                                        })}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
 
-                                    {/* Sidebar Action Buttons */}
-                                    <div className="p-6 border-t border-[#8b6f47]/15 dark:border-white/10 space-y-2.5 bg-white/40 dark:bg-white/[0.02]">
-                                        <m.button
-                                            whileHover={{ scale: 1.02 }}
-                                            whileTap={{ scale: 0.98 }}
-                                            onClick={() => {
-                                                setShowPreview(false);
-                                                handleSave(true);
-                                            }}
-                                            className="group w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-500 text-white rounded-2xl font-black uppercase tracking-wider text-xs shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2.5 cursor-pointer active:scale-95 transition-all"
-                                        >
-                                            <Printer size={16} strokeWidth={2.5} className="group-hover:rotate-12 transition-transform" />
-                                            <span>Lưu & In Ngay</span>
-                                        </m.button>
+                                        {/* Sidebar Action Buttons */}
+                                        <div className="p-6 border-t border-[#8b6f47]/15 dark:border-white/10 space-y-2.5 bg-white/40 dark:bg-white/[0.02]">
+                                            <m.button
+                                                whileHover={{ scale: 1.02 }}
+                                                whileTap={{ scale: 0.98 }}
+                                                onClick={() => {
+                                                    setShowPreview(false);
+                                                    handleSave(true);
+                                                }}
+                                                className="group w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-500 text-white rounded-2xl font-black uppercase tracking-wider text-xs shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2.5 cursor-pointer active:scale-95 transition-all"
+                                            >
+                                                <Printer size={16} strokeWidth={2.5} className="group-hover:rotate-12 transition-transform" />
+                                                <span>Lưu & In Ngay</span>
+                                            </m.button>
 
-                                        <m.button
-                                            whileHover={{ scale: 1.02 }}
-                                            whileTap={{ scale: 0.98 }}
-                                            onClick={() => setShowPreview(false)}
-                                            className="w-full py-3 bg-black/5 dark:bg-white/5 text-slate-600 dark:text-white/60 hover:text-slate-900 dark:hover:text-white hover:bg-black/10 dark:hover:bg-white/10 rounded-2xl font-bold uppercase tracking-wider text-xs border border-black/5 dark:border-white/5 flex items-center justify-center gap-2 transition-all cursor-pointer"
-                                        >
-                                            <X size={16} />
-                                            <span>Đóng nhanh</span>
-                                        </m.button>
-                                    </div>
-                                </m.div>
-
-                                {/* Floating Bottom Zoom Controls */}
-                                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[2100] flex items-center gap-2 p-1.5 bg-[#faf8f3]/90 dark:bg-slate-900/90 rounded-2xl border border-[#8b6f47]/20 dark:border-white/15 backdrop-blur-2xl shadow-2xl select-none">
-                                    <m.button
-                                        whileHover={{ scale: 1.1 }}
-                                        whileTap={{ scale: 0.9 }}
-                                        onClick={() => setZoomScale(prev => Math.max(0.5, prev - 0.1))}
-                                        className="w-9 h-9 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-slate-700 dark:text-white transition-colors cursor-pointer"
-                                        title="Thu nhỏ"
-                                    >
-                                        <Minus size={16} />
-                                    </m.button>
-                                    <div className="px-3 text-xs font-black text-slate-800 dark:text-white min-w-[50px] text-center tabular-nums">
-                                        {Math.round(zoomScale * 100)}%
-                                    </div>
-                                    <m.button
-                                        whileHover={{ scale: 1.1 }}
-                                        whileTap={{ scale: 0.9 }}
-                                        onClick={() => setZoomScale(prev => Math.min(2, prev + 0.1))}
-                                        className="w-9 h-9 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-slate-700 dark:text-white transition-colors cursor-pointer"
-                                        title="Phóng to"
-                                    >
-                                        <Plus size={16} />
-                                    </m.button>
-                                    <div className="w-[1px] h-5 bg-black/10 dark:bg-white/15 mx-1" />
-                                    <m.button
-                                        whileHover={{ scale: 1.1 }}
-                                        whileTap={{ scale: 0.9 }}
-                                        onClick={() => setZoomScale(1)}
-                                        className="w-9 h-9 flex items-center justify-center rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 transition-colors cursor-pointer"
-                                        title="Reset 100%"
-                                    >
-                                        <RotateCcw size={15} />
-                                    </m.button>
-                                </div>
-
-                                {/* Main Document Canvas */}
-                                <div
-                                    className="flex-1 h-full overflow-auto no-scrollbar py-12 px-4 flex flex-col items-center cursor-zoom-out"
-                                    onClick={() => setShowPreview(false)}
-                                >
-                                    <m.div
-                                        initial={{ scale: 0.92, opacity: 0, y: 20 }}
-                                        animate={{ scale: zoomScale, opacity: 1, y: 0 }}
-                                        exit={{ scale: 0.95, opacity: 0, y: 15 }}
-                                        transition={{ type: "spring", stiffness: 220, damping: 25 }}
-                                        onClick={(e) => e.stopPropagation()}
-                                        className="relative keep-white bg-white ring-1 ring-black/10 transform-gpu cursor-default origin-top shadow-2xl rounded-xs"
-                                    >
-                                        <PrintTemplate
-                                            data={previewData}
-                                            settings={settings}
-                                            type="Purchase"
-                                            isPreview={true}
-                                            showOldDebt={printOptions.showOldDebt}
-                                            showPayment={printOptions.showPayment}
-                                            showRemaining={printOptions.showRemaining}
-                                            showCashGiven={printOptions.showCashGiven}
-                                            showChange={printOptions.showChange}
-                                            products={products}
-                                        />
+                                            <m.button
+                                                whileHover={{ scale: 1.02 }}
+                                                whileTap={{ scale: 0.98 }}
+                                                onClick={() => setShowPreview(false)}
+                                                className="w-full py-3 bg-black/5 dark:bg-white/5 text-slate-600 dark:text-white/60 hover:text-slate-900 dark:hover:text-white hover:bg-black/10 dark:hover:bg-white/10 rounded-2xl font-bold uppercase tracking-wider text-xs border border-black/5 dark:border-white/5 flex items-center justify-center gap-2 transition-all cursor-pointer"
+                                            >
+                                                <X size={16} />
+                                                <span>Đóng nhanh</span>
+                                            </m.button>
+                                        </div>
                                     </m.div>
-                                    <p className="mt-8 text-[10.5px] font-bold text-white/50 dark:text-white/30 uppercase tracking-[0.25em] font-sans">
-                                        Cuộn để xem toàn bộ phiếu • LyangPOS Studio
-                                    </p>
+
+                                    {/* Floating Bottom Zoom Controls */}
+                                    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[2100] flex items-center gap-2 p-1.5 bg-[#faf8f3]/90 dark:bg-slate-900/90 rounded-2xl border border-[#8b6f47]/20 dark:border-white/15 backdrop-blur-2xl shadow-2xl select-none">
+                                        <m.button
+                                            whileHover={{ scale: 1.1 }}
+                                            whileTap={{ scale: 0.9 }}
+                                            onClick={() => setZoomScale(prev => Math.max(0.5, prev - 0.1))}
+                                            className="w-9 h-9 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-slate-700 dark:text-white transition-colors cursor-pointer"
+                                            title="Thu nhỏ"
+                                        >
+                                            <Minus size={16} />
+                                        </m.button>
+                                        <div className="px-3 text-xs font-black text-slate-800 dark:text-white min-w-[50px] text-center tabular-nums">
+                                            {Math.round(zoomScale * 100)}%
+                                        </div>
+                                        <m.button
+                                            whileHover={{ scale: 1.1 }}
+                                            whileTap={{ scale: 0.9 }}
+                                            onClick={() => setZoomScale(prev => Math.min(2, prev + 0.1))}
+                                            className="w-9 h-9 flex items-center justify-center rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-slate-700 dark:text-white transition-colors cursor-pointer"
+                                            title="Phóng to"
+                                        >
+                                            <Plus size={16} />
+                                        </m.button>
+                                        <div className="w-[1px] h-5 bg-black/10 dark:bg-white/15 mx-1" />
+                                        <m.button
+                                            whileHover={{ scale: 1.1 }}
+                                            whileTap={{ scale: 0.9 }}
+                                            onClick={() => setZoomScale(1)}
+                                            className="w-9 h-9 flex items-center justify-center rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-600 dark:text-emerald-400 transition-colors cursor-pointer"
+                                            title="Reset 100%"
+                                        >
+                                            <RotateCcw size={15} />
+                                        </m.button>
+                                    </div>
+
+                                    {/* Main Document Canvas */}
+                                    <div
+                                        className="flex-1 h-full overflow-auto no-scrollbar py-12 px-4 flex flex-col items-center cursor-zoom-out"
+                                        onClick={() => setShowPreview(false)}
+                                    >
+                                        <m.div
+                                            initial={{ scale: 0.92, opacity: 0, y: 20 }}
+                                            animate={{ scale: zoomScale, opacity: 1, y: 0 }}
+                                            exit={{ scale: 0.95, opacity: 0, y: 15 }}
+                                            transition={{ type: "spring", stiffness: 220, damping: 25 }}
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="relative keep-white bg-white ring-1 ring-black/10 transform-gpu cursor-default origin-top shadow-2xl rounded-xs"
+                                        >
+                                            <PrintTemplate
+                                                data={previewData}
+                                                settings={settings}
+                                                type="Purchase"
+                                                isPreview={true}
+                                                showOldDebt={printOptions.showOldDebt}
+                                                showPayment={printOptions.showPayment}
+                                                showRemaining={printOptions.showRemaining}
+                                                showCashGiven={printOptions.showCashGiven}
+                                                showChange={printOptions.showChange}
+                                                products={products}
+                                            />
+                                        </m.div>
+                                        <p className="mt-8 text-[10.5px] font-bold text-white/50 dark:text-white/30 uppercase tracking-[0.25em] font-sans">
+                                            Cuộn để xem toàn bộ phiếu • LyangPOS Studio
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
-                        </Portal>
-                    )}
-                </AnimatePresence>
-                <ConsignmentPanel
-                    isOpen={isConsignmentPanelOpen}
-                    onClose={() => setIsConsignmentPanelOpen(false)}
-                    partnerId={selectedPartner?.id}
-                    onImportSuccess={(msg) => {
-                        setToast({ message: msg, type: 'success' });
-                        queryClient.invalidateQueries({ queryKey: ['products'] });
-                        queryClient.invalidateQueries({ queryKey: ['partners'] });
-                        queryClient.invalidateQueries({ queryKey: ['orders'] });
-                        fetchProducts();
-                        fetchPartners();
+                            </Portal>
+                        )}
+                    </AnimatePresence>
+                    <ConsignmentPanel
+                        isOpen={isConsignmentPanelOpen}
+                        onClose={() => setIsConsignmentPanelOpen(false)}
+                        partnerId={selectedPartner?.id}
+                        onImportSuccess={(msg) => {
+                            setToast({ message: msg, type: 'success' });
+                            queryClient.invalidateQueries({ queryKey: ['products'] });
+                            queryClient.invalidateQueries({ queryKey: ['partners'] });
+                            queryClient.invalidateQueries({ queryKey: ['orders'] });
+                            fetchProducts();
+                            fetchPartners();
+                            refreshConsignmentStatus(selectedPartner?.id);
+                        }}
+                    />
+                    <LoadingOverlay isVisible={loading && products.length === 0} message="Đang nạp dữ liệu Nhập hàng..." />
+                </div >
+                {/* Print Area */}
+                {
+                    lastOrder && (
+                        <div className="only-print">
+                            <PrintTemplate
+                                data={lastOrder}
+                                settings={settings}
+                                type="Purchase"
+                                products={products}
+                            />
+                        </div>
+                    )
+                }
+                <OrderEditPopup
+                    isOpen={Boolean(isOrderDetailModalOpen && selectedDetailOrder)}
+                    order={selectedDetailOrder}
+                    partner={partners.find(p => p.id === selectedDetailOrder?.partner_id)}
+                    onClose={() => {
+                        setIsOrderDetailModalOpen(false);
+                        setSelectedDetailOrder(null);
+                    }}
+                    onSave={() => {
+                        setIsOrderDetailModalOpen(false);
+                        setSelectedDetailOrder(null);
+                        queryClient.invalidateQueries(['orders']);
                         refreshConsignmentStatus(selectedPartner?.id);
                     }}
                 />
-                <LoadingOverlay isVisible={loading && products.length === 0} message="Đang nạp dữ liệu Nhập hàng..." />
-            </div >
-            {/* Print Area */}
-            {
-                lastOrder && (
-                    <div className="only-print">
-                        <PrintTemplate
-                            data={lastOrder}
-                            settings={settings}
-                            type="Purchase"
-                            products={products}
+                <AnimatePresence>
+                    {confirm && (
+                        <ConfirmModal
+                            isOpen={!!confirm}
+                            title={confirm.title}
+                            message={confirm.message}
+                            onConfirm={confirm.onConfirm}
+                            onCancel={() => setConfirm(null)}
                         />
-                    </div>
-                )
-            }
-            <OrderEditPopup
-                isOpen={Boolean(isOrderDetailModalOpen && selectedDetailOrder)}
-                order={selectedDetailOrder}
-                partner={partners.find(p => p.id === selectedDetailOrder?.partner_id)}
-                onClose={() => {
-                    setIsOrderDetailModalOpen(false);
-                    setSelectedDetailOrder(null);
-                }}
-                onSave={() => {
-                    setIsOrderDetailModalOpen(false);
-                    setSelectedDetailOrder(null);
-                    queryClient.invalidateQueries(['orders']);
-                    refreshConsignmentStatus(selectedPartner?.id);
-                }}
-            />
-            <AnimatePresence>
-                {confirm && (
-                    <ConfirmModal
-                        isOpen={!!confirm}
-                        title={confirm.title}
-                        message={confirm.message}
-                        onConfirm={confirm.onConfirm}
-                        onCancel={() => setConfirm(null)}
-                    />
-                )}
-            </AnimatePresence>
+                    )}
+                </AnimatePresence>
 
-            {/* Order Note Dedicated Modal */}
-            <OrderNoteModal
-                isOpen={isNoteModalOpen}
-                initialNote={note}
-                title="Ghi chú đơn nhập"
-                subtitle="Nhập thông tin giao nhận, ghi chú NCC, tình trạng hàng..."
-                placeholder="Nhập ghi chú chi tiết cho đơn nhập này..."
-                onClose={() => setIsNoteModalOpen(false)}
-                onSave={(newNote) => setNote(newNote)}
-            />
+                {/* Order Note Dedicated Modal */}
+                <OrderNoteModal
+                    isOpen={isNoteModalOpen}
+                    initialNote={note}
+                    title="Ghi chú đơn nhập"
+                    subtitle="Nhập thông tin giao nhận, ghi chú NCC, tình trạng hàng..."
+                    placeholder="Nhập ghi chú chi tiết cho đơn nhập này..."
+                    onClose={() => setIsNoteModalOpen(false)}
+                    onSave={(newNote) => setNote(newNote)}
+                />
                 {/* Partner Transaction History Panel */}
                 <POSHistoryPanel
                     context="Purchase"
@@ -5911,7 +5911,7 @@ export default function Purchase() {
                                 if (document.fonts && document.fonts.ready) {
                                     await document.fonts.ready;
                                 }
-                            } catch (e) {}
+                            } catch (e) { }
                             window.print();
                         }, 300);
                     }}
@@ -5977,7 +5977,7 @@ export default function Purchase() {
                                 value: JSON.stringify(newCfg)
                             });
                             syncChan.close();
-                        } catch (e) {}
+                        } catch (e) { }
                     }}
                 />
                 {/* Quick Audit Popout */}
@@ -6031,7 +6031,7 @@ export default function Purchase() {
                                 const syncChan = new BroadcastChannel('pos_data_sync');
                                 syncChan.postMessage({ type: 'PRODUCT_UPDATED' });
                                 syncChan.close();
-                            } catch (e) {}
+                            } catch (e) { }
                             window.dispatchEvent(new CustomEvent('pos_data_sync', { detail: { type: 'PRODUCT_UPDATED' } }));
                             setIsEditModalOpen(false);
                             setEditingProduct(null);

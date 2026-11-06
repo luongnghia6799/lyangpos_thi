@@ -234,3 +234,4 @@ export default function Spatial3DBackground({ enabled = true, appTheme = 'agri',
         />
     );
 }
+

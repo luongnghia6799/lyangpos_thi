@@ -75,6 +75,7 @@ import CartColorCustomizerModal, { applyCartThemeToDom } from '../modals/CartCol
 import DynamicIcon from '../widgets/DynamicIcon';
 import { MASCOT_LIST, playPopSound } from '../../lib/mascots';
 import SidebarLogoCustomizerModal, { getDashboardAvatar } from '../modals/SidebarLogoCustomizerModal';
+import Spatial3DBackground from '../three/Spatial3DBackground';
 
 const Portal = ({ children }) => {
     return createPortal(children, document.body);
@@ -932,12 +933,12 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
                     active 
                         ? (hasCustomAccent || isLite || isCustomSidebar
                             ? "font-black shadow-md border border-white/20 dark:border-white/10 ring-2 ring-white/10"
-                            : "bg-gradient-to-br from-[#2d5016] to-[#3f6e1f] dark:from-emerald-700 dark:to-emerald-600 text-white font-black shadow-[0_4px_16px_rgba(45,80,22,0.32)] dark:shadow-[0_4px_16px_rgba(16,185,129,0.28)] border border-white/20 dark:border-emerald-400/30 ring-2 ring-[#2d5016]/20 dark:ring-emerald-400/20")
+                            : "bg-gradient-to-br from-primary to-[var(--primary-hover)] dark:from-emerald-600 dark:to-teal-600 text-white font-black shadow-[0_4px_16px_rgba(var(--primary-rgb,31,77,46),0.32)] dark:shadow-[0_4px_16px_rgba(16,185,129,0.28)] border border-white/20 dark:border-emerald-400/30 ring-2 ring-primary/20 dark:ring-emerald-400/20")
                         : (isFlyout
-                            ? "text-[#8b6f47] hover:text-[#2d5016] dark:text-[#d4a574] dark:hover:text-white hover:bg-[#2d5016]/10 dark:hover:bg-white/10 font-bold"
+                            ? "text-slate-600 hover:text-primary dark:text-slate-300 dark:hover:text-white hover:bg-primary/10 dark:hover:bg-white/10 font-bold"
                             : (isCustomSidebar 
                                 ? (isSidebarLightText ? "text-white/70 hover:text-white hover:bg-white/10" : "text-slate-700 hover:text-black hover:bg-black/10") 
-                                : "text-slate-400 hover:text-[#2d5016] dark:text-slate-400 dark:hover:text-emerald-400 hover:bg-[#2d5016]/5 dark:hover:bg-white/5"))
+                                : "text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-emerald-400 hover:bg-primary/8 dark:hover:bg-white/5"))
                 )}
             >
                 <div className="relative z-10 shrink-0 flex items-center justify-center transition-transform duration-200 group-hover:scale-110 w-6 h-6">
@@ -951,7 +952,7 @@ const NavItem = ({ icon: Icon, label, path, active, isCollapsed, onClick, liteTh
                             "transition-all duration-200", 
                             active 
                                 ? "text-white" 
-                                : "text-slate-400 dark:text-slate-500 group-hover:text-[#2d5016] dark:group-hover:text-emerald-400"
+                                : "text-slate-400 dark:text-slate-500 group-hover:text-primary dark:group-hover:text-emerald-400"
                         )} 
                     />
                 </div>
@@ -1141,10 +1142,10 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
                     isGroupActive
                         ? (hasCustomAccent || isLite || isCustomSidebar
                             ? "font-black shadow-md border border-white/20 dark:border-white/10 ring-2 ring-white/10"
-                            : "bg-gradient-to-br from-[#2d5016] to-[#3f6e1f] dark:from-emerald-700 dark:to-emerald-600 text-white font-black shadow-[0_4px_16px_rgba(45,80,22,0.32)] dark:shadow-[0_4px_16px_rgba(16,185,129,0.28)] border border-white/20 dark:border-emerald-400/30 ring-2 ring-[#2d5016]/20 dark:ring-emerald-400/20")
+                            : "bg-gradient-to-br from-primary to-[var(--primary-hover)] dark:from-emerald-600 dark:to-teal-600 text-white font-black shadow-[0_4px_16px_rgba(var(--primary-rgb,31,77,46),0.32)] dark:shadow-[0_4px_16px_rgba(16,185,129,0.28)] border border-white/20 dark:border-emerald-400/30 ring-2 ring-primary/20 dark:ring-emerald-400/20")
                         : (isCustomSidebar
                             ? (isSidebarLightText ? "text-white/70 hover:text-white hover:bg-white/10" : "text-slate-700 hover:text-black hover:bg-black/10")
-                            : "text-slate-400 hover:text-[#2d5016] dark:text-slate-400 dark:hover:text-emerald-400 hover:bg-[#2d5016]/5 dark:hover:bg-white/5")
+                            : "text-slate-500 hover:text-primary dark:text-slate-400 dark:hover:text-emerald-400 hover:bg-primary/8 dark:hover:bg-white/5")
                 )}
             >
                 <div className="relative shrink-0 w-6 h-6 flex items-center justify-center">
@@ -1158,7 +1159,7 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
                             "transition-transform duration-200", 
                             isGroupActive 
                                 ? "text-white" 
-                                : "text-slate-400 dark:text-slate-500 group-hover:text-[#2d5016] dark:group-hover:text-emerald-400 group-hover:scale-105"
+                                : "text-slate-400 dark:text-slate-500 group-hover:text-primary dark:group-hover:text-emerald-400 group-hover:scale-105"
                         )} 
                     />
                 </div>
@@ -1283,7 +1284,7 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
                                         "backdrop-blur-2xl rounded-3xl p-3 overflow-hidden shadow-2xl flex flex-col max-h-[70vh] border transition-colors",
                                         isLite 
                                             ? "" 
-                                            : "bg-[#fbf8f2]/95 dark:bg-[#141311]/95 border-[#8b6f47]/30 dark:border-white/15 shadow-black/30"
+                                            : "bg-[#fbf8f2]/95 dark:bg-[#0d131f]/95 border-[var(--border-color)] dark:border-white/15 shadow-black/30"
                                     )}
                                 >
                                     {/* Header */}
@@ -1293,11 +1294,11 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
                                             "relative z-10 mb-2 px-3.5 py-2.5 rounded-2xl flex items-center justify-between shrink-0 border",
                                             isLite
                                                 ? "bg-black/5 dark:bg-white/5 border-transparent"
-                                                : "bg-[#2d5016]/10 dark:bg-white/5 border-[#8b6f47]/15 dark:border-white/10"
+                                                : "bg-primary/10 dark:bg-white/5 border-primary/15 dark:border-white/10"
                                         )}
                                     >
                                         <div className="flex items-center gap-2.5">
-                                            <div className="w-7 h-7 rounded-xl bg-[#2d5016] text-white flex items-center justify-center shrink-0 shadow-xs">
+                                            <div className="w-7 h-7 rounded-xl bg-primary text-white flex items-center justify-center shrink-0 shadow-xs">
                                                 <DynamicIcon 
                                                     id={`nav.group.${item.label}`}
                                                     defaultIcon={item.icon}
@@ -1306,10 +1307,10 @@ const NavGroup = memo(({ item, isActive, isCollapsed, liteTheme, customSidebarSt
                                                 />
                                             </div>
                                             <div>
-                                                <h3 className="text-[9px] font-black uppercase tracking-[0.2em] text-[#8b6f47] dark:text-[#d4a574]/80 leading-none">
+                                                <h3 className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400 leading-none">
                                                     Danh mục
                                                 </h3>
-                                                <p className="text-[13px] font-black text-[#2d5016] dark:text-[#e8dfd5] uppercase tracking-wider mt-1 leading-none">
+                                                <p className="text-[13px] font-black text-primary dark:text-emerald-300 uppercase tracking-wider mt-1 leading-none">
                                                     {item.label}
                                                 </p>
                                             </div>
@@ -1669,6 +1670,16 @@ export default function Layout({ children }) {
     const [appTheme, setAppTheme] = useState(localStorage.getItem('app_theme') || 'agri');
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [gpuDisabled, setGpuDisabled] = useState(() => localStorage.getItem("pos_gpu_disabled") === "true");
+    const [spatial3DEnabled, setSpatial3DEnabled] = useState(() => localStorage.getItem("pos_spatial_3d") !== "false");
+
+    const toggleSpatial3D = () => {
+        setSpatial3DEnabled(prev => {
+            const next = !prev;
+            localStorage.setItem("pos_spatial_3d", String(next));
+            window.dispatchEvent(new Event("spatial_3d_changed"));
+            return next;
+        });
+    };
 
     useEffect(() => {
         const handleGpuState = () => {
@@ -1903,7 +1914,14 @@ export default function Layout({ children }) {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [showUserMenu]);
 
-    const user = JSON.parse(sessionStorage.getItem('user') || '{}');
+    const userStr = sessionStorage.getItem('user') || localStorage.getItem('user') || '{}';
+    const user = useMemo(() => {
+        try {
+            return JSON.parse(userStr);
+        } catch (e) {
+            return {};
+        }
+    }, [userStr]);
     const userRole = (user.role || 'user').toString().trim().toLowerCase();
 
     const [isMuted, setIsMuted] = useState(() => {
@@ -2419,16 +2437,6 @@ export default function Layout({ children }) {
     }, [flatPaths, location.pathname, navigate]);
 
     useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
-                setShowUserMenu(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    useEffect(() => {
         if (theme === 'dark') {
             document.documentElement.classList.add('dark');
         } else {
@@ -2454,20 +2462,25 @@ export default function Layout({ children }) {
     useEffect(() => {
         const handleStorage = () => {
             setAccountingEnabled(localStorage.getItem('feature_accounting_enabled') !== 'false');
-            setLiteBgColor(localStorage.getItem('pos_lite_bg_color') || '#f4ecd8');
+            if (isLiteMode) {
+                setLiteBgColor(localStorage.getItem('pos_lite_bg_color') || '#f4ecd8');
+            }
         };
         window.addEventListener('storage', handleStorage);
-        const interval = setInterval(() => {
-            const current = localStorage.getItem('pos_lite_bg_color') || '#f4ecd8';
-            if (current !== liteBgColor) {
-                setLiteBgColor(current);
-            }
-        }, 1000);
+        let interval;
+        if (isLiteMode) {
+            interval = setInterval(() => {
+                const current = localStorage.getItem('pos_lite_bg_color') || '#f4ecd8';
+                if (current !== liteBgColor) {
+                    setLiteBgColor(current);
+                }
+            }, 1500);
+        }
         return () => {
             window.removeEventListener('storage', handleStorage);
-            clearInterval(interval);
+            if (interval) clearInterval(interval);
         };
-    }, [liteBgColor]);
+    }, [liteBgColor, isLiteMode]);
 
     useEffect(() => {
         const fetchGlobalSettings = async () => {
@@ -2568,6 +2581,11 @@ export default function Layout({ children }) {
             style={isLiteMode ? { backgroundColor: liteTheme.bg } : {}}
             className="relative flex h-screen w-full main-content-bg overflow-hidden transition-colors selection:bg-emerald-100 dark:selection:bg-emerald-900/40"
         >
+            <Spatial3DBackground
+                enabled={spatial3DEnabled && !gpuDisabled && !isLiteMode}
+                appTheme={appTheme}
+                isDark={theme === 'dark'}
+            />
             <ContextMenu />
             <ButtonMascotOverlay />
 
@@ -2629,18 +2647,72 @@ export default function Layout({ children }) {
                                 borderColor: liteTheme.border,
                                 color: liteTheme.text
                             } : {}}
-                            className={cn(
-                                "absolute top-2 left-[calc(100%+12px)] w-72 max-h-[85vh] overflow-y-auto custom-scrollbar backdrop-blur-2xl rounded-2xl shadow-xl shadow-black/10 p-2.5 z-[1100]",
-                                isLiteMode ? "border" : "bg-[#fbf8f2] dark:bg-[#1c1916] border-2 border-[#8b6f47]/20 dark:border-white/10"
+                                className={cn(
+                                "absolute top-2 left-[calc(100%+12px)] w-72 max-h-[85vh] overflow-y-auto custom-scrollbar backdrop-blur-2xl rounded-2xl shadow-2xl p-2.5 z-[1100]",
+                                isLiteMode ? "border" : "bg-[#fbf8f2]/95 dark:bg-[#0d131f]/95 border border-[var(--border-color)] shadow-black/20"
                             )}
                         >
+                            {!isLiteMode && (
+                                <div className="px-2.5 pt-2 pb-2.5 mb-1.5 border-b border-black/5 dark:border-white/10">
+                                    <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-2">
+                                        Giao diện chủ đề (Argon Engine)
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-1.5">
+                                        {[
+                                            { id: 'argon', label: 'Argon', dot: 'bg-teal-500' },
+                                            { id: 'agri', label: 'Agri', dot: 'bg-emerald-600' },
+                                            { id: 'luxury', label: 'Luxury', dot: 'bg-amber-700' },
+                                        ].map(t => (
+                                            <button
+                                                key={t.id}
+                                                type="button"
+                                                onClick={() => executeThemeTransition(() => setAppTheme(t.id))}
+                                                className={cn(
+                                                    "flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl text-[11px] font-extrabold transition-all cursor-pointer border",
+                                                    appTheme === t.id
+                                                        ? "bg-primary text-white border-primary shadow-sm"
+                                                        : "bg-black/[0.03] dark:bg-white/[0.04] text-slate-600 dark:text-slate-300 border-transparent hover:border-primary/30"
+                                                )}
+                                            >
+                                                <span className={cn("w-2 h-2 rounded-full shrink-0", appTheme === t.id ? "bg-white" : t.dot)} />
+                                                <span>{t.label}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             {checkIsAdmin(userRole) && !isLiteMode && (
                                 <>
-                                    <Link to="/settings" onClick={() => setShowUserMenu(false)} className="flex items-center gap-3 p-3 rounded-xl hover:bg-[#2d5016]/5 dark:hover:bg-white/5 text-[#2d5016] dark:text-[#d4a574] font-black text-sm transition-colors">
+                                    <Link to="/settings" onClick={() => setShowUserMenu(false)} className="flex items-center gap-3 p-3 rounded-xl hover:bg-primary/8 dark:hover:bg-white/5 text-primary dark:text-emerald-400 font-black text-sm transition-colors">
                                         <SettingsIcon size={18} />
                                         <span>Cài đặt hệ thống</span>
                                     </Link>
                                 </>
+                            )}
+
+                            {!isLiteMode && (
+                                <button
+                                    onClick={toggleSpatial3D}
+                                    className={cn(
+                                        "flex items-center justify-between w-full p-2.5 rounded-xl font-bold text-xs transition-colors my-0.5 cursor-pointer",
+                                        spatial3DEnabled && !gpuDisabled
+                                            ? "bg-teal-500/15 text-teal-800 dark:text-teal-300 border border-teal-500/30"
+                                            : "hover:bg-[#2d5016]/5 dark:hover:bg-white/5 text-gray-700 dark:text-emerald-100/70"
+                                    )}
+                                    title="Bật/Tắt môi trường không gian 3D WebGL (Argon 3D Spatial Engine)"
+                                >
+                                    <div className="flex items-center gap-2.5">
+                                        <Sparkles size={16} className={spatial3DEnabled && !gpuDisabled ? "text-teal-500" : "text-gray-400"} />
+                                        <span>Không gian 3D (WebGL)</span>
+                                    </div>
+                                    <span className={cn(
+                                        "text-[10px] px-2 py-0.5 rounded-md font-black tracking-wide",
+                                        spatial3DEnabled && !gpuDisabled ? "bg-teal-600 text-white shadow-xs" : "bg-black/5 dark:bg-white/10 text-gray-500 dark:text-gray-400"
+                                    )}>
+                                        {spatial3DEnabled && !gpuDisabled ? "3D BẬT" : "TẮT"}
+                                    </span>
+                                </button>
                             )}
 
                             <button
@@ -2752,14 +2824,14 @@ export default function Layout({ children }) {
             <div className={cn("w-full mb-3 shrink-0 flex justify-center relative z-20", isSidebarCollapsed ? "px-0" : "px-3")}>
                 <div 
                     className={cn(
-                        "backdrop-blur-2xl border border-white/20 dark:border-white/15 bg-gradient-to-b from-[#2d5016]/95 via-[#233f11]/95 to-[#192f0b]/95 dark:from-[#1b3310]/95 dark:via-[#13240b]/95 dark:to-[#0c1707]/95 shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),0_12px_32px_rgba(0,0,0,0.35),0_2px_8px_rgba(0,0,0,0.2)] text-white overflow-hidden",
+                        "backdrop-blur-2xl border border-white/20 dark:border-white/15 shadow-[inset_0_1px_1px_rgba(255,255,255,0.3),0_12px_32px_rgba(0,0,0,0.35),0_2px_8px_rgba(0,0,0,0.2)] text-white overflow-hidden",
                         isSidebarCollapsed ? "w-[48px] rounded-2xl p-1.5 flex flex-col items-center" : "w-full space-y-2 rounded-3xl p-2.5"
                     )} 
                     style={hasCustomAccent ? {
                         background: accentCol.includes('gradient') ? accentCol : `linear-gradient(to bottom, ${accentCol}, ${accentCol}dd)`,
                         borderColor: !accentCol.includes('gradient') ? `${accentCol}60` : (cartColorConfig.borderColor !== 'default' ? cartColorConfig.borderColor : undefined),
                         boxShadow: !accentCol.includes('gradient') ? `0 8px 24px ${accentCol}35` : undefined
-                    } : (isLiteMode ? { borderColor: liteTheme.border, backgroundColor: liteTheme.cardBg } : {})}
+                    } : (isLiteMode ? { borderColor: liteTheme.border, backgroundColor: liteTheme.cardBg } : { background: 'var(--top-nav-gradient, linear-gradient(165deg, #132e0b 0%, #244a14 100%))' })}
                 >
                     {/* Footer Actions (Reminder, Volume, Theme, Close) */}
                     {isSidebarCollapsed ? (

@@ -113,32 +113,49 @@ input, button, select, textarea, optgroup, option {
 }
 
 :root {
-  --primary-color: #2d5016;
-  --primary-hover: #1e3a0f;
-  --bg-color: #faf8f3;
-  --text-main: #2d5016;
-  --text-muted: #64748b;
-  --border-color: rgba(139, 111, 71, 0.35);
-  --card-bg: rgba(255, 255, 255, 0.9);
+  --primary-color: #1f4d2e;
+  --primary-hover: #163821;
+  --primary-rgb: 31, 77, 46;
+  --bg-color: #f6f7f4;
+  --surface-1: #ffffff;
+  --surface-2: #f1f4ef;
+  --surface-glass: rgba(255, 255, 255, 0.82);
+  --text-main: #14261c;
+  --text-muted: #5b6b61;
+  --border-color: rgba(31, 77, 46, 0.16);
+  --border-subtle: rgba(15, 23, 42, 0.08);
+  --border-strong: rgba(31, 77, 46, 0.28);
+  --card-bg: rgba(255, 255, 255, 0.94);
+  --shadow-elevated: 0 10px 30px -8px rgba(15, 23, 42, 0.07), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+  --radius-card: 1rem;
+  --radius-control: 0.75rem;
 }
 
 .dark {
-  --bg-color: #000000;
-  --text-main: #4ade80;
-  --text-muted: #94a3b8;
-  --border-color: rgba(255, 255, 255, 0.25);
-  --card-bg: #050505;
+  --bg-color: #070b12;
+  --surface-1: #0d131f;
+  --surface-2: #131c2e;
+  --surface-glass: rgba(13, 19, 31, 0.82);
+  --text-main: #e2f1e8;
+  --text-muted: #8b9bb0;
+  --border-color: rgba(148, 163, 184, 0.16);
+  --border-subtle: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(52, 211, 153, 0.32);
+  --card-bg: #0c111d;
+  --shadow-elevated: 0 14px 36px -8px rgba(0, 0, 0, 0.55), inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
 }
 
 /* Enhanced POS Cards & Buttons Sleek Thin Border Styling */
 .pos-card {
   border: 1px solid var(--border-color);
-  box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.04);
+  background-color: var(--card-bg);
+  box-shadow: var(--shadow-elevated);
+  transition: border-color 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1), transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .dark .pos-card {
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 2px 12px -2px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
 }
 
 .pos-card:hover {
@@ -146,80 +163,130 @@ input, button, select, textarea, optgroup, option {
 }
 
 .dark .pos-card:hover {
-  border-color: rgba(52, 211, 153, 0.4);
+  border-color: rgba(52, 211, 153, 0.45);
+}
+
+[data-theme='argon'] {
+  --primary-color: #0f766e;
+  --primary-hover: #115e59;
+  --primary-rgb: 15, 118, 110;
+  --bg-color: #f4f6f9;
+  --surface-1: #ffffff;
+  --surface-2: #edf1f7;
+  --surface-glass: rgba(255, 255, 255, 0.85);
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --border-color: rgba(15, 118, 110, 0.16);
+  --card-bg: rgba(255, 255, 255, 0.96);
+  --secondary-color: #334155;
+  --accent-color: #0d9488;
+  --accent-bright: #14b8a6;
+  --top-nav-gradient: linear-gradient(165deg, #0f172a 0%, #134e4a 55%, #0f766e 100%);
+  --button-gradient: linear-gradient(135deg, #0f766e 0%, #0d9488 100%);
+  --main-gradient: linear-gradient(145deg, #f8fafc 0%, #f1f5f9 50%, #e8eef5 100%);
+  --card-gradient: linear-gradient(145deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.92) 100%);
+  --dropdown-shadow: 0 16px 42px -10px rgba(15, 23, 42, 0.18);
+}
+
+.dark[data-theme='argon'] {
+  --bg-color: #060911;
+  --surface-1: #0b111e;
+  --surface-2: #111a2e;
+  --text-main: #f1f5f9;
+  --text-muted: #94a3b8;
+  --border-color: rgba(45, 212, 191, 0.16);
+  --card-bg: #0b111e;
+  --top-nav-gradient: linear-gradient(180deg, #060911 0%, #0b1322 100%);
+  --main-gradient: linear-gradient(180deg, #060911 0%, #09101d 100%);
+  --primary-color: #2dd4bf;
+  --primary-hover: #14b8a6;
+  --primary-rgb: 45, 212, 191;
 }
 
 [data-theme='agri'] {
-  --primary-color: #2d5016;
-  --primary-hover: #1e3a0f;
-  --bg-color: #faf8f3;
-  --text-main: #2d5016;
-  --text-muted: #8b6f47;
-  --border-color: rgba(139, 111, 71, 0.2);
-  --card-bg: rgba(255, 255, 255, 0.9);
+  --primary-color: #244a14;
+  --primary-hover: #19360d;
+  --primary-rgb: 36, 74, 20;
+  --bg-color: #f8f7f2;
+  --surface-1: #ffffff;
+  --surface-2: #f1efe7;
+  --surface-glass: rgba(255, 255, 255, 0.86);
+  --text-main: #1c3611;
+  --text-muted: #6e624c;
+  --border-color: rgba(110, 98, 76, 0.18);
+  --card-bg: rgba(255, 255, 255, 0.94);
   /* Agriculture specific */
   --secondary-color: #8b6f47;
   --accent-color: #d4a574;
   --accent-bright: #f4c430;
   --earth-brown: #6b4423;
-  --leaf-green: #4a7c59;
+  --leaf-green: #3b6e4c;
   /* Premium Botanical Gradient */
-  --top-nav-gradient: linear-gradient(170deg, #1a3c0f 0%, #2d5016 45%, #3a6320 100%);
-  --button-gradient: linear-gradient(135deg, #2d5016 0%, #4a7c59 100%);
-  --main-gradient: linear-gradient(135deg, #faf8f3 0%, #f5f1e8 30%, #ede8dc 60%, #e8e3d5 100%);
-  --card-gradient: linear-gradient(145deg, rgba(255, 255, 255, 0.9) 0%, rgba(250, 248, 243, 0.8) 100%);
-  --dropdown-shadow: 0 10px 40px -10px rgba(45, 80, 22, 0.3);
+  --top-nav-gradient: linear-gradient(165deg, #132e0b 0%, #244a14 48%, #2f5e1e 100%);
+  --button-gradient: linear-gradient(135deg, #244a14 0%, #3b6e4c 100%);
+  --main-gradient: linear-gradient(135deg, #faf9f5 0%, #f4f1e8 45%, #ebe6d8 100%);
+  --card-gradient: linear-gradient(145deg, rgba(255, 255, 255, 0.95) 0%, rgba(250, 248, 243, 0.88) 100%);
+  --dropdown-shadow: 0 14px 40px -10px rgba(36, 74, 20, 0.22);
 }
 
 .dark[data-theme='agri'] {
-  --bg-color: #000000;
-  --text-main: #4ade80;
-  --text-muted: #a7f3d0;
-  --border-color: rgba(74, 222, 128, 0.15);
-  --card-bg: #050505;
-  --top-nav-gradient: linear-gradient(180deg, #000000 0%, #030802 100%);
-  --main-gradient: linear-gradient(180deg, #000000 0%, #020502 100%);
-  --primary-color: #4ade80;
-  --primary-hover: #22c55e;
+  --bg-color: #050806;
+  --surface-1: #0a100c;
+  --surface-2: #111a14;
+  --text-main: #6ee7b7;
+  --text-muted: #9ca3af;
+  --border-color: rgba(74, 222, 128, 0.16);
+  --card-bg: #090e0a;
+  --top-nav-gradient: linear-gradient(180deg, #050806 0%, #09120b 100%);
+  --main-gradient: linear-gradient(180deg, #050806 0%, #080f09 100%);
+  --primary-color: #34d399;
+  --primary-hover: #10b981;
+  --primary-rgb: 52, 211, 153;
 }
 
 [data-theme='luxury'] {
-  --primary-color: #8B5A2B;
+  --primary-color: #7c4d23;
   /* Leather Brown */
-  --primary-hover: #6B4226;
+  --primary-hover: #5e3918;
+  --primary-rgb: 124, 77, 35;
   /* Darker Leather */
-  --bg-color: #FDFBF7;
+  --bg-color: #fcfaf5;
+  --surface-1: #ffffff;
+  --surface-2: #f5f0e6;
   /* Warm White/Paper */
-  --text-main: #3E2723;
+  --text-main: #2e1d18;
   /* Deep Brown */
-  --text-muted: #8D6E63;
+  --text-muted: #795d53;
   /* Muted Brown */
-  --border-color: rgba(139, 90, 43, 0.4);
+  --border-color: rgba(124, 77, 35, 0.22);
   /* Brown border */
-  --card-bg: rgba(255, 255, 255, 0.95);
+  --card-bg: rgba(255, 255, 255, 0.96);
   --secondary-color: #8D6E63;
   --accent-color: #A1887F;
   --accent-bright: #D7CCC8;
   --earth-brown: #3E2723;
   --leaf-green: #5D5D5D;
   /* Deep Espresso & Gold Gradient */
-  --top-nav-gradient: linear-gradient(170deg, #2D1B15 0%, #3E2723 40%, #5D4037 100%);
-  --button-gradient: linear-gradient(135deg, #8B5A2B 0%, #A1887F 100%);
-  --main-gradient: linear-gradient(135deg, #FDFBF7 0%, #F5F1E8 100%);
+  --top-nav-gradient: linear-gradient(170deg, #241510 0%, #38221d 45%, #52372f 100%);
+  --button-gradient: linear-gradient(135deg, #7c4d23 0%, #9c7248 100%);
+  --main-gradient: linear-gradient(135deg, #fcfaf5 0%, #f4efe4 100%);
   --card-gradient: linear-gradient(145deg, rgba(255, 255, 255, 0.98) 0%, rgba(253, 251, 247, 0.95) 100%);
-  --dropdown-shadow: 0 15px 50px -10px rgba(139, 90, 43, 0.3);
+  --dropdown-shadow: 0 15px 46px -10px rgba(124, 77, 35, 0.24);
 }
 
 .dark[data-theme='luxury'] {
-  --bg-color: #000000;
-  --text-main: #e8d0b5;
-  --text-muted: #bda387;
-  --border-color: rgba(212, 165, 116, 0.15);
-  --card-bg: #050505;
-  --top-nav-gradient: linear-gradient(180deg, #000000 0%, #0d0a08 100%);
-  --main-gradient: linear-gradient(180deg, #000000 0%, #080605 100%);
+  --bg-color: #070605;
+  --surface-1: #110e0c;
+  --surface-2: #1a1512;
+  --text-main: #ecd8c1;
+  --text-muted: #b0977d;
+  --border-color: rgba(212, 165, 116, 0.16);
+  --card-bg: #0d0b09;
+  --top-nav-gradient: linear-gradient(180deg, #070605 0%, #120e0b 100%);
+  --main-gradient: linear-gradient(180deg, #070605 0%, #0c0907 100%);
   --primary-color: #d4a574;
-  --primary-hover: #bcaaa4;
+  --primary-hover: #c3925e;
+  --primary-rgb: 212, 165, 116;
 }
 
 
@@ -979,12 +1046,9 @@ body {
 }
 
 @keyframes bounce-subtle {
-
-  0%,
-  100% {
+  0%, 100% {
     transform: translateY(0);
   }
-
   50% {
     transform: translateY(-5px);
   }
@@ -998,7 +1062,6 @@ body {
   from {
     transform: rotate(0deg);
   }
-
   to {
     transform: rotate(360deg);
   }
@@ -1010,28 +1073,21 @@ body {
 
 /* Agricultural Theme Animations */
 @keyframes leaf-sway {
-
-  0%,
-  100% {
+  0%, 100% {
     transform: rotate(-2deg);
   }
-
   50% {
     transform: rotate(2deg);
   }
 }
 
 @keyframes wheat-wave {
-
-  0%,
-  100% {
+  0%, 100% {
     transform: translateY(0) rotate(0deg);
   }
-
   25% {
     transform: translateY(-3px) rotate(1deg);
   }
-
   75% {
     transform: translateY(3px) rotate(-1deg);
   }
@@ -1042,19 +1098,15 @@ body {
     transform: scale(0.95);
     opacity: 0.8;
   }
-
   50% {
     transform: scale(1.05);
     opacity: 1;
   }
-
   100% {
     transform: scale(0.95);
     opacity: 0.8;
   }
 }
-
-/* removed soil-pulse */
 
 [data-theme='agri'] .animate-leaf-sway {
   animation: leaf-sway 3s ease-in-out infinite;
@@ -1068,9 +1120,7 @@ body {
   animation: grow-sprout 2.5s ease-in-out infinite;
 }
 
-/* removed animate-soil-pulse */
-
-/* New UI Enhancements */
+/* UI Enhancements */
 .top-nav-gradient {
   background: var(--top-nav-gradient) !important;
 }
@@ -1090,10 +1140,6 @@ body {
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.text-glow {
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-}
-
 .card-enhanced {
   @apply shadow-xl border-t-4 border-primary;
 }
@@ -1104,12 +1150,10 @@ body {
     transform: scale(0.8);
     opacity: 0;
   }
-
   50% {
     transform: scale(1.1);
     opacity: 0.5;
   }
-
   100% {
     transform: scale(1);
     opacity: 0;
@@ -1121,7 +1165,6 @@ body {
     transform: translate(-50%, -50%) scale(0);
     opacity: 0.8;
   }
-
   100% {
     transform: translate(-50%, -50%) scale(10);
     opacity: 0;
@@ -1138,170 +1181,211 @@ body {
   animation: esc-shockwave 0.6s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
 }
 
-
-
-.only-print {
-  display: none;
+/* ==========================================================================
+   ARGON FULL 3D SPATIAL & TACTILE EXTRUSION ENGINE
+   ========================================================================== */
+:root {
+  --3d-bevel-light: rgba(255, 255, 255, 0.85);
+  --3d-bevel-edge: rgba(31, 77, 46, 0.16);
+  --3d-extrude-shadow:
+    0 3px 0 0 rgba(31, 77, 46, 0.12),
+    0 14px 28px -6px rgba(15, 23, 42, 0.1),
+    0 4px 10px -2px rgba(15, 23, 42, 0.05),
+    inset 0 1.5px 0 0 rgba(255, 255, 255, 0.85),
+    inset 0 -1px 0 0 rgba(31, 77, 46, 0.08);
+  --3d-extrude-hover:
+    0 6px 0 0 rgba(var(--primary-rgb, 31, 77, 46), 0.18),
+    0 22px 40px -8px rgba(15, 23, 42, 0.16),
+    0 8px 16px -4px rgba(var(--primary-rgb, 31, 77, 46), 0.1),
+    inset 0 1.5px 0 0 rgba(255, 255, 255, 0.95);
 }
 
-@keyframes bounce-subtle {
-
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-5px);
-  }
+.dark {
+  --3d-bevel-light: rgba(255, 255, 255, 0.14);
+  --3d-bevel-edge: rgba(0, 0, 0, 0.75);
+  --3d-extrude-shadow:
+    0 4px 0 0 rgba(2, 6, 14, 0.9),
+    0 18px 38px -6px rgba(0, 0, 0, 0.7),
+    0 0 0 1px rgba(255, 255, 255, 0.07),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.14),
+    inset 0 -1px 0 0 rgba(0, 0, 0, 0.5);
+  --3d-extrude-hover:
+    0 6px 0 0 rgba(2, 6, 14, 0.95),
+    0 24px 48px -8px rgba(0, 0, 0, 0.85),
+    0 0 22px -4px rgba(var(--primary-rgb, 45, 212, 191), 0.28),
+    inset 0 1.5px 0 0 rgba(255, 255, 255, 0.22);
 }
 
-.animate-bounce-subtle {
-  animation: bounce-subtle 2s ease-in-out infinite;
+table td,
+table th,
+input[type="number"],
+.tabular-nums,
+[class*="font-mono"] {
+  font-variant-numeric: tabular-nums;
 }
 
-@keyframes spin-slow {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
+/* Global 3D Perspective Stage */
+html:not(.gpu-disabled) #main-content {
+  perspective: 1400px;
+  transform-style: preserve-3d;
 }
 
-.animate-spin-slow {
-  animation: spin-slow 8s linear infinite;
+/* Full 3D Extruded Panels & Cards across the entire app */
+html:not(.gpu-disabled) .pos-card,
+html:not(.gpu-disabled) .argon-card,
+html:not(.gpu-disabled) .glass-panel,
+html:not(.gpu-disabled) .glass-card,
+html:not(.gpu-disabled) .minimal-card,
+html:not(.gpu-disabled) .argon-3d-panel {
+  box-shadow: var(--3d-extrude-shadow) !important;
+  transition:
+    transform 0.26s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.26s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.2s ease !important;
 }
 
-/* Agricultural Theme Animations */
-@keyframes leaf-sway {
-
-  0%,
-  100% {
-    transform: rotate(-2deg);
-  }
-
-  50% {
-    transform: rotate(2deg);
-  }
+html:not(.gpu-disabled) .pos-card:hover,
+html:not(.gpu-disabled) .argon-card:hover,
+html:not(.gpu-disabled) .minimal-card:hover,
+html:not(.gpu-disabled) .argon-3d-lift:hover {
+  transform: translate3d(0, -2.5px, 8px);
+  box-shadow: var(--3d-extrude-hover) !important;
 }
 
-@keyframes wheat-wave {
-
-  0%,
-  100% {
-    transform: translateY(0) rotate(0deg);
-  }
-
-  25% {
-    transform: translateY(-3px) rotate(1deg);
-  }
-
-  75% {
-    transform: translateY(3px) rotate(-1deg);
-  }
+/* 3D Tactile Keycap Buttons */
+html:not(.gpu-disabled) .btn-3d,
+html:not(.gpu-disabled) .argon-btn,
+html:not(.gpu-disabled) .btn-gradient {
+  box-shadow:
+    0 3px 0 0 rgba(0, 0, 0, 0.28),
+    0 8px 18px -4px rgba(var(--primary-rgb, 31, 77, 46), 0.35),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.35) !important;
+  transition:
+    transform 0.14s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.14s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.18s ease !important;
 }
 
-@keyframes grow-sprout {
-  0% {
-    transform: scale(0.95);
-    opacity: 0.8;
-  }
-
-  50% {
-    transform: scale(1.05);
-    opacity: 1;
-  }
-
-  100% {
-    transform: scale(0.95);
-    opacity: 0.8;
-  }
+html:not(.gpu-disabled) .btn-3d:hover:not(:disabled),
+html:not(.gpu-disabled) .argon-btn:hover:not(:disabled),
+html:not(.gpu-disabled) .btn-gradient:hover:not(:disabled) {
+  transform: translateY(-1.5px);
+  filter: brightness(1.05);
+  box-shadow:
+    0 4.5px 0 0 rgba(0, 0, 0, 0.3),
+    0 12px 24px -4px rgba(var(--primary-rgb, 31, 77, 46), 0.45),
+    inset 0 1.5px 0 0 rgba(255, 255, 255, 0.45) !important;
 }
 
-/* removed soil-pulse */
-
-[data-theme='agri'] .animate-leaf-sway {
-  animation: leaf-sway 3s ease-in-out infinite;
+html:not(.gpu-disabled) .btn-3d:active:not(:disabled),
+html:not(.gpu-disabled) .argon-btn:active:not(:disabled),
+html:not(.gpu-disabled) .btn-gradient:active:not(:disabled) {
+  transform: translateY(2px) !important;
+  box-shadow:
+    0 1px 0 0 rgba(0, 0, 0, 0.25),
+    0 3px 8px -2px rgba(var(--primary-rgb, 31, 77, 46), 0.25),
+    inset 0 1px 2px 0 rgba(0, 0, 0, 0.2) !important;
 }
 
-[data-theme='agri'] .animate-wheat-wave {
-  animation: wheat-wave 4s ease-in-out infinite;
+/* 3D Floating Modals & Popovers */
+html:not(.gpu-disabled) [role="dialog"],
+html:not(.gpu-disabled) .modal-premium,
+html:not(.gpu-disabled) .dropdown-premium {
+  box-shadow:
+    0 6px 0 0 rgba(15, 23, 42, 0.15),
+    0 32px 70px -12px rgba(0, 0, 0, 0.38),
+    inset 0 1.5px 0 0 rgba(255, 255, 255, 0.7) !important;
 }
 
-[data-theme='agri'] .animate-grow {
-  animation: grow-sprout 2.5s ease-in-out infinite;
+html.dark:not(.gpu-disabled) [role="dialog"],
+html.dark:not(.gpu-disabled) .modal-premium,
+html.dark:not(.gpu-disabled) .dropdown-premium {
+  box-shadow:
+    0 6px 0 0 rgba(0, 0, 0, 0.9),
+    0 36px 80px -10px rgba(0, 0, 0, 0.88),
+    0 0 28px -6px rgba(var(--primary-rgb, 45, 212, 191), 0.2),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.16) !important;
 }
 
-/* removed animate-soil-pulse */
-
-/* New UI Enhancements */
-.top-nav-gradient {
-  background: var(--top-nav-gradient) !important;
+.argon-card {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-card, 1rem);
+  box-shadow: var(--3d-extrude-shadow);
+  transition: border-color 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1), transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.btn-gradient {
-  background: var(--button-gradient) !important;
-  color: white !important;
-  border: none !important;
+.argon-card:hover {
+  border-color: var(--border-strong, var(--primary-color));
 }
 
-.text-glow {
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+.argon-glass {
+  background: var(--surface-glass, rgba(255, 255, 255, 0.82));
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--3d-extrude-shadow);
 }
 
-.total-highlight {
-  @apply ring-4 ring-offset-2 ring-primary bg-primary text-white;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+.dark .argon-glass {
+  background: rgba(13, 19, 31, 0.82);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
-.text-glow {
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+.argon-table-header {
+  background-color: var(--surface-2, #f1f4ef);
+  border-bottom: 1px solid var(--border-color);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  color: var(--text-muted);
 }
 
-.card-enhanced {
-  @apply shadow-xl border-t-4 border-primary;
+.dark .argon-table-header {
+  background-color: rgba(19, 28, 46, 0.9);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
-/* Premium Esc Effects */
-@keyframes esc-ripple {
-  0% {
-    transform: scale(0.8);
-    opacity: 0;
-  }
-
-  50% {
-    transform: scale(1.1);
-    opacity: 0.5;
-  }
-
-  100% {
-    transform: scale(1);
-    opacity: 0;
-  }
+.argon-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  border: 1px solid transparent;
 }
 
-@keyframes esc-shockwave {
-  0% {
-    transform: translate(-50%, -50%) scale(0);
-    opacity: 0.8;
-  }
-
-  100% {
-    transform: translate(-50%, -50%) scale(10);
-    opacity: 0;
-  }
+.argon-input {
+  background-color: var(--surface-1, #ffffff);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-control, 0.75rem);
+  box-shadow: inset 0 2px 4px 0 rgba(15, 23, 42, 0.04), 0 1px 0 0 rgba(255, 255, 255, 0.8);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
 }
 
-.esc-indicator {
-  @apply fixed top-6 right-6 z-[9999] pointer-events-none flex items-center gap-3 bg-slate-900/80 backdrop-blur-md px-6 py-3 rounded-2xl border border-white/20 text-white font-black uppercase text-xs tracking-widest shadow-2xl;
-  animation: esc-ripple 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+.argon-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(var(--primary-rgb, 31, 77, 46), 0.14), inset 0 1px 2px 0 rgba(15, 23, 42, 0.03);
 }
 
-.esc-shockwave-circle {
-  @apply fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 rounded-full border-4 border-emerald-500/30 z-[9998] pointer-events-none;
-  animation: esc-shockwave 0.6s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+.argon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--radius-control, 0.75rem);
+  font-weight: 700;
+  transition: transform 0.15s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.argon-btn:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 /* Modern Pulse & Shimmer Effects */

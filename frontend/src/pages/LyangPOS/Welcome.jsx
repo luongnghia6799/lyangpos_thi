@@ -12,6 +12,8 @@ import { useNavigate } from 'react-router-dom';
 import logo from '../../assets/logo.png';
 import { cn } from '../../lib/utils';
 import InteractiveMascotAvatar from '../../components/widgets/InteractiveMascotAvatar';
+import Spatial3DBackground from '../../components/three/Spatial3DBackground';
+import Tilt3DCard from '../../components/three/Tilt3DCard';
 
 // -------------------------------------------------------------
 // THEME CONFIGURATIONS & DESIGN TOKENS
@@ -898,6 +900,11 @@ export default function Welcome() {
         >
             {/* Dynamic Animated Atmospheric Background Tailored to Active Theme */}
             <FloatingBackground themeId={currentTheme} isDark={isDark} />
+            <Spatial3DBackground
+                enabled={localStorage.getItem('pos_gpu_disabled') !== 'true'}
+                appTheme={currentTheme === 'luxury' ? 'luxury' : (currentTheme === 'agri' ? 'agri' : 'argon')}
+                isDark={isDark}
+            />
 
             {/* TOP BAR: Cohesive Unified Luxury Dynamic Island Stage */}
             <header className="w-full shrink-0 z-40 px-4 sm:px-8 py-3.5 flex items-center justify-between gap-3 max-w-7xl mx-auto">
@@ -1104,10 +1111,14 @@ export default function Welcome() {
                         className="lg:col-span-6 flex flex-col justify-center space-y-4"
                     >
                         {/* 1. Brand Showcase Hero Card */}
-                        <div className={cn(
-                            "p-7 sm:p-9 rounded-[2.5rem] border backdrop-blur-3xl shadow-2xl relative overflow-hidden transition-all flex flex-col justify-between space-y-6",
-                            activeStyles.heroCardBg
-                        )}>
+                        <Tilt3DCard
+                            intensity={6}
+                            scale={1.01}
+                            className={cn(
+                                "argon-3d-panel p-7 sm:p-9 rounded-[2.5rem] border backdrop-blur-3xl shadow-2xl relative overflow-hidden transition-all flex flex-col justify-between space-y-6",
+                                activeStyles.heroCardBg
+                            )}
+                        >
                             {/* Ambient subtle card glow */}
                             <div 
                                 className="absolute -top-24 -left-24 w-64 h-64 rounded-full blur-3xl pointer-events-none opacity-40 transition-colors"
@@ -1188,7 +1199,7 @@ export default function Welcome() {
                                     <p className="text-[11px] font-bold opacity-75 mt-0.5 truncate">Tối ưu vật tư</p>
                                 </div>
                             </div>
-                        </div>
+                        </Tilt3DCard>
 
                         {/* Quick Mode Navigation Switcher */}
                         <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-black/[0.04] dark:bg-white/[0.06] border border-black/5 dark:border-white/10">

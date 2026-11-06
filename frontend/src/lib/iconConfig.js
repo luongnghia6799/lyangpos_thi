@@ -204,33 +204,44 @@ const DynamicIconRenderer = ({ name, size = 20, strokeWidth = 2, color = 'curren
     );
 };
 
+const iconComponentCache = new Map();
+
 export const getLucideIconComponent = (name) => {
     if (!name) return null;
     const rawName = typeof name === 'object' && name !== null ? name.name : name;
     if (!rawName || typeof rawName !== 'string') return null;
 
-    if (isIconifyName(rawName)) {
-        const cleanName = normalizeIconifyName(rawName);
-        return (props) => createElement(IconifyIcon, {
-            icon: cleanName,
-            width: props.size || 20,
-            height: props.size || 20,
-            className: `iconify-icon ${props.className || ''}`,
-            ...props
-        });
+    if (iconComponentCache.has(rawName)) {
+        return iconComponentCache.get(rawName);
     }
 
-    if (isDuoIconName(rawName)) {
+    let comp;
+    if (isIconifyName(rawName)) {
+        const cleanName = normalizeIconifyName(rawName);
+        comp = ({ size = 20, className = '', strokeWidth, ...props }) => createElement(IconifyIcon, {
+            icon: cleanName,
+            width: size,
+            height: size,
+            className: `iconify-icon ${className}`,
+            ...props
+        });
+    } else if (isDuoIconName(rawName)) {
         const DuoComp = getDuoIconComponent(rawName);
         if (DuoComp) {
-            return (props) => createElement(DuoComp, {
-                className: `duo-icons ${props.className || ''}`,
+            comp = ({ className = '', strokeWidth, ...props }) => createElement(DuoComp, {
+                className: `duo-icons ${className}`,
                 ...props
             });
         }
     }
 
-    return (props) => createElement(DynamicIconRenderer, { name: rawName, ...props });
+    if (!comp) {
+        comp = (props) => createElement(DynamicIconRenderer, { name: rawName, ...props });
+    }
+
+    comp.displayName = `CachedDynamicIcon(${rawName})`;
+    iconComponentCache.set(rawName, comp);
+    return comp;
 };
 
 export { getDuoIconComponent, isDuoIconName, getAllDuoIcons };

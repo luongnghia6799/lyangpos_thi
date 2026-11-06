@@ -77,6 +77,8 @@ import { checkIsAdmin } from '../../lib/auth';
 import Toast from '../../components/widgets/Toast';
 import LoadingOverlay from '../../components/layout/LoadingOverlay';
 import Portal from '../../components/widgets/Portal';
+import Dashboard3DChart from '../../components/three/Dashboard3DChart';
+import Tilt3DCard from '../../components/three/Tilt3DCard';
 
 
 ChartJS.register(
@@ -434,6 +436,11 @@ export default function Dashboard() {
     }, [appWallpaper]);
 
     const [gpuDisabled, setGpuDisabled] = useState(() => localStorage.getItem("pos_gpu_disabled") === "true");
+    const [chart3DMode, setChart3DMode] = useState(() => localStorage.getItem("dashboard_chart_3d") !== "false");
+    const toggleChart3DMode = (mode) => {
+        setChart3DMode(mode);
+        localStorage.setItem("dashboard_chart_3d", String(mode));
+    };
 
     useEffect(() => {
         const handleGpuState = () => {
@@ -1393,9 +1400,12 @@ export default function Dashboard() {
 
                 {/* 3. Main Stats - Modern Integrated Panorama Strip Layout with Watermark Icons */}
                 <m.div variants={itemVariants} className="md:col-span-12 xl:col-span-12">
-                    <div 
+                    <Tilt3DCard
+                        disabled={gpuDisabled}
+                        intensity={3.5}
+                        scale={1.004}
                         className={cn(
-                            "relative overflow-hidden rounded-[2.5rem] border border-[#8b6f47]/25 dark:border-white/10 shadow-[0_10px_35px_rgba(139,111,71,0.06)] dark:shadow-[0_10px_35px_rgba(0,0,0,0.3)] transition-all duration-300",
+                            "argon-3d-panel relative overflow-hidden rounded-[2.5rem] border border-[#8b6f47]/25 dark:border-white/10 shadow-[0_10px_35px_rgba(139,111,71,0.06)] dark:shadow-[0_10px_35px_rgba(0,0,0,0.3)] transition-all duration-300",
                             cardGlassEnabled ? "" : "bg-[#fbf9f4] dark:bg-[#1a1c18] shadow-lg"
                         )}
                         style={getCardGlassStyle()}
@@ -1628,14 +1638,14 @@ export default function Dashboard() {
                             )}
 
                         </div>
-                    </div>
+                    </Tilt3DCard>
                 </m.div>
 
                 {/* 5. Charts - Seamless Panorama Strip with Watermark Backgrounds */}
                 <m.div layout="position" variants={itemVariants} className="md:col-span-12 xl:col-span-12">
                     <div 
                         className={cn(
-                            "grid grid-cols-1 xl:grid-cols-12 overflow-hidden rounded-[2.5rem] border border-[#8b6f47]/25 dark:border-white/10 shadow-[0_10px_35px_rgba(139,111,71,0.06)] dark:shadow-[0_10px_35px_rgba(0,0,0,0.3)] divide-y xl:divide-y-0 xl:divide-x divide-[#8b6f47]/15 dark:divide-white/10 transition-all duration-300",
+                            "argon-3d-panel grid grid-cols-1 xl:grid-cols-12 overflow-hidden rounded-[2.5rem] border border-[#8b6f47]/25 dark:border-white/10 shadow-[0_10px_35px_rgba(139,111,71,0.06)] dark:shadow-[0_10px_35px_rgba(0,0,0,0.3)] divide-y xl:divide-y-0 xl:divide-x divide-[#8b6f47]/15 dark:divide-white/10 transition-all duration-300",
                             cardGlassEnabled ? "" : "bg-[#fbf9f4] dark:bg-[#1a1c18] shadow-lg"
                         )}
                         style={getCardGlassStyle()}
@@ -1651,13 +1661,46 @@ export default function Dashboard() {
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 relative z-10 gap-4">
                                 <div>
                                     <h3 className="text-base lg:text-lg font-black text-[#2d5016] dark:text-[#e8dfd5] uppercase tracking-tight flex items-center gap-2.5">
-                                        Hiệu suất 7 ngày qua
+                                        <span>Hiệu suất 7 ngày qua</span>
+                                        {chart3DMode && !gpuDisabled && (
+                                            <span className="px-2 py-0.5 text-[9px] font-black uppercase tracking-widest rounded-lg bg-gradient-to-r from-teal-600 to-emerald-600 text-white shadow-xs">
+                                                Argon 3D Stage
+                                            </span>
+                                        )}
                                     </h3>
                                     <p className="text-[10px] text-[#8b6f47] dark:text-[#d4a574] font-black tracking-wider mt-0.5 uppercase">
                                         {isAdmin ? 'Doanh thu & Lợi nhuận' : 'Doanh thu'}
                                     </p>
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex flex-wrap items-center gap-2">
+                                     {!gpuDisabled && (
+                                         <div className="flex items-center p-0.5 rounded-full bg-black/[0.05] dark:bg-white/[0.06] border border-[#8b6f47]/20 dark:border-white/10 mr-1">
+                                             <button
+                                                 type="button"
+                                                 onClick={() => toggleChart3DMode(true)}
+                                                 className={cn(
+                                                     "px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer",
+                                                     chart3DMode
+                                                         ? "bg-primary text-white shadow-xs"
+                                                         : "text-slate-600 dark:text-slate-400 hover:text-primary"
+                                                 )}
+                                             >
+                                                 Khối 3D
+                                             </button>
+                                             <button
+                                                 type="button"
+                                                 onClick={() => toggleChart3DMode(false)}
+                                                 className={cn(
+                                                     "px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer",
+                                                     !chart3DMode
+                                                         ? "bg-primary text-white shadow-xs"
+                                                         : "text-slate-600 dark:text-slate-400 hover:text-primary"
+                                                 )}
+                                             >
+                                                 2D Phẳng
+                                             </button>
+                                         </div>
+                                     )}
                                      <div className="flex items-center gap-1.5 px-3 py-1 bg-[#2d5016]/10 rounded-full border border-[#2d5016]/20 text-[9px] font-black uppercase tracking-wider text-[#2d5016] dark:text-emerald-400">
                                         <div className="w-1.5 h-1.5 rounded-full bg-[#2d5016] dark:bg-emerald-400" /> Doanh thu
                                      </div>
@@ -1669,8 +1712,18 @@ export default function Dashboard() {
                                 </div>
                             </div>
                             
-                            <div className="h-[290px] relative z-10">
-                                <Bar options={chartOptions('Hiệu suất tài chính')} data={chartData} />
+                            <div className="h-[310px] relative z-10">
+                                {chart3DMode && !gpuDisabled ? (
+                                    <Dashboard3DChart
+                                        labels={stats.chart?.labels || []}
+                                        revenueData={hideStats ? (stats.chart?.labels || []).map(() => 0) : (stats.chart?.data || [])}
+                                        profitData={hideStats ? (stats.chart?.labels || []).map(() => 0) : (stats.chart?.profit_data || [])}
+                                        showProfit={isAdmin}
+                                        isDark={typeof document !== 'undefined' && document.documentElement.classList.contains('dark')}
+                                    />
+                                ) : (
+                                    <Bar options={chartOptions('Hiệu suất tài chính')} data={chartData} />
+                                )}
                             </div>
                         </div>
 

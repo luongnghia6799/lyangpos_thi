@@ -4441,13 +4441,13 @@ function POSPage({
                       s = t.id === ne;
                     return <div key={t.id} className="group/tab relative shrink-0"><button onClick={n => {
                         n.stopPropagation(), es(t.id);
-                      }} style={r && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { backgroundColor: cartColorConfig.accentColor, borderColor: cartColorConfig.accentColor } : undefined} className={c("relative flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9px] font-black tracking-wide transition-all border cursor-pointer select-none shrink-0 h-[26px]", r ? "bg-[#2d5016] text-white border-[#2d5016] shadow-xs" : "bg-[#8b6f47]/[0.08] hover:bg-[#8b6f47]/15 text-[#8b6f47] dark:text-[#d4a574] border-[#8b6f47]/20 hover:border-[#2d5016]/40")}>{s && <span className="flex items-end gap-[1px] h-1.5 mr-0.5 pb-[1px] shrink-0"><span className={c("w-[1.2px] rounded-full", r ? "bg-white" : "bg-[#2d5016]")} style={{
+                      }} style={r && cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { backgroundColor: cartColorConfig.accentColor, borderColor: cartColorConfig.accentColor } : undefined} className={c("relative flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-[9.5px] font-black tracking-wide transition-all border cursor-pointer select-none shrink-0 h-[26px]", r ? "bg-primary text-white border-primary shadow-xs" : "bg-primary/[0.06] hover:bg-primary/15 text-primary dark:text-emerald-300 border-primary/20 hover:border-primary/40")}>{s && <span className="flex items-end gap-[1px] h-1.5 mr-0.5 pb-[1px] shrink-0"><span className={c("w-[1.2px] rounded-full", r ? "bg-white" : "bg-primary")} style={{
                           height: "40%"
-                        }} /><span className={c("w-[1.2px] rounded-full", r ? "bg-white" : "bg-[#2d5016]")} style={{
+                        }} /><span className={c("w-[1.2px] rounded-full", r ? "bg-white" : "bg-primary")} style={{
                           height: "70%"
-                        }} /><span className={c("w-[1.2px] rounded-full", r ? "bg-white" : "bg-[#2d5016]")} style={{
+                        }} /><span className={c("w-[1.2px] rounded-full", r ? "bg-white" : "bg-primary")} style={{
                           height: "100%"
-                        }} /></span>}<span>T{a + 1}</span>{fe.length > 1 && <span className={c("inline-flex items-center justify-center w-3 h-3 rounded-full ml-0.5 transition-colors text-[8px]", r ? "text-white/70 hover:text-white hover:bg-white/20" : "text-[#8b6f47]/60 hover:text-rose-500 hover:bg-rose-500/15")} onClick={n => {
+                        }} /></span>}<span>T{a + 1}</span>{fe.length > 1 && <span className={c("inline-flex items-center justify-center w-3 h-3 rounded-full ml-0.5 transition-colors text-[8px]", r ? "text-white/70 hover:text-white hover:bg-white/20" : "text-slate-400 hover:text-rose-500 hover:bg-rose-500/15")} onClick={n => {
                           n.stopPropagation(), Ei(t.id, n);
                         }}>✕</span>}</button>{!s && <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover/tab:opacity-100 pointer-events-none group-hover/tab:pointer-events-auto transition-opacity z-50"><button onClick={n => {
                           n.stopPropagation(), me(t.id);
@@ -4463,9 +4463,9 @@ function POSPage({
                         t.stopPropagation(), br(null), g === "remote_inspect" && f(fe[0]?.id || "tab1");
                       }}>✕</span></button></div>}</div>{fe.length < 5 && <button onClick={t => {
                     t.stopPropagation(), Pi();
-                  }} style={cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : undefined} className="w-[26px] h-[26px] flex items-center justify-center bg-[#8b6f47]/[0.08] hover:bg-[#8b6f47]/15 border border-dashed border-[#8b6f47]/30 hover:border-[#2d5016] rounded-lg text-[#8b6f47] dark:text-[#d4a574] hover:text-[#2d5016] transition-all text-[10px] font-black cursor-pointer shrink-0" title="Thêm tab đơn mới (Ctrl+N)">＋</button>}<div className="relative shrink-0"><button ref={bs} onClick={t => {
+                  }} style={cartColorConfig?.accentColor && cartColorConfig.accentColor !== 'default' ? { color: cartColorConfig.accentColor } : undefined} className="w-[26px] h-[26px] flex items-center justify-center bg-primary/[0.06] hover:bg-primary/15 border border-dashed border-primary/30 hover:border-primary rounded-lg text-primary dark:text-emerald-400 transition-all text-[10px] font-black cursor-pointer shrink-0" title="Thêm tab đơn mới (Ctrl+N)">＋</button>}<div className="relative shrink-0"><button ref={bs} onClick={t => {
                       t.stopPropagation(), Ma(!Zt);
-                    }} className={c("relative w-[26px] h-[26px] rounded-lg flex items-center justify-center transition-all cursor-pointer border shrink-0", Zt || q ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-600 dark:text-emerald-400 shadow-xs" : "bg-[#2d5016]/10 hover:bg-[#2d5016]/20 text-[#2d5016] dark:text-emerald-400 border-[#2d5016]/20 hover:border-[#2d5016]/40")} title={(() => {
+                    }} className={c("relative w-[26px] h-[26px] rounded-lg flex items-center justify-center transition-all cursor-pointer border shrink-0", Zt || q ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-600 dark:text-emerald-400 shadow-xs" : "bg-primary/10 hover:bg-primary/20 text-primary dark:text-emerald-400 border-primary/20 hover:border-primary/40")} title={(() => {
                       const t = new Set();
                       return `Giám sát máy trạm (${hr.filter(r => {
                         const s = r.ip_address || r.terminal_id;

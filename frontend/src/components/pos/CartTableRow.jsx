@@ -221,9 +221,9 @@ const CartTableRow = React.memo(function CartTableRow({
       id={`cart-row-${index}`}
       className={cn(
         "relative transition-[background-color,border-color] duration-150 group cursor-pointer last:border-b-0 transform-gpu",
-        cartColorConfig?.enableBorder !== false ? "border-b border-[#8b6f47]/10 dark:border-white/5" : "border-b-0",
+        cartColorConfig?.enableBorder !== false ? "border-b border-[var(--border-color)] dark:border-white/[0.06]" : "border-b-0",
         item.isPacked && "line-through decoration-emerald-500/30 opacity-60",
-        isSearchFocused ? "z-[3500] bg-primary/[0.08] dark:bg-emerald-500/[0.12]" : "z-[10] hover:z-[9999] group-hover:z-[9999] focus-within:z-[3000] bg-transparent hover:bg-[#2d5016]/[0.045] dark:hover:bg-[#d4a574]/[0.08]"
+        isSearchFocused ? "z-[3500] bg-primary/[0.08] dark:bg-emerald-500/[0.12]" : "z-[10] hover:z-[9999] group-hover:z-[9999] focus-within:z-[3000] bg-transparent hover:bg-primary/[0.045] dark:hover:bg-white/[0.04]"
       )}
       style={{
         borderColor: cartColorConfig?.enableBorder === false

@@ -23,6 +23,7 @@ import HeavyClock from '../widgets/HeavyClock';
 import { SidebarMascotLogo } from '../layout/Layout';
 import { useProductData } from '../../queries/useProductData';
 import { checkIsAdmin } from '../../lib/auth';
+import AiOrb3D from '../three/AiOrb3D';
 
 const getActiveMascot = () => {
     try {
@@ -5104,7 +5105,8 @@ Nếu không có sản phẩm phù hợp trong kho, xuất:
                                         </div>
                                     )}
 
-                                    {/* Đồng hồ bên POS (HeavyClock) thay thế toàn bộ cụm Avatar + Tiêu đề */}
+                                    {/* Đồng hồ bên POS (HeavyClock) + 3D AI Energy Orb */}
+                                    <AiOrb3D size={36} isThinking={isLoading || isSendingAnim} className="shrink-0" />
                                     <HeavyClock variant="purchase" />
                                 </div>
 
